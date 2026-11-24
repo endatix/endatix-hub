@@ -16,13 +16,11 @@ export type { PrepareFailure } from "./prepare-recovery";
 
 /** What the dialog acts on once this attempt finished. A success is not readiness while an earlier attempt still runs. */
 function settledOutcome(
-  key: string,
+  attempt: ReturnType<typeof startPrepare>,
   result: PrepareReportingExportResult,
-  error: PrepareFailure | null,
 ) {
-  if (error?.step === "refused") return { failure: error, returned: result };
-  const recorded = readPrepareFailure(key);
-  return { failure: recorded, returned: error ? result : (recorded ?? result) };
+  const latest = finishPrepare(attempt, Result.isError(result) ? result : null);
+  return readPrepareFailure(attempt.key) ?? (latest ? result : unconfirmed);
 }
 
 /** A thrown action leaves the outcome unknown, never Ready. */
@@ -47,11 +45,9 @@ export function usePrepareAttempt(formId: string) {
   async function prepare(fullRecompile: boolean) {
     const attempt = startPrepare(key);
     const result = await runPrepare(formId, fullRecompile);
-    const error = Result.isError(result) ? result : null;
-    if (!finishPrepare(attempt, error)) return unconfirmed;
-    const outcome = settledOutcome(key, result, error);
-    setFailure(outcome.failure);
-    return outcome.returned;
+    const outcome = settledOutcome(attempt, result);
+    setFailure(Result.isError(outcome) ? outcome : null);
+    return outcome;
   }
   const forgetRefusal = () => setFailure(withoutRefusal);
   return { failure, restoreFailure, prepare, forgetRefusal };

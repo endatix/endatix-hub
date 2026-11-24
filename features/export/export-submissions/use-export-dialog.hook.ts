@@ -16,7 +16,6 @@ import {
   catalogLocaleEnglishName,
 } from "@/lib/localization";
 import { Result } from "@/lib/result";
-import { DEFAULT_REPORTING_LOCALE } from "../export-url";
 import { GENERIC_EXPORT_FAILURE_MESSAGE } from "../export-error-message";
 import {
   clearCompletedAtRange,
@@ -72,7 +71,6 @@ export function useExportDialog({
   const { trackFeatureUsage } = useTrackEvent();
   const exportButtonRef = useRef<HTMLButtonElement>(null);
   const wasOpenRef = useRef(false);
-  const previousExportFormatIdRef = useRef<string | null>(null);
 
   const [phase, setPhase] = useState<ExportDialogPhase>("checking");
   const [includingIncomplete, setIncludingIncomplete] = useState(false);
@@ -97,9 +95,7 @@ export function useExportDialog({
   const [rangeErrors, setRangeErrors] =
     useState<ExportFilterRangeErrors>(EMPTY_RANGE_ERRORS);
   const [localeDirty, setLocaleDirty] = useState(false);
-  const [formLocales, setFormLocales] = useState<string[]>([
-    DEFAULT_REPORTING_LOCALE,
-  ]);
+  const [formLocales, setFormLocales] = useState<string[]>([]);
   const [readinessPassed, setReadinessPassed] = useState(false);
 
   const options = useMemo(
@@ -123,13 +119,14 @@ export function useExportDialog({
       })),
     [formLocales],
   );
-  const localeSelectValue = coerceLocaleToOptions(
-    filterDraft.locale,
-    localeSelectOptions,
-  );
+  const localeSelectValue = localeDirty
+    ? coerceLocaleToOptions(filterDraft.locale, localeSelectOptions)
+    : resolveDefaultLocale(formLocales, listFilters?.locale?.trim());
 
   const busy = isBusyPhase(phase) || isExporting;
   const controlsLocked = isControlsLocked(phase) || isExporting;
+  const retained =
+    open && phase === "error" && prepareFailure?.previousSchema === "retained";
 
   const listFiltersRef = useRef(listFilters);
   listFiltersRef.current = listFilters;
@@ -140,7 +137,7 @@ export function useExportDialog({
     result: Awaited<ReturnType<typeof listFormReportingLocalesAction>>,
   ): boolean => {
     const state = schemaReadiness(result);
-    setFormLocales(state.locales);
+    setFormLocales(Result.isSuccess(result) ? result.value : []);
     setReadinessPassed(state.phase === "ready");
     setInlineError(state.message);
     setPhase(state.phase);
@@ -213,7 +210,6 @@ export function useExportDialog({
       return;
     }
 
-    previousExportFormatIdRef.current = null;
     const currentOptions = optionsRef.current;
     const currentListFilters = listFiltersRef.current;
 
@@ -228,16 +224,14 @@ export function useExportDialog({
     setRebuildMode(false);
     setFullRecompile(false);
 
+    setFormLocales([]);
     if (restoreIncomplete()) return;
     let cancelled = false;
     void (async () => {
       setPhase("checking");
       setReadinessPassed(false);
-      setInlineError(null);
       const result = await listFormReportingLocalesAction(formId);
-      if (!cancelled) {
-        applyReadinessResult(result);
-      }
+      if (!cancelled) applyReadinessResult(result);
     })();
 
     return () => {
@@ -246,41 +240,15 @@ export function useExportDialog({
   }, [open, formId]);
 
   useEffect(() => {
-    if (!open || !showLocale || !selectedOption) {
-      return;
-    }
-
-    const formatChanged =
-      previousExportFormatIdRef.current !== selectedOption.exportFormatId;
-    if (formatChanged) {
-      previousExportFormatIdRef.current = selectedOption.exportFormatId;
-      setLocaleDirty(false);
-    }
-
-    setFilterDraft((current) => {
-      const optionsForFormat = formLocales.map((localeCode) => ({
-        value: localeCode,
-      }));
-
-      const nextLocale =
-        !formatChanged && localeDirty
-          ? coerceLocaleToOptions(current.locale, optionsForFormat)
-          : resolveDefaultLocale(formLocales, listFilters?.locale?.trim());
-
-      if (nextLocale === current.locale) {
-        return current;
-      }
-
-      return { ...current, locale: nextLocale };
+    if (!retained || formLocales.length) return;
+    let cancelled = false;
+    void listFormReportingLocalesAction(formId).then((result) => {
+      if (!cancelled && Result.isSuccess(result)) setFormLocales(result.value);
     });
-  }, [
-    open,
-    showLocale,
-    selectedOption,
-    formLocales,
-    listFilters?.locale,
-    localeDirty,
-  ]);
+    return () => {
+      cancelled = true;
+    };
+  }, [retained, formId, formLocales.length]);
 
   useEffect(() => {
     if (showsCompletedAtFields(filterDraft.collectionStatus)) {
@@ -327,8 +295,6 @@ export function useExportDialog({
   };
 
   const exportPermitted = readinessPassed && !rebuildMode;
-  const retained =
-    open && phase === "error" && prepareFailure?.previousSchema === "retained";
   const ranges = validateFilterDraft(filterDraft, {
     showRowFilters,
     showCompletedAt,
@@ -340,7 +306,9 @@ export function useExportDialog({
     locale: localeSelectValue,
   });
   const retainedSelection =
-    retained && !hasFilterRangeErrors(ranges)
+    retained &&
+    (!showLocale || formLocales.length > 0) &&
+    !hasFilterRangeErrors(ranges)
       ? retainedAttachmentSelection(formId, selectedOption, filters)
       : null;
   const refreshDrafts =
@@ -430,7 +398,10 @@ export function useExportDialog({
     fullRecompile,
     setFullRecompile,
     exportFormatId,
-    setExportFormatId,
+    setExportFormatId: (id) => {
+      setLocaleDirty(false);
+      setExportFormatId(id);
+    },
     options,
     selectedOption,
     showRowFilters,

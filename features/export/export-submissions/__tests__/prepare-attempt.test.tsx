@@ -94,6 +94,31 @@ it("keeps B's destructive partial result when A succeeds afterwards", async () =
   expect(restored()).toMatchObject(partial);
 });
 
+it.each(["failure first", "success first"])(
+  "only a rebuild started after a destructive failure can repair it (%s)",
+  async (order) => {
+    // Arrange
+    const fail = startAfterMount();
+    const succeed = startAfterMount();
+
+    // Act
+    if (order === "failure first") {
+      await fail(partial);
+      expect(await succeed(success)).toMatchObject(partial);
+    } else {
+      expect(await succeed(success)).not.toMatchObject(success);
+      await fail(partial);
+    }
+
+    // Assert
+    expect(restored()).toMatchObject(partial);
+    await startAfterMount()(refusal);
+    expect(restored()).toMatchObject(partial);
+    await startAfterMount()(success);
+    expect(restored()).toBeNull();
+  },
+);
+
 it("keeps A unconfirmed after B succeeds, then keeps A's destructive failure", async () => {
   // Arrange
   const finishA = startAfterMount();
@@ -154,12 +179,14 @@ it.each([success, retained, partial, refusal])(
     const reload = mounted();
 
     // Assert
-    expect(restored(reload)?.message).toMatch(/could not be confirmed/i);
+    if (late === partial) expect(restored(reload)).toMatchObject(partial);
+    else expect(restored(reload)?.message).toMatch(/could not be confirmed/i);
     b.resolve(success);
     await act(async () => {
       await startedB;
     });
-    expect(restored(reload)).toBeNull();
+    if (late === partial) expect(restored(reload)).toMatchObject(partial);
+    else expect(restored(reload)).toBeNull();
   },
 );
 

@@ -6,7 +6,7 @@ import {
   ExportSubmissionsDialog,
   type ExportSubmissionsDialogProps,
 } from "../ui/export-dialog";
-import { exportGroups } from "./export-dialog-fixture";
+import { exportGroups, preparedSchema, retainedConflict, stubAttachments, supportedLocales } from "./export-dialog-fixture";
 import { stubResizeObserver } from "@/test/stubs/resize-observer";
 import * as downloads from "@/lib/utils/files-download";
 
@@ -316,35 +316,15 @@ async function waitForReady() {
 
 /** Opens the panel, rebuilds, and lands on a retained-schema conflict. */
 async function openRetainedConflict() {
-  mockPrepareReportingExportAction.mockResolvedValue({
-    ...Result.error("The alias has conflicting meanings."),
-    step: "compile",
-    previousSchema: "retained",
-    traceId: "conflict-ref",
-  });
-  render(<ExportSubmissionsDialog {...createProps()} />);
+  mockPrepareReportingExportAction.mockResolvedValue(retainedConflict);
+  const view = render(<ExportSubmissionsDialog {...createProps()} />);
   await waitForReady();
   fireEvent.click(
     screen.getByRole("button", { name: /rebuild reporting data/i }),
   );
   fireEvent.click(screen.getByRole("button", { name: /prepare for export/i }));
   await screen.findByRole("button", { name: "Download with previous schema" });
-}
-
-/** Serves a complete attachment in the requested format; the save itself is stubbed. */
-function stubAttachments() {
-  const request = vi.fn().mockImplementation(async (url: string) => {
-    const json = url.includes("format=json");
-    return new Response(json ? "[]" : "a,b", {
-      headers: {
-        "Content-Type": json ? "application/json" : "text/csv",
-        "Content-Disposition": `attachment; filename="old.${json ? "json" : "csv"}"`,
-      },
-    });
-  });
-  vi.stubGlobal("fetch", request);
-  vi.spyOn(downloads, "initiateFileDownload").mockImplementation(() => {});
-  return request;
+  return view;
 }
 
 Element.prototype.scrollIntoView = vi.fn();
@@ -353,18 +333,8 @@ describe("ExportSubmissionsDialog", () => {
   beforeEach(() => {
     latestPanelProps = null;
     sessionStorage.clear();
-    mockListFormReportingLocalesAction.mockResolvedValue(
-      Result.success(["default", "es", "fr"]),
-    );
-    mockPrepareReportingExportAction.mockResolvedValue(
-      Result.success({
-        formDefinitionId: "1",
-        processed: 1,
-        skipped: 0,
-        failed: 0,
-        batches: 1,
-      }),
-    );
+    mockListFormReportingLocalesAction.mockResolvedValue(supportedLocales);
+    mockPrepareReportingExportAction.mockResolvedValue(preparedSchema);
     mockOnExport.mockResolvedValue({ succeeded: true });
     mockRefreshIncompleteSubmissionsAction.mockResolvedValue(
       Result.success({ kind: "refreshed", failed: 0, finished: true }),
@@ -990,6 +960,29 @@ describe("ExportSubmissionsDialog", () => {
     expect(vi.mocked(downloads.initiateFileDownload).mock.lastCall?.[1]).toBe(
       "old.json",
     );
+  });
+
+  it("waits for the restored schema's French locale before downloading the selected codebook", async () => {
+    // Arrange
+    (await openRetainedConflict()).unmount();
+    const locales = Promise.withResolvers<Result<string[]>>();
+    mockListFormReportingLocalesAction.mockReturnValueOnce(locales.promise);
+    const request = stubAttachments();
+    render(<ExportSubmissionsDialog {...createProps({ listFilters: { locale: "fr" } })} />);
+    fireEvent.change(screen.getByTestId("export-submissions-format"), {
+      target: { value: "cb-shoji" },
+    });
+    const download = () => screen.getByRole("button", { name: "Download with previous schema" });
+
+    // Act & Assert
+    fireEvent.click(download());
+    expect(request).not.toHaveBeenCalled();
+    locales.resolve(Result.success(["default", "fr"]));
+    await waitFor(() => expect((screen.getByTestId("export-submissions-locale") as HTMLSelectElement).value).toBe("fr"));
+    expect(screen.queryByText("Ready to export")).toBeNull();
+    fireEvent.click(download());
+    expect(request.mock.calls[0][0]).toContain("locale=fr");
+    await screen.findByText("Your download should start.");
   });
 
   it("hides Rebuild reporting data from a user who cannot edit forms", async () => {

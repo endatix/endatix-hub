@@ -1,4 +1,38 @@
 import type { TenantExportOptionGroup } from "../map-tenant-export-options";
+import { vi } from "vitest";
+import * as downloads from "@/lib/utils/files-download";
+import { Result } from "@/lib/result";
+
+export const supportedLocales = Result.success(["default", "es", "fr"]);
+export const preparedSchema = Result.success({
+  formDefinitionId: "1",
+  processed: 1,
+  skipped: 0,
+  failed: 0,
+  batches: 1,
+});
+export const retainedConflict = {
+  ...Result.error("The alias has conflicting meanings."),
+  step: "compile",
+  previousSchema: "retained",
+  traceId: "conflict-ref",
+};
+
+/** Serves a complete attachment in the requested format; the save itself is stubbed. */
+export function stubAttachments() {
+  const request = vi.fn().mockImplementation(async (url: string) => {
+    const json = !url.includes("format=csv");
+    return new Response(json ? "[]" : "a,b", {
+      headers: {
+        "Content-Type": json ? "application/json" : "text/csv",
+        "Content-Disposition": `attachment; filename="old.${json ? "json" : "csv"}"`,
+      },
+    });
+  });
+  vi.stubGlobal("fetch", request);
+  vi.spyOn(downloads, "initiateFileDownload").mockImplementation(() => {});
+  return request;
+}
 
 export const exportGroups: TenantExportOptionGroup[] = [
   {

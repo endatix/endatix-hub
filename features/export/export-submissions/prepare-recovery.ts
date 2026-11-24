@@ -26,7 +26,7 @@ const settledSchema = z.discriminatedUnion("state", [
 const pendingSchema = z.object({
   state: z.literal("pending"),
   owners: z.array(z.string()).min(1),
-  // Earlier owners a later attempt already settled past: their success cannot clear that result.
+  // These live attempts cannot establish repair of the settled result.
   superseded: z.array(z.string()).default([]),
   settled: settledSchema.nullable(),
 });
@@ -36,6 +36,24 @@ type Recovery = z.infer<typeof recoverySchema>;
 type Prior = Recovery | null;
 type Attempt = { key: string; owner: string };
 const memory = new Map<string, string>();
+const liveOwners = new Set<string>();
+
+function pendingFailure(record: Pending) {
+  const known = record.settled;
+  return known?.state === "failed" && !known.previousSchema
+    ? known
+    : { state: "failed" as const, message: unconfirmed.message };
+}
+
+function recoverInterrupted(record: Recovery): Recovery {
+  if (
+    record.state !== "pending" ||
+    record.owners.some((id) => liveOwners.has(id))
+  )
+    return record;
+  // Reload kept the tab's marker, but no promise can settle these owners now.
+  return pendingFailure(record);
+}
 
 function read(key: string): Prior {
   let raw = memory.get(key);
@@ -46,7 +64,7 @@ function read(key: string): Prior {
   }
   if (raw === undefined || raw === "null") return null;
   try {
-    return recoverySchema.parse(JSON.parse(raw));
+    return recoverInterrupted(recoverySchema.parse(JSON.parse(raw)));
   } catch {
     // A legacy "1" marker (or unreadable state) never establishes readiness.
     return { state: "failed", message: unconfirmed.message };
@@ -66,7 +84,7 @@ function write(key: string, record: Prior) {
 
 function failureOf(record: Prior): PrepareFailure | null {
   if (!record || record.state === "refused") return null;
-  if (record.state === "pending") return unconfirmed;
+  if (record.state === "pending") return failureOf(pendingFailure(record));
   return {
     ...unconfirmed,
     step: record.step,
@@ -83,6 +101,7 @@ export function readPrepareFailure(key: string) {
 export function startPrepare(key: string): Attempt {
   const attempt = { key, owner: crypto.randomUUID() };
   const prior = read(key);
+  liveOwners.add(attempt.owner);
   const pending =
     prior?.state === "pending"
       ? prior
@@ -122,9 +141,15 @@ function settle(
   index: number,
   failure: PrepareFailure | null,
 ): Pending["settled"] {
-  const supersededSuccess =
-    !failure && pending.superseded.includes(pending.owners[index]);
-  if (supersededSuccess) return pending.settled;
+  const known = pending.settled;
+  const retainedAfterFailure =
+    failure?.previousSchema === "retained" &&
+    known?.state === "failed" &&
+    !known.previousSchema;
+  if (
+    pending.superseded.includes(pending.owners[index]) &&
+    (!failure || retainedAfterFailure)
+  ) return known;
   return resolved(index === 0 ? pending.settled : pending, failure);
 }
 
@@ -137,10 +162,10 @@ function finishAt(
   failure: PrepareFailure | null,
 ): Prior {
   const owners = pending.owners.filter((_, position) => position !== index);
-  const earlier =
-    failure?.step === "refused" ? [] : pending.owners.slice(0, index);
-  const superseded = [...pending.superseded, ...earlier].filter((owner) =>
-    owners.includes(owner),
+  const superseded = pending.owners.filter(
+    (owner, position) =>
+      position !== index &&
+      (pending.superseded.includes(owner) || supersedes(position < index, failure)),
   );
   const settled = settle(pending, index, failure);
   return owners.length
@@ -148,11 +173,18 @@ function finishAt(
     : settled;
 }
 
+function supersedes(earlier: boolean, failure: PrepareFailure | null) {
+  if (failure?.step === "refused") return false;
+  // No success already in flight can prove it repaired a destructive failure.
+  return earlier || (failure !== null && !failure.previousSchema);
+}
+
 export function finishPrepare(
   attempt: Attempt,
   failure: PrepareFailure | null,
 ) {
   const current = read(attempt.key);
+  liveOwners.delete(attempt.owner);
   if (current?.state !== "pending") return false;
   const index = current.owners.indexOf(attempt.owner);
   if (index < 0) return false;
