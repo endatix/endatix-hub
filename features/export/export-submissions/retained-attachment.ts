@@ -6,7 +6,7 @@ import type { TenantExportOption } from "./map-tenant-export-options";
 import { FILE_KINDS } from "@/lib/file-kinds";
 import { getReportingExportWire } from "@/lib/endatix-api/reporting/reporting-export-wire";
 import { getFilenameFromContentDisposition } from "@/lib/utils/files-download";
-import { readExportErrorMessage } from "../export-error-message";
+import { readExportProblem, type ExportProblem } from "../export-error-message";
 
 export type AttachmentSelection = {
   url: string;
@@ -14,6 +14,14 @@ export type AttachmentSelection = {
   formatKey: string;
 };
 export type ReceivedAttachment = { filename: string; blob: Blob };
+/** The export refused the selection: its reason, support reference and whether no rows matched. */
+export class RetainedExportRefused extends Error {
+  readonly problem: ExportProblem;
+  constructor(problem: ExportProblem) {
+    super(problem.message);
+    this.problem = problem;
+  }
+}
 const INVALID_FILE =
   "The export did not return a complete file for this selection.";
 
@@ -56,7 +64,8 @@ export async function receiveRetainedAttachment(
     cache: "no-store",
     redirect: "error",
   });
-  if (!response.ok) throw new Error(await readExportErrorMessage(response));
+  if (!response.ok)
+    throw new RetainedExportRefused(await readExportProblem(response));
   if (!isSelectedAttachment(response, selection.formatKey))
     throw new Error(INVALID_FILE);
   return readAttachment(response, selection.filename);

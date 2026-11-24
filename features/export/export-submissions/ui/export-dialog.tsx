@@ -19,7 +19,6 @@ import { ExportDialogActions } from "./export-dialog-actions";
 import { ExportDialogFiltersForm } from "./export-dialog-filters-form";
 import { ExportDialogPrepareOptions } from "./export-dialog-prepare-options";
 import { ExportDialogStatusPanel } from "./export-dialog-status-panel";
-import { RetainedExportCheck } from "./retained-export-check";
 
 interface ExportSubmissionsDialogProps {
   open: boolean;
@@ -132,13 +131,6 @@ export function ExportSubmissionsDialog({
             />
           ) : null}
 
-          {dialog.retainedSelection && (
-            <RetainedExportCheck
-              key={dialog.retainedSelection.url}
-              selection={dialog.retainedSelection}
-            />
-          )}
-
           {dialog.showRebuildEntry && (
             <RebuildEntry
               disabled={dialog.busy}
@@ -152,6 +144,7 @@ export function ExportSubmissionsDialog({
           busy={dialog.busy}
           isExporting={isExporting}
           showPrepareCta={dialog.showPrepareCta}
+          prepareLabel={dialog.prepareLabel}
           showExportSubmit={dialog.showExportSubmit}
           showBackToExport={dialog.showBackToExport}
           canExport={Boolean(dialog.selectedOption)}

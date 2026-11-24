@@ -1,20 +1,24 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { expect, it, vi } from "vitest";
+import { beforeEach, expect, it, vi } from "vitest";
 import * as downloads from "@/lib/utils/files-download";
-import { RetainedExportCheck } from "../ui/retained-export-check";
+import { RetainedExportDownload } from "../ui/retained-export-download";
 
 const selection = {
   url: "/api/forms/7/export?exportFormatId=2&locale=fr",
   filename: "form.json",
   formatKey: "codebook",
 };
-const check = () =>
-  screen.getByRole("button", { name: "Check previous export" });
-const save = "Download using previous schema";
+const downloadButton = () =>
+  screen.getByRole("button", { name: "Download with previous schema" });
+let save: ReturnType<typeof vi.spyOn>;
 
-it("saves the received attachment without fetching again", async () => {
-  // Arrange
-  const blob = new Blob(['{"labels":["fr"]}']);
+beforeEach(() => {
+  save = vi
+    .spyOn(downloads, "initiateFileDownload")
+    .mockImplementation(() => {});
+});
+
+function attachment(blob: Blob) {
   const response = new Response("unused", {
     headers: {
       "Content-Type": "application/json",
@@ -22,35 +26,97 @@ it("saves the received attachment without fetching again", async () => {
     },
   });
   vi.spyOn(response, "blob").mockResolvedValue(blob);
-  const request = vi.fn().mockResolvedValue(response);
+  return response;
+}
+
+it("checks and saves the complete attachment in one click", async () => {
+  // Arrange
+  const blob = new Blob(['{"labels":["fr"]}']);
+  const request = vi.fn().mockResolvedValue(attachment(blob));
   vi.stubGlobal("fetch", request);
-  const download = vi
-    .spyOn(downloads, "initiateFileDownload")
-    .mockImplementation(() => {});
-  render(<RetainedExportCheck selection={selection} />);
+  render(<RetainedExportDownload selection={selection} />);
   expect(request).not.toHaveBeenCalled();
-  expect(screen.queryByRole("button", { name: save })).toBeNull();
 
   // Act
-  fireEvent.click(check());
-  fireEvent.click(await screen.findByRole("button", { name: save }));
+  fireEvent.click(downloadButton());
 
   // Assert
+  expect(
+    await screen.findByText(/labels\.json is in your browser/),
+  ).toBeDefined();
   expect(request).toHaveBeenCalledTimes(1);
   expect(request.mock.calls[0][0]).toBe(selection.url);
-  expect(download).toHaveBeenCalledWith(blob, "labels.json");
+  expect(save).toHaveBeenCalledWith(blob, "labels.json");
 });
 
-it("cancels an in-flight attachment when its selection is discarded", () => {
+it("shows the refusal's reason and support reference, never a bare failure", async () => {
+  // Arrange
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue(
+      Response.json(
+        {
+          error: "The export plan's locale is not on this form.",
+          traceId: "00-plan-ref",
+        },
+        { status: 400 },
+      ),
+    ),
+  );
+  render(<RetainedExportDownload selection={selection} />);
+
+  // Act
+  fireEvent.click(downloadButton());
+
+  // Assert
+  expect(
+    await screen.findByText("The previous export could not be downloaded"),
+  ).toBeDefined();
+  expect(
+    screen.getByText("The export plan's locale is not on this form."),
+  ).toBeDefined();
+  expect(
+    screen.getByRole("button", { name: "Copy support reference" }),
+  ).toBeDefined();
+  expect(save).not.toHaveBeenCalled();
+});
+
+it("says no completed submissions match instead of failing", async () => {
+  // Arrange
+  vi.stubGlobal(
+    "fetch",
+    vi
+      .fn()
+      .mockResolvedValue(
+        Response.json(
+          { error: "No completed submissions are available to export." },
+          { status: 400 },
+        ),
+      ),
+  );
+  render(<RetainedExportDownload selection={selection} />);
+
+  // Act
+  fireEvent.click(downloadButton());
+
+  // Assert
+  expect(
+    await screen.findByText(/No completed submissions match these filters/),
+  ).toBeDefined();
+  expect(screen.queryByText(/could not be downloaded/)).toBeNull();
+});
+
+it("cancels an in-flight attachment, and saves nothing, when its selection is discarded", () => {
   // Arrange
   const request = vi.fn().mockImplementation(() => new Promise(() => {}));
   vi.stubGlobal("fetch", request);
-  const view = render(<RetainedExportCheck selection={selection} />);
+  const view = render(<RetainedExportDownload selection={selection} />);
 
   // Act
-  fireEvent.click(check());
+  fireEvent.click(downloadButton());
   view.unmount();
 
   // Assert
   expect(request.mock.calls[0][1].signal.aborted).toBe(true);
+  expect(save).not.toHaveBeenCalled();
 });

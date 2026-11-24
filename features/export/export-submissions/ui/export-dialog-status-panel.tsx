@@ -3,17 +3,20 @@
 import { PanelSection } from "@/components/common/panel-section";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TruncatedId } from "@/components/common/truncated-id";
 import type { PrepareFailure } from "../use-prepare-attempt.hook";
+import type { AttachmentSelection } from "../retained-attachment";
 import { SCHEMA_NEEDS_PREPARE_MESSAGE } from "../../export-error-message";
 import {
   CheckCircle2,
+  CircleAlert,
   FileDown,
   ListFilter,
   TriangleAlert,
 } from "lucide-react";
 import type { ExportDialogPhase, PrepareOutcome } from "../export-dialog-phase";
 import type { IncompleteRefreshOutcome } from "../refresh-incomplete-submissions.action";
+import { RetainedExportDownload } from "./retained-export-download";
+import { SupportReference } from "./support-reference";
 
 const REBUILD_PREPARE_MESSAGE =
   "Updates the reporting schema and processes submissions that are missing from the reporting data.";
@@ -26,6 +29,7 @@ interface ExportDialogStatusPanelProps {
   prepareOutcome: PrepareOutcome | null;
   incompleteRefresh?: IncompleteRefreshOutcome | null;
   exportName?: string;
+  retainedSelection?: AttachmentSelection | null;
 }
 
 /** Extra sentence on the success strip. `partial` means some drafts may be missing. */
@@ -68,7 +72,12 @@ export function ExportDialogStatusPanel(
   const { phase, rebuildMode, inlineError, prepareOutcome, prepareFailure } =
     props;
   if (phase === "error" && prepareFailure)
-    return <PrepareFailureAlert failure={prepareFailure} />;
+    return (
+      <PrepareFailureAlert
+        failure={prepareFailure}
+        retainedSelection={props.retainedSelection ?? null}
+      />
+    );
   if (phase === "checking") {
     return <ExportDialogSkeleton />;
   }
@@ -97,37 +106,89 @@ export function ExportDialogStatusPanel(
 const failureTitles = {
   refused: "Preparation did not start",
   compile: "Schema compilation failed",
-  backfill: "Submission backfill failed",
+  backfill: "Rebuild failed during submission processing",
   unconfirmed: "Preparation could not be completed",
 };
+const RETAINED_TITLE = "Rebuild stopped: two questions map to the same column";
 
+const consequences = {
+  retained:
+    "Your previous reporting data was kept. Exports still use the previous schema.",
+  backfill:
+    "Some submissions are missing from reporting data. Exports are unavailable until a rebuild succeeds.",
+  other:
+    "Reporting data may be incomplete. Exports are unavailable until a rebuild succeeds.",
+};
+
+const isRetained = (failure: PrepareFailure) =>
+  failure.previousSchema === "retained";
+
+function failureTitle(failure: PrepareFailure) {
+  return isRetained(failure)
+    ? RETAINED_TITLE
+    : failureTitles[failure.step ?? "unconfirmed"];
+}
+
+/** What the failure means for the reader's data. A refusal changed nothing. */
+function failureConsequence(failure: PrepareFailure) {
+  if (failure.step === "refused") return null;
+  if (isRetained(failure)) return consequences.retained;
+  return failure.step === "backfill"
+    ? consequences.backfill
+    : consequences.other;
+}
+
+// The destructive variant colours the whole description; only the title and icon stay red.
+const QUIET_DESCRIPTION =
+  "*:data-[slot=alert-description]:text-muted-foreground";
+
+/** One card: what happened, what it means for the data, the reference, then what the reader can do. */
 function PrepareFailureAlert({
   failure,
-}: Readonly<{ failure: PrepareFailure }>) {
+  retainedSelection,
+}: Readonly<{
+  failure: PrepareFailure;
+  retainedSelection: AttachmentSelection | null;
+}>) {
+  const consequence = failureConsequence(failure);
   return (
-    <Alert variant="destructive">
-      <AlertTitle>{failureTitles[failure.step ?? "unconfirmed"]}</AlertTitle>
-      <AlertDescription>
+    <Alert variant="destructive" className={QUIET_DESCRIPTION}>
+      <CircleAlert />
+      <AlertTitle className="line-clamp-none">
+        {failureTitle(failure)}
+      </AlertTitle>
+      <AlertDescription className="gap-2">
         <p>{failure.message}</p>
-        {failure.previousSchema && (
-          <p>
-            Check the selected export against the retained schema before
-            downloading.
-          </p>
-        )}
+        {consequence && <p className="text-foreground">{consequence}</p>}
         <SupportReference traceId={failure.traceId} />
+        {consequence && (
+          <FailureRemedies failure={failure} selection={retainedSelection} />
+        )}
       </AlertDescription>
     </Alert>
   );
 }
 
-function SupportReference({ traceId }: Readonly<{ traceId?: string }>) {
-  if (!traceId) return null;
+function FailureRemedies({
+  failure,
+  selection,
+}: Readonly<{
+  failure: PrepareFailure;
+  selection: AttachmentSelection | null;
+}>) {
+  const retained = isRetained(failure);
   return (
-    <div>
-      Support reference{" "}
-      <TruncatedId id={traceId} copyLabel="Copy support reference" />
-    </div>
+    <section aria-label="What you can do" className="grid gap-2 pt-1">
+      <h3 className="font-medium text-foreground">What you can do</h3>
+      <p>
+        {retained
+          ? "Fix the question names, then rebuild."
+          : "Retry the rebuild, or run a full recompile."}
+      </p>
+      {retained && (
+        <RetainedExportDownload key={selection?.url} selection={selection} />
+      )}
+    </section>
   );
 }
 

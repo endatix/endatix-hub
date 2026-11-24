@@ -8,6 +8,7 @@ import {
 } from "../ui/export-dialog";
 import { exportGroups } from "./export-dialog-fixture";
 import { stubResizeObserver } from "@/test/stubs/resize-observer";
+import * as downloads from "@/lib/utils/files-download";
 
 const mockOnExport = vi.fn();
 const mockOnOpenChange = vi.fn();
@@ -847,13 +848,20 @@ describe("ExportSubmissionsDialog", () => {
       await screen.findByRole("button", { name: /prepare for export/i }),
     );
 
-    await screen.findByText("Submission backfill failed");
+    await screen.findByText("Rebuild failed during submission processing");
     rerender(<ExportSubmissionsDialog {...createProps({ open: false })} />);
     rerender(<ExportSubmissionsDialog {...createProps()} />);
     expect(
       await screen.findByText("4 processed, 0 skipped, 2 failed."),
     ).toBeDefined();
+    expect(
+      screen.getByText(/Some submissions are missing from reporting data/),
+    ).toBeDefined();
+    expect(screen.getByRole("button", { name: "Retry rebuild" })).toBeDefined();
     expect(screen.queryByRole("button", { name: /^export$/i })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: /prepare for export/i }),
+    ).toBeNull();
   });
 
   it("does not show prepare CTA in ready when schema is already compiled", async () => {
@@ -886,7 +894,9 @@ describe("ExportSubmissionsDialog", () => {
     fireEvent.click(
       screen.getByRole("button", { name: /prepare for export/i }),
     );
-    await screen.findByRole("button", { name: "Check previous export" });
+    await screen.findByRole("button", {
+      name: "Download with previous schema",
+    });
     fireEvent.submit(
       screen
         .getByRole("heading", { name: "Export submissions" })
@@ -895,13 +905,64 @@ describe("ExportSubmissionsDialog", () => {
 
     // Assert
     expect(
-      screen.queryByRole("button", {
-        name: /download using previous schema|^export$|back to export/i,
-      }),
+      screen.queryByRole("button", { name: /^export$|back to export/i }),
     ).toBeNull();
+    expect(
+      screen.getByText("Rebuild stopped: two questions map to the same column"),
+    ).toBeDefined();
+    expect(screen.getByRole("button", { name: "Rebuild again" })).toBeDefined();
     expect(mockOnExport).not.toHaveBeenCalled();
     expect(mockRefreshIncompleteSubmissionsAction).not.toHaveBeenCalled();
     expect(mockPrepareReportingExportAction).toHaveBeenCalledTimes(1);
+  });
+
+  it("discards a downloaded previous-schema file when the format changes", async () => {
+    // Arrange
+    mockPrepareReportingExportAction.mockResolvedValue({
+      ...Result.error("The alias has conflicting meanings."),
+      step: "compile",
+      previousSchema: "retained",
+      traceId: "conflict-ref",
+    });
+    const request = vi.fn().mockImplementation(async (url: string) => {
+      const json = url.includes("format=json");
+      return new Response(json ? "[]" : "a,b", {
+        headers: {
+          "Content-Type": json ? "application/json" : "text/csv",
+          "Content-Disposition": `attachment; filename="old.${json ? "json" : "csv"}"`,
+        },
+      });
+    });
+    vi.stubGlobal("fetch", request);
+    vi.spyOn(downloads, "initiateFileDownload").mockImplementation(() => {});
+    render(<ExportSubmissionsDialog {...createProps()} />);
+    await waitForReady();
+    fireEvent.click(
+      screen.getByRole("button", { name: /rebuild reporting data/i }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: /prepare for export/i }),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Download with previous schema",
+      }),
+    );
+    await screen.findByText(/old\.csv is in your browser/);
+
+    // Act
+    fireEvent.change(screen.getByTestId("export-submissions-format"), {
+      target: { value: "json-1" },
+    });
+
+    // Assert
+    expect(screen.queryByText(/old\.csv is in your browser/)).toBeNull();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Download with previous schema" }),
+    );
+    await screen.findByText(/old\.json is in your browser/);
+    expect(request).toHaveBeenCalledTimes(2);
+    expect(request.mock.calls[1][0]).toContain("format=json");
   });
 
   it("hides Rebuild reporting data from a user who cannot edit forms", async () => {
@@ -997,16 +1058,20 @@ describe("ExportSubmissionsDialog", () => {
     await waitFor(() => {
       expect(screen.getByText("Reporting service unavailable")).toBeDefined();
     });
-    expect(screen.getByText("Submission backfill failed")).toBeDefined();
+    expect(
+      screen.getByText("Rebuild failed during submission processing"),
+    ).toBeDefined();
     expect(
       screen.getByRole("button", { name: "Copy support reference" }),
     ).toBeDefined();
+    expect(screen.getByRole("button", { name: "Retry rebuild" })).toBeDefined();
+    fireEvent.click(screen.getByLabelText(/Full recompile/i));
     expect(
-      screen.getByRole("button", { name: /prepare for export/i }),
+      screen.getByRole("button", { name: "Run full recompile" }),
     ).toBeDefined();
     expect(
       screen.queryByRole("button", {
-        name: /back to export|using previous schema/i,
+        name: /back to export|previous schema|prepare for export/i,
       }),
     ).toBeNull();
     expect(screen.getByLabelText(/Full recompile/i)).toBeDefined();
