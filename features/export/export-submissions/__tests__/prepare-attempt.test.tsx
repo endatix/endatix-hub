@@ -55,9 +55,11 @@ function startAfterMount() {
   view.unmount();
   return async (outcome: PrepareReportingExportResult) => {
     deferred.resolve(outcome);
+    let returned: PrepareReportingExportResult | undefined;
     await act(async () => {
-      await running;
+      returned = await running;
     });
+    return returned;
   };
 }
 
@@ -105,6 +107,21 @@ it("keeps A unconfirmed after B succeeds, then keeps A's destructive failure", a
   // Assert
   expect(whileARuns?.message).toMatch(/could not be confirmed/i);
   expect(restored()).toMatchObject(partial);
+});
+
+it("B's success does not read as ready while an earlier A still runs", async () => {
+  // Arrange
+  const finishA = startAfterMount();
+  const finishB = startAfterMount();
+
+  // Act
+  const returned = await finishB(success);
+
+  // Assert
+  expect(returned).toMatchObject({
+    message: expect.stringMatching(/could not be confirmed/i),
+  });
+  await finishA(success);
 });
 
 it("an earlier success after a later success leaves readiness available", async () => {
