@@ -20,6 +20,7 @@ import type { PdfLocaleQuery } from "./pdf-locale";
 import { preparePdfModel } from "./prepare-pdf-model.use-case";
 import { SubmissionDetailsPdf } from "./submission-details-pdf";
 import { withPdfStyles } from "../theme/pdf-theme-context";
+import { loadMatrixFonts } from "./answers/matrix-print-bands";
 
 const TRACER = "pdf-export";
 const LOGGER_NAME = "pdf-export";
@@ -179,6 +180,7 @@ async function renderDocument(submission: Submission, model: Model, started: num
   const [identity] = await Promise.all([
     loadPdfIdentity(model, started),
     downscalePdfFileImages(model),
+    loadMatrixFonts(),
   ]);
   return withPdfStyles(submission.formDefinition, () =>
     pdf(

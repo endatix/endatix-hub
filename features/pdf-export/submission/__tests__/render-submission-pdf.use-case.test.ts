@@ -63,7 +63,7 @@ vi.mock("@react-pdf/renderer", () => ({
   View: () => null,
   Text: () => null,
   StyleSheet: { create: (s: unknown) => s },
-  Font: { register: vi.fn() },
+  Font: { register: vi.fn(), load: vi.fn() },
   Svg: () => null,
   Path: () => null,
 }));

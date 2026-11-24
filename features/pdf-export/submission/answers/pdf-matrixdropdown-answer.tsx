@@ -64,7 +64,7 @@ const PdfMatrixDropdownAnswer = ({
 }: Readonly<MatrixDropdownAnswerProps>) => {
   const tableData = buildMatrixDropdownTableData(question);
 
-  if (!tableData) {
+  if (!tableData)
     return (
       <View style={VIEWER_STYLES.answerContainer}>
         <Text style={VIEWER_STYLES.questionLabel}>
@@ -73,14 +73,13 @@ const PdfMatrixDropdownAnswer = ({
         <Text style={VIEWER_STYLES.answerText}>No Answer</Text>
       </View>
     );
-  }
-
   return (
     <View style={PDF_TABLE_STYLES.container}>
-      <Text style={VIEWER_STYLES.questionLabel}>
-        {pdfPlainText(question.title)}
-      </Text>
-      <PdfMatrixTable columns={tableData.columns} rows={tableData.rows} />
+      <PdfMatrixTable {...tableData}>
+        <Text style={VIEWER_STYLES.questionLabel}>
+          {pdfPlainText(question.title)}
+        </Text>
+      </PdfMatrixTable>
     </View>
   );
 };

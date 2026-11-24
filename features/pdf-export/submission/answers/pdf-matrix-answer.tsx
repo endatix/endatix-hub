@@ -13,7 +13,12 @@ interface MatrixAnswerPdfProps {
   question: QuestionMatrixModel;
 }
 
-const SELECTED_MARK = "✓";
+function selectedCells(columns: PdfMatrixTableColumn[], selected: string) {
+  const mark = columns.length === 6 ? "X" : "✓";
+  return Object.fromEntries(
+    columns.map(({ key }) => [key, key === selected ? mark : ""]),
+  );
+}
 
 export function buildMatrixAnswerTableData(
   question: QuestionMatrixModel,
@@ -40,15 +45,11 @@ export function buildMatrixAnswerTableData(
 
     const selectedKey = String(selected);
     const rowText = row.hasText ? row.text : `Row ${index + 1}`;
-    const cells: Record<string, string> = {};
-    columns.forEach((column) => {
-      cells[column.key] = column.key === selectedKey ? SELECTED_MARK : "";
-    });
 
     rows.push({
       key: String(row.value),
       label: pdfPlainText(rowText),
-      cells,
+      cells: selectedCells(columns, selectedKey),
     });
   });
 
@@ -65,11 +66,12 @@ const PdfMatrixAnswer = ({ question }: MatrixAnswerPdfProps) => {
 
   return (
     <View style={table.container}>
-      <Text style={table.caption}>
-        Answers for the &quot;{pdfPlainText(question.title)}
-        &quot; question
-      </Text>
-      <PdfMatrixTable columns={tableData.columns} rows={tableData.rows} />
+      <PdfMatrixTable {...tableData}>
+        <Text style={table.caption}>
+          Answers for the &quot;{pdfPlainText(question.title)}
+          &quot; question
+        </Text>
+      </PdfMatrixTable>
     </View>
   );
 };
