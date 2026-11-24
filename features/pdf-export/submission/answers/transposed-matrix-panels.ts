@@ -132,7 +132,7 @@ function panelRow(
 function fieldLabels(data: MatrixDropdownTableData, book: Notes) {
   const measure = measureSource(
     MATRIX_LABEL_COLUMN_WIDTH,
-    tableCell.fontFamily,
+    PDF_TABLE_STYLES.fieldLabel.fontFamily,
   );
   return data.rows.map((row) => {
     const block = measure(row.label);

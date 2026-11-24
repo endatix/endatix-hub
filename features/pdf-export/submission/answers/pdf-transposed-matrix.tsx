@@ -32,7 +32,7 @@ function PanelLine({ label, cells, entries, heading }: Readonly<Line>) {
     >
       {[label, ...cells].map((value, i) => (
         <Text key={i === 0 ? "field" : entries[i - 1].key}
-          style={[style, MATRIX_LINE_STYLE, fixedWidth(widths[i])]}>
+          style={[style, !heading && i === 0 ? table.fieldLabel : {}, MATRIX_LINE_STYLE, fixedWidth(widths[i])]}>
           {value}
         </Text>
       ))}
@@ -50,10 +50,10 @@ function FullWidthNote({ heading, source }: Readonly<MatrixNote>) {
     <View>
       <StartGridTogether presence={60} />
       <View style={{ marginTop: 8 }}>
-        <Text fixed style={table.caption}>
-          {heading}
+        <Text fixed style={table.noteHeading}>
+          Note {heading}
         </Text>
-        <Text style={[table.stackedRowCell, MATRIX_LINE_STYLE]}>
+        <Text style={table.noteText}>
           {body.text}
         </Text>
       </View>
@@ -66,7 +66,7 @@ function panelBands(panel: Panel) {
   return panel.bands.map((band) => (
     <View wrap={false} key={band[0].key} style={table.table}>
       <PanelLine
-        label=""
+        label="Field"
         cells={panel.entries.map((entry) => entry.title)}
         entries={panel.entries}
         heading
@@ -78,13 +78,14 @@ function panelBands(panel: Panel) {
   ));
 }
 
-function PanelGrid({panel, caption}: {readonly panel: Panel; readonly caption: string}) {
+function PanelGrid({panel, caption, group}: {readonly panel: Panel; readonly caption: string; readonly group?: string}) {
   const { table } = currentPdfStyles();
   const [first, ...rest] = panelBands(panel);
   return (
     <>
       <View>
         <StartGridTogether />
+        {group && <Text style={table.groupNumber}>{group}</Text>}
         <Text style={table.caption}>{caption}</Text>
         {first}
       </View>
@@ -101,9 +102,9 @@ export function PdfTransposedMatrix({
   readonly caption: string;
 }) {
   const panels = transposedMatrixPanels(data, PDF_ANSWER_WIDTH);
-  return panels.map((panel) => (
+  return panels.map((panel, index) => (
     <View key={panel.entries[0].key}>
-      <PanelGrid panel={panel} caption={caption} />
+      <PanelGrid panel={panel} caption={caption} group={panels.length > 1 ? `Group ${index + 1} of ${panels.length}` : undefined} />
       {panel.notes.map((note) => (
         <FullWidthNote key={note.heading} {...note} />
       ))}

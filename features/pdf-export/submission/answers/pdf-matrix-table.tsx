@@ -72,12 +72,13 @@ interface GridLineProps {
 function GridLine({ label = " ", cells, width, header }: Readonly<GridLineProps>) {
   const { table } = currentPdfStyles();
   const dataStyle = cellStyle(width, header);
+  const { backgroundColor, color } = table.fieldLabel;
   return (
     <View
       style={header ? [table.tableRow, table.tableHeader] : table.tableRow}
       wrap={false}
     >
-      <View style={cellStyle(MATRIX_LABEL_COLUMN_WIDTH, header)}>
+      <View style={[cellStyle(MATRIX_LABEL_COLUMN_WIDTH, header), header ? {} : { backgroundColor, color }]}>
         <Text>{label}</Text>
       </View>
       {cells.map(({ key, title }) => (

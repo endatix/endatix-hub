@@ -69,7 +69,7 @@ it("keeps a full-width note with its identifiers on every page and its payload o
     markers,
   );
   for (const page of notePages)
-    expect(page).toContain("[1] · Row 7 · Observation");
+    expect(page).toContain("Note [1] · Row 7 · Observation");
   expect(pages.flat().filter((line) => line === "[1]")).toHaveLength(1);
   expect(
     pages.flat().filter((line) => line === "Observation").length,
