@@ -13,7 +13,7 @@ interface MatrixAnswerPdfProps {
   question: QuestionMatrixModel;
 }
 
-const SELECTED_MARK = "X";
+const SELECTED_MARK = "✓";
 
 export function buildMatrixAnswerTableData(
   question: QuestionMatrixModel,

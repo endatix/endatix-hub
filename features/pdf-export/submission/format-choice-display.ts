@@ -1,24 +1,6 @@
 import type { ItemValue, Question, QuestionMatrixModel } from "survey-core";
 import { pdfPlainText } from "@/lib/utils/pdf-plain-text";
 
-function displaysValue(label: string, value: string) {
-  // Only suppress an integer in plain words. Signs, decimals, ranges and other
-  // numeric notation can change its meaning; keeping the stored code is safer.
-  if (/\p{N}/u.test(value)) {
-    const words = label.split(/\s+/u);
-    return (
-      /^\d+$/.test(value) &&
-      words.includes(value) &&
-      words.every((word) => word === value || /^[\p{L}\p{M}]+$/u.test(word))
-    );
-  }
-  return (
-    label.includes(`(${value})`) ||
-    (label.startsWith(`${value} (`) && label.endsWith(")")) ||
-    (/^[A-Z]{2,}$/.test(value) && label === `${value}s`)
-  );
-}
-
 /**
  * Formats a stored choice value with its resolved label for PDF export.
  * When label differs from value (e.g. data lists), shows both: "United States (us)".
@@ -27,16 +9,17 @@ export function formatChoiceDisplay(
   value: string | number | boolean | null | undefined,
   label?: string | null,
 ): string {
-  if (value === null || value === undefined || value === "") return "";
+  if (value === null || value === undefined || value === "") {
+    return "";
+  }
 
   const valueStr = pdfPlainText(value);
   const labelStr = pdfPlainText(label?.trim());
-  if (!labelStr) return valueStr;
-  if (!valueStr || labelStr === valueStr) return labelStr;
+  if (!labelStr || labelStr === valueStr) {
+    return valueStr;
+  }
 
-  return displaysValue(labelStr, valueStr)
-    ? labelStr
-    : `${labelStr} (${valueStr})`;
+  return `${labelStr} (${valueStr})`;
 }
 
 export function resolveItemValueLabel(
