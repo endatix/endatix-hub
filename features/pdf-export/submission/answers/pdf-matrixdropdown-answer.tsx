@@ -69,7 +69,8 @@ function readMatrixPages(question: MatrixQuestion) {
     if (question.pageIndex !== current) question.pageIndex = current;
   }
   const fields = question.columns.filter(field => fieldNames.has(field.name));
-  return { fields, entries: entries.sort((a, b) => a.ordinal - b.ordinal) };
+  entries.sort((a, b) => a.ordinal - b.ordinal);
+  return { fields, entries };
 }
 
 function transposedTable(question: MatrixQuestion) {
