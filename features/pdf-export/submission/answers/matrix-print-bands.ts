@@ -79,17 +79,17 @@ interface TextBlock {
 function measureSource(width: number, family: string) {
   const measure = typesetter(width, family);
   const available = width - CELL_EDGES;
-  const withinWidth = (line: { xAdvance?: number }) =>
-    (line.xAdvance ?? 0) <= available;
+  const withinWidth = (lines: ReturnType<typeof measure>) =>
+    lines.every(line => (line.xAdvance ?? 0) <= available);
   const fits = (word: string) => {
     const lines = measure(word);
-    return lines.length === 1 && lines.every(withinWidth);
+    return lines.length === 1 && withinWidth(lines);
   };
   return (source: string): TextBlock => {
     const lines = measure(source);
-    if (lines.every(withinWidth)) return { text: source, lines: lines.length };
+    if (withinWidth(lines)) return { text: source, lines: lines.length };
     const text = source.replace(/\S+/gu, (word) =>
-      measure(word).every(withinWidth)
+      withinWidth(measure(word))
         ? word
         : breakWideToken(word, fits).join("\n"),
     );
