@@ -16,8 +16,8 @@ vi.mock("../read-pack", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../read-pack")>();
   return {
     ...actual,
-    readBrandPack: (dir: string) => {
-      const loaded = actual.readBrandPack(dir);
+    readBrandPack: async (dir: string) => {
+      const loaded = await actual.readBrandPack(dir);
       const after = readHook.after;
       readHook.after = null;
       after?.();
@@ -321,7 +321,7 @@ describe("assertBrandPackAtStartup", () => {
     const run = () => assertBrandPackAtStartup();
 
     // Assert
-    expect(run).toThrow(/version/);
+    await expect(run()).rejects.toThrow(/version/);
   });
 
   it("throws when PostHog decides the flag, which is unknown at start", async () => {
@@ -336,7 +336,7 @@ describe("assertBrandPackAtStartup", () => {
     const run = () => assertBrandPackAtStartup();
 
     // Assert
-    expect(run).toThrow(/version/);
+    await expect(run()).rejects.toThrow(/version/);
   });
 
   it("starts and reports once when the flag is off, so the pack is ignored", async () => {
@@ -350,7 +350,7 @@ describe("assertBrandPackAtStartup", () => {
     const run = () => assertBrandPackAtStartup();
 
     // Assert
-    expect(run).not.toThrow();
+    await expect(run()).resolves.toBeUndefined();
     expect(telemetry.error).toHaveBeenCalledTimes(1);
     expect(telemetry.error.mock.calls[0][1].message).toContain("version");
   });
@@ -366,6 +366,6 @@ describe("assertBrandPackAtStartup", () => {
     const run = () => assertBrandPackAtStartup();
 
     // Assert
-    expect(run).not.toThrow();
+    await expect(run()).resolves.toBeUndefined();
   });
 });

@@ -43,6 +43,7 @@ export {
   type UploadUrlDescriptor,
 } from "./infrastructure/core";
 export * from "./types";
+export { parseStorageObjectUrl } from "./utils";
 export { AssetStorageProvider } from "./ui/asset-storage.provider";
 export {
   addViewTokensToModelUseCase,

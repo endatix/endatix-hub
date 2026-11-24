@@ -4,7 +4,7 @@
  * `scripts/brand-pack.mjs` bundles this file.
  */
 import { createHash, type Hash } from "node:crypto";
-import { readFileSync, realpathSync, statSync } from "node:fs";
+import { readFile, realpath, stat } from "node:fs/promises";
 import path from "node:path";
 import {
   formatBrandPackIssues,
@@ -43,15 +43,15 @@ export interface LoadedBrandPack {
   readonly files: ReadonlyMap<string, string>;
 }
 
-export function readBrandPack(dir: string): LoadedBrandPack {
-  const root = resolveDir(dir);
-  const raw = readBrandFile(root);
+export async function readBrandPack(dir: string): Promise<LoadedBrandPack> {
+  const root = await resolveDir(dir);
+  const raw = await readBrandFile(root);
   const parsed = parseBrandPack(parseJson(root, raw));
   if (!parsed.success)
     throw new BrandPackError(root, formatBrandPackIssues(parsed.error));
 
   const hash = createHash("sha256").update(raw);
-  const files = locateFiles(root, parsed.data, hash);
+  const files = await locateFiles(root, parsed.data, hash);
   return {
     dir: root,
     pack: parsed.data,
@@ -64,18 +64,18 @@ export function readBrandPack(dir: string): LoadedBrandPack {
  * A pack file's real path, checked again each time: a ConfigMap update swaps
  * the folder a file resolves to, so a path resolved earlier may be gone.
  */
-export function locatePackFile(
+export async function locatePackFile(
   dir: string,
   file: string,
-): string | { problem: string } {
+): Promise<string | { problem: string }> {
   const problem = nameProblem(file);
   if (problem) return { problem };
   let real: string;
   try {
-    real = realpathSync(path.join(dir, file));
+    real = await realpath(path.join(dir, file));
     if (!real.startsWith(dir + path.sep))
       return { problem: "is outside the pack folder" };
-    if (!statSync(real).isFile()) return { problem: "is not a file" };
+    if (!(await stat(real)).isFile()) return { problem: "is not a file" };
   } catch {
     // Missing, or gone between realpath and stat (a ConfigMap update in flight).
     return { problem: "not found" };
@@ -92,22 +92,23 @@ function nameProblem(file: string): string | null {
 }
 
 /** Each named file's type; each file's bytes feed the fingerprint. */
-function locateFiles(
+async function locateFiles(
   root: string,
   pack: BrandPack,
   hash: Hash,
-): Map<string, string> {
+): Promise<Map<string, string>> {
   const files = new Map<string, string>();
   const problems: string[] = [];
-  for (const { field, file } of packFiles(pack)) {
-    const bytes = readPackFile(root, file);
+  // fromAsync awaits each mapper: hash in field order without retaining asset buffers.
+  await Array.fromAsync(packFiles(pack), async ({ field, file }) => {
+    const bytes = await readPackFile(root, file);
     if (typeof bytes === "string") {
       problems.push(`${field}: ${file} ${bytes}`);
     } else {
       files.set(file, PACK_FILE_TYPES[path.extname(file).toLowerCase()]);
       hash.update(`${file}:${bytes.length}:`).update(bytes);
     }
-  }
+  });
   if (problems.length > 0) throw new BrandPackError(root, problems.join("\n"));
   return files;
 }
@@ -124,17 +125,17 @@ export function packFiles(pack: BrandPack): { field: string; file: string }[] {
   return named.flatMap(([field, file]) => (file ? [{ field, file }] : []));
 }
 
-function resolveDir(dir: string): string {
+async function resolveDir(dir: string): Promise<string> {
   try {
-    return realpathSync(dir);
+    return await realpath(dir);
   } catch {
     throw new BrandPackError(dir, "(root): the folder does not exist");
   }
 }
 
-function readBrandFile(root: string): string {
+async function readBrandFile(root: string): Promise<string> {
   try {
-    return readFileSync(path.join(root, BRAND_FILE), "utf8");
+    return await readFile(path.join(root, BRAND_FILE), "utf8");
   } catch {
     throw new BrandPackError(root, `(root): ${BRAND_FILE} not found`);
   }
@@ -153,11 +154,14 @@ function parseJson(root: string, raw: string): unknown {
 }
 
 /** The file's bytes, or why it cannot be served. */
-function readPackFile(root: string, file: string): Buffer | string {
-  const located = locatePackFile(root, file);
+async function readPackFile(
+  root: string,
+  file: string,
+): Promise<Buffer | string> {
+  const located = await locatePackFile(root, file);
   if (typeof located !== "string") return located.problem;
   try {
-    return readFileSync(located);
+    return await readFile(located);
   } catch {
     return "not found";
   }

@@ -22,7 +22,7 @@ export async function resolveDeploymentBrand(): Promise<DeploymentBrand> {
   if (!(await whiteLabelingFlag()))
     return { brand: BUILT_IN_BRAND, pack: null };
 
-  const pack = currentDeploymentPack();
+  const pack = await currentDeploymentPack();
   if (pack === null) return { brand: BUILT_IN_BRAND, pack: null };
 
   if (memo?.fingerprint !== pack.fingerprint) {

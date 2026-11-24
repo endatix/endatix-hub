@@ -75,27 +75,43 @@ async function downscaleFile(file: IFile): Promise<IFile> {
   }
 }
 
-async function loadImageBytes(source: string): Promise<Buffer | null> {
-  if (source.startsWith("data:image/")) {
-    const comma = source.indexOf(",");
-    if (comma < 0) {
-      return null;
-    }
-    const payload = source.slice(comma + 1);
-    // Base64 expands ~4/3; reject before allocating the decoded buffer.
-    if (Math.floor((payload.length * 3) / 4) > MAX_SOURCE_BYTES) {
-      return null;
-    }
-    const bytes = Buffer.from(payload, "base64");
-    return bytes.length > MAX_SOURCE_BYTES ? null : bytes;
-  }
+function inlineImageBytes(source: string): Buffer | null {
+  const comma = source.indexOf(",");
+  if (comma < 0) return null;
+  const header = source.slice(0, comma);
+  const payload = source.slice(comma + 1);
+  if (/;base64$/i.test(header)) return base64ImageBytes(payload);
+  if (!/^data:image\/svg\+xml(?:;|$)/i.test(header)) return null;
+  return svgTextBytes(payload);
+}
 
-  if (!source.startsWith("http://") && !source.startsWith("https://")) {
+function svgTextBytes(payload: string): Buffer | null {
+  // A percent escape takes three characters per byte; bound the decode as well as its result.
+  if (payload.length > 3 * MAX_SOURCE_BYTES) return null;
+  try {
+    const xml = decodeURIComponent(payload);
+    return Buffer.byteLength(xml, "utf8") <= MAX_SOURCE_BYTES ? Buffer.from(xml, "utf8") : null;
+  } catch {
     return null;
   }
+}
+
+function base64ImageBytes(payload: string): Buffer | null {
+  // Base64 expands ~4/3; reject before allocating the decoded buffer.
+  if (Math.floor((payload.length * 3) / 4) > MAX_SOURCE_BYTES) {
+    return null;
+  }
+  const bytes = Buffer.from(payload, "base64");
+  return bytes.length > MAX_SOURCE_BYTES ? null : bytes;
+}
+
+export async function loadImageBytes(source: string, options?: RequestInit): Promise<Buffer | null> {
+  if (source.startsWith("data:image/")) return inlineImageBytes(source);
+  if (!source.startsWith("http://") && !source.startsWith("https://")) return null;
 
   const response = await fetch(source, {
-    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    ...options,
+    signal: options?.signal ?? AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
   if (!response.ok) {
     return null;

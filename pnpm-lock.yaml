@@ -122,6 +122,9 @@ importers:
       cmdk:
         specifier: 1.1.1
         version: 1.1.1(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      decode-ico:
+        specifier: ^0.4.1
+        version: 0.4.1
       entities:
         specifier: ^9
         version: 9.0.0
@@ -628,6 +631,9 @@ packages:
 
   '@cacheable/utils@2.5.0':
     resolution: {integrity: sha512-buipgOVDkkPXNR5+xBpDw7Zk2n1EvU7qBJCNUcL7rhQ//kfpOXPAvQ511Os0vpLYJ1pZnvudNytkQt2hst3wqA==}
+
+  '@canvas/image-data@1.1.0':
+    resolution: {integrity: sha512-QdObRRjRbcXGmM1tmJ+MrHcaz1MftF2+W7YI+MsphnsCrmtyfS0d5qJbk0MeSbUeyM/jCb0hmnkXPsy026L7dA==}
 
   '@dnd-kit/accessibility@3.1.1':
     resolution: {integrity: sha512-2P+YgaXF+gRsIihwwY1gCsQSYnu9Zyj2py8kY5fFvUM1qm2WA2u639R6YNVfU4GWr+ZM5mqEsfHZZLoRONbemw==}
@@ -3572,6 +3578,14 @@ packages:
   decimal.js@10.6.0:
     resolution: {integrity: sha512-YpgQiITW3JXGntzdUmyUR1V812Hn8T1YVXhCu+wO3OpS4eU9l4YdD3qjyiKdV6mvV29zapkMeD390UVEf2lkUg==}
 
+  decode-bmp@0.2.1:
+    resolution: {integrity: sha512-NiOaGe+GN0KJqi2STf24hfMkFitDUaIoUU3eKvP/wAbLe8o6FuW5n/x7MHPR0HKvBokp6MQY/j7w8lewEeVCIA==}
+    engines: {node: '>=8.6.0'}
+
+  decode-ico@0.4.1:
+    resolution: {integrity: sha512-69NZfbKIzux1vBOd31al3XnMnH+2mqDhEgLdpygErm4d60N+UwA5Sq5WFjmEDQzumgB9fElojGwWG0vybVfFmA==}
+    engines: {node: '>=8.6'}
+
   dedent@1.7.2:
     resolution: {integrity: sha512-WzMx3mW98SN+zn3hgemf4OzdmyNhhhKz5Ay0pUfQiMQ3e1g+xmTJWp/pKdwKVXhdSkAEGIIzqeuWrL3mV/AXbA==}
     peerDependencies:
@@ -5834,6 +5848,9 @@ packages:
     resolution: {integrity: sha512-3kZ8wQQ/k5DrChD4X4FVvr2D7E5uoRgAqkPyLpSCGUvqOvqu+JEdr3mwMUaVWb+vMHZaKhF5fp2PBigKsui7hA==}
     hasBin: true
 
+  to-data-view@1.1.0:
+    resolution: {integrity: sha512-1eAdufMg6mwgmlojAx3QeMnzB/BTVp7Tbndi3U7ftcT2zCZadjxkkmLmd97zmaxWi+sgGcgWrokmpEoy0Dn0vQ==}
+
   to-regex-range@5.0.1:
     resolution: {integrity: sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ==}
     engines: {node: '>=8.0'}
@@ -6779,6 +6796,8 @@ snapshots:
     dependencies:
       hashery: 1.5.1
       keyv: 5.6.0
+
+  '@canvas/image-data@1.1.0': {}
 
   '@dnd-kit/accessibility@3.1.1(react@19.3.1)':
     dependencies:
@@ -9699,6 +9718,17 @@ snapshots:
 
   decimal.js@10.6.0: {}
 
+  decode-bmp@0.2.1:
+    dependencies:
+      '@canvas/image-data': 1.1.0
+      to-data-view: 1.1.0
+
+  decode-ico@0.4.1:
+    dependencies:
+      '@canvas/image-data': 1.1.0
+      decode-bmp: 0.2.1
+      to-data-view: 1.1.0
+
   dedent@1.7.2: {}
 
   deep-is@0.1.4: {}
@@ -12137,6 +12167,8 @@ snapshots:
   tldts@7.4.9:
     dependencies:
       tldts-core: 7.4.9
+
+  to-data-view@1.1.0: {}
 
   to-regex-range@5.0.1:
     dependencies:

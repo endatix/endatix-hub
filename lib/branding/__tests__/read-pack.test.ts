@@ -40,9 +40,9 @@ function touch(...files: string[]) {
   for (const file of files) writeFileSync(path.join(dir, file), "<svg/>");
 }
 
-function errorOf(run: () => unknown): BrandPackError {
+async function errorOf(run: () => Promise<unknown>): Promise<BrandPackError> {
   try {
-    run();
+    await run();
   } catch (error) {
     if (error instanceof BrandPackError) return error;
     throw error;
@@ -51,23 +51,24 @@ function errorOf(run: () => unknown): BrandPackError {
 }
 
 describe("readBrandPack", () => {
-  it("reads a valid pack and fingerprints it", () => {
+  it("reads a valid pack and fingerprints it", async () => {
     // Arrange
     useFixture("valid-full");
-    touch("logo-light.svg", "logo-dark.svg", "icon.svg", "og.jpg");
+    touch("og.jpg", "icon.svg", "logo-dark.svg", "logo-light.svg");
 
     // Act
-    const loaded = readBrandPack(dir);
+    const loaded = await readBrandPack(dir);
 
     // Assert
     expect(loaded.pack.name).toBe("Example Forms");
-    expect(loaded.fingerprint).toMatch(/^[0-9a-f]{12}$/);
+    // Existing fingerprint of this fixture in field order, not file creation order.
+    expect(loaded.fingerprint).toBe("79d2ded418f7");
   });
 
   it.each([
     ["an invalid one", { fromAddress: "not-an-email" }],
     ["one that is not an object", "noreply@example.com"],
-  ])("ignores an email section, %s, as the API does", (_, email) => {
+  ])("ignores an email section, %s, as the API does", async (_, email) => {
     // Arrange: packs written before the sender moved to the API's email settings.
     writeFileSync(
       path.join(dir, "brand.json"),
@@ -75,29 +76,29 @@ describe("readBrandPack", () => {
     );
 
     // Act
-    const loaded = readBrandPack(dir);
+    const loaded = await readBrandPack(dir);
 
     // Assert
     expect(loaded.pack).toEqual({ version: 1, name: "Example Forms" });
   });
 
-  it("still rejects another unknown key", () => {
+  it("still rejects another unknown key", async () => {
     // Arrange
     useFixture("invalid-unknown-key");
 
     // Act
-    const error = errorOf(() => readBrandPack(dir));
+    const error = await errorOf(() => readBrandPack(dir));
 
     // Assert
     expect(error.message).toContain("fonts");
   });
 
-  it("names the field path of a schema failure", () => {
+  it("names the field path of a schema failure", async () => {
     // Arrange
     useFixture("invalid-path-traversal");
 
     // Act
-    const error = errorOf(() => readBrandPack(dir));
+    const error = await errorOf(() => readBrandPack(dir));
 
     // Assert
     expect(error.message).toContain(
@@ -105,21 +106,21 @@ describe("readBrandPack", () => {
     );
   });
 
-  it("names the field whose file is missing", () => {
+  it("reports every missing file in field order", async () => {
     // Arrange
     useFixture("valid-full");
-    touch("logo-light.svg", "icon.svg", "og.jpg");
+    touch("logo-light.svg", "og.jpg");
 
     // Act
-    const error = errorOf(() => readBrandPack(dir));
+    const error = await errorOf(() => readBrandPack(dir));
 
     // Assert
     expect(error.message).toContain(
-      "assets.logo.dark: logo-dark.svg not found",
+      "assets.logo.dark: logo-dark.svg not found\nassets.icon: icon.svg not found",
     );
   });
 
-  it("refuses a file that links outside the pack", () => {
+  it("refuses a file that links outside the pack", async () => {
     // Arrange
     writeFileSync(
       path.join(dir, "brand.json"),
@@ -134,7 +135,7 @@ describe("readBrandPack", () => {
     symlinkSync(path.join(outside, "secret.svg"), path.join(dir, "icon.svg"));
 
     // Act
-    const error = errorOf(() => readBrandPack(dir));
+    const error = await errorOf(() => readBrandPack(dir));
 
     // Assert
     expect(error.message).toContain(
@@ -149,7 +150,7 @@ describe("readBrandPack", () => {
     ["./icon.svg", "Use a file inside the pack folder"],
     ["img//icon.svg", "Use a file inside the pack folder"],
     [".hidden.svg", "Use a file inside the pack folder"],
-  ])("refuses %s, which the Hub could not serve", (file, problem) => {
+  ])("refuses %s, which the Hub could not serve", async (file, problem) => {
     // Arrange
     writeFileSync(
       path.join(dir, "brand.json"),
@@ -163,7 +164,7 @@ describe("readBrandPack", () => {
     touch("logo.gif", "icon", "icon.svg", "img/icon.svg");
 
     // Act
-    const error = errorOf(() => readBrandPack(dir));
+    const error = await errorOf(() => readBrandPack(dir));
 
     // Assert
     expect(error.message).toMatch(
@@ -171,7 +172,7 @@ describe("readBrandPack", () => {
     );
   });
 
-  it("changes the fingerprint when only a named file changes", () => {
+  it("changes the fingerprint when only a named file changes", async () => {
     // Arrange
     writeFileSync(
       path.join(dir, "brand.json"),
@@ -182,17 +183,17 @@ describe("readBrandPack", () => {
       }),
     );
     touch("icon.svg");
-    const before = readBrandPack(dir).fingerprint;
+    const before = (await readBrandPack(dir)).fingerprint;
     writeFileSync(path.join(dir, "icon.svg"), "<svg>changed</svg>");
 
     // Act
-    const after = readBrandPack(dir).fingerprint;
+    const after = (await readBrandPack(dir)).fingerprint;
 
     // Assert
     expect(after).not.toBe(before);
   });
 
-  it("changes the fingerprint when a file's bytes change but its size and time do not", () => {
+  it("changes the fingerprint when a file's bytes change but its size and time do not", async () => {
     // Arrange
     writeFileSync(
       path.join(dir, "brand.json"),
@@ -206,31 +207,31 @@ describe("readBrandPack", () => {
     const when = new Date(2026, 0, 1);
     writeFileSync(icon, "<svg>A</svg>");
     utimesSync(icon, when, when);
-    const before = readBrandPack(dir).fingerprint;
+    const before = (await readBrandPack(dir)).fingerprint;
     writeFileSync(icon, "<svg>B</svg>");
     utimesSync(icon, when, when);
 
     // Act
-    const after = readBrandPack(dir).fingerprint;
+    const after = (await readBrandPack(dir)).fingerprint;
 
     // Assert
     expect(after).not.toBe(before);
   });
 
-  it("reports a missing brand.json", () => {
+  it("reports a missing brand.json", async () => {
     // Act
-    const error = errorOf(() => readBrandPack(dir));
+    const error = await errorOf(() => readBrandPack(dir));
 
     // Assert
     expect(error.message).toContain("brand.json");
   });
 
-  it("reports JSON that does not parse", () => {
+  it("reports JSON that does not parse", async () => {
     // Arrange
     writeFileSync(path.join(dir, "brand.json"), "{ version: 1");
 
     // Act
-    const error = errorOf(() => readBrandPack(dir));
+    const error = await errorOf(() => readBrandPack(dir));
 
     // Assert
     expect(error.message).toMatch(/not valid JSON/);
