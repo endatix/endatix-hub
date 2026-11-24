@@ -20,16 +20,21 @@ export interface PdfLogoCandidate {
   read: (signal: AbortSignal) => Promise<string | undefined>;
 }
 
+const LOGO_SIZE = { width: 480, height: 144 };
+const MAX_INPUT_PIXELS = 16_000_000;
+
 /** Preserve transparency and aspect ratio; never hand a URL to the PDF renderer. */
 export async function pdfLogoPng(
   bytes: Buffer,
   options?: Pick<SharpOptions, "raw" | "density">,
 ): Promise<string> {
-  const png = await sharp(bytes, { limitInputPixels: 16_000_000, ...options })
+  const png = await sharp(bytes, {
+    limitInputPixels: MAX_INPUT_PIXELS,
+    ...options,
+  })
     .rotate()
     .resize({
-      width: 480,
-      height: 144,
+      ...LOGO_SIZE,
       fit: "inside",
       withoutEnlargement: true,
     })
@@ -51,6 +56,17 @@ function packIconPng(bytes: Buffer) {
   return pdfLogoPng(Buffer.from(frame.data), { raw });
 }
 
+async function packSvgPng(bytes: Buffer, signal: AbortSignal) {
+  const { width, height } = await sharp(bytes, {
+    limitInputPixels: MAX_INPUT_PIXELS,
+  }).metadata();
+  if (signal.aborted) return;
+  // With fit: "inside", either dimension at the output bound is enough detail.
+  const density =
+    width < LOGO_SIZE.width && height < LOGO_SIZE.height ? 300 : 72;
+  return pdfLogoPng(bytes, { density });
+}
+
 async function readPdfPackImage(
   pack: LoadedBrandPack,
   name: string,
@@ -59,8 +75,9 @@ async function readPdfPackImage(
   const file = await locatePackFile(pack.dir, name);
   if (typeof file !== "string") return;
   const bytes = await readFile(file, { signal });
-  // Rasterize mounted vectors at print resolution. Bitmap inputs retain their native detail.
-  return name.toLowerCase().endsWith(".ico")
+  const filename = name.toLowerCase();
+  if (filename.endsWith(".svg")) return packSvgPng(bytes, signal);
+  return filename.endsWith(".ico")
     ? packIconPng(bytes)
     : pdfLogoPng(bytes, { density: 300 });
 }

@@ -76,6 +76,26 @@ it.each(["svg", "webp"])(
   },
 );
 
+it("embeds a 2400×600 SVG wordmark that would exceed the input pixel limit at 300 DPI", async () => {
+  // Arrange
+  const artboard = Buffer.from(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="600"><rect width="100%" height="100%" fill="red"/></svg>',
+  );
+  await mountLogo("light.svg", artboard);
+
+  // Act
+  const identity = await resolve();
+
+  // Assert
+  expect(identity?.logo?.kind).toBe("wordmark");
+  const png = Buffer.from(identity!.logo!.src.split(",")[1], "base64");
+  expect(await sharp(png).metadata()).toMatchObject({
+    format: "png",
+    width: 480,
+    height: 120,
+  });
+});
+
 it("prefers the compact ICO over the wordmark and preserves its native bitmap", async () => {
   // Arrange: a 4-by-4 blue RGBA icon.
   const ico =
