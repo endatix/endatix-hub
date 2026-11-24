@@ -69,31 +69,56 @@ function Line({
   );
 }
 
+function NoRowsLine() {
+  return (
+    <Line icon={<Info className="text-info" />}>
+      No completed submissions match these filters. Change the filters below or
+      wait for completed submissions.
+    </Line>
+  );
+}
+
+function FailedLine({
+  message,
+  traceId,
+}: Readonly<{ message: string; traceId?: string }>) {
+  return (
+    <Line icon={<CircleAlert className="text-destructive" />}>
+      <p className="font-medium text-destructive">
+        The previous export could not be downloaded
+      </p>
+      <p>{message}</p>
+      <SupportReference traceId={traceId} />
+    </Line>
+  );
+}
+
 function DownloadOutcome({ state }: Readonly<{ state: Download }>) {
-  if (state.kind === "noRows")
-    return (
-      <Line icon={<Info className="text-info" />}>
-        No completed submissions match these filters. Change the filters below
-        or wait for completed submissions.
-      </Line>
-    );
-  if (state.kind === "failed")
-    return (
-      <Line icon={<CircleAlert className="text-destructive" />}>
-        <p className="font-medium text-destructive">
-          The previous export could not be downloaded
-        </p>
-        <p>{state.message}</p>
-        <SupportReference traceId={state.traceId} />
-      </Line>
-    );
-  if (state.kind === "saved")
-    return (
-      <Line icon={<CheckCircle2 className="text-success" />}>
-        {state.filename} is in your browser&apos;s downloads.
-      </Line>
-    );
-  return null;
+  if (state.kind === "noRows") return <NoRowsLine />;
+  if (state.kind === "failed") return <FailedLine {...state} />;
+  if (state.kind !== "saved") return null;
+  return (
+    <Line icon={<CheckCircle2 className="text-success" />}>
+      {state.filename} is in your browser&apos;s downloads.
+    </Line>
+  );
+}
+
+function DownloadButton({
+  busy,
+  ...props
+}: Readonly<{ busy: boolean; disabled: boolean; onClick: () => void }>) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      className="text-foreground"
+      {...props}
+    >
+      {busy ? "Preparing file…" : "Download with previous schema"}
+    </Button>
+  );
 }
 
 /** The retained-conflict recovery option. Key it by the selection's URL so a format or filter change starts over. */
@@ -104,16 +129,11 @@ export function RetainedExportDownload({
   const busy = state.kind === "preparing";
   return (
     <div className="grid justify-items-start gap-2" aria-live="polite">
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="text-foreground"
-        onClick={download}
+      <DownloadButton
+        busy={busy}
         disabled={busy || !selection}
-      >
-        {busy ? "Preparing file…" : "Download with previous schema"}
-      </Button>
+        onClick={download}
+      />
       <Line icon={<TriangleAlert className="text-warning" />}>
         Recent changes to the form are not included. The file uses the format
         and filters selected below.

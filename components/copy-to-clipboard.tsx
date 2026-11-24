@@ -89,6 +89,11 @@ const getTooltipContent = (
   return tooltipContent;
 };
 
+const confirmations = {
+  toast: { copy: copyValueToClipboard, duration: ANIMATION_DURATION },
+  inline: { copy: writeToClipboard, duration: INLINE_CONFIRMATION_DURATION },
+};
+
 const CopyToClipboard = ({
   copyValue,
   label,
@@ -103,25 +108,18 @@ const CopyToClipboard = ({
 }: CopyToClipboardProps) => {
   const [isCopied, setIsCopied] = useState(false);
 
+  const { copy, duration } = confirmations[confirmation];
   const handleCopyClick = async () => {
     if (disabled) {
       return;
     }
-    const value = typeof copyValue === "function" ? copyValue() : copyValue;
-    const inline = confirmation === "inline";
-    const copied = inline
-      ? await writeToClipboard(value)
-      : await copyValueToClipboard(value);
 
-    if (copied) {
+    if (await copy(typeof copyValue === "function" ? copyValue() : copyValue)) {
       setIsCopied(true);
 
-      setTimeout(
-        () => {
-          setIsCopied(false);
-        },
-        inline ? INLINE_CONFIRMATION_DURATION : ANIMATION_DURATION,
-      );
+      setTimeout(() => {
+        setIsCopied(false);
+      }, duration);
     }
   };
   const inlineConfirmation =

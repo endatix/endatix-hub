@@ -81,7 +81,7 @@ export function ExportDialogStatusPanel(
     return (
       <PrepareFailureAlert
         failure={prepareFailure}
-        retainedSelection={props.retainedSelection ?? null}
+        selection={props.retainedSelection}
       />
     );
   if (phase === "checking") {
@@ -148,54 +148,60 @@ function failureConsequence(failure: PrepareFailure) {
 const QUIET_DESCRIPTION =
   "*:data-[slot=alert-description]:text-muted-foreground";
 
-/** One card: what happened, what it means for the data, the reference, then what the reader can do. */
-function PrepareFailureAlert({
-  failure,
-  retainedSelection,
-}: Readonly<{
+type FailureCardProps = Readonly<{
   failure: PrepareFailure;
-  retainedSelection: AttachmentSelection | null;
-}>) {
-  const consequence = failureConsequence(failure);
+  selection?: AttachmentSelection | null;
+}>;
+
+/** One card: what happened, what it means for the data, the reference, then what the reader can do. */
+function PrepareFailureAlert(props: FailureCardProps) {
   return (
     <Alert variant="destructive" className={QUIET_DESCRIPTION}>
       <CircleAlert />
       <AlertTitle className="line-clamp-none">
-        {failureTitle(failure)}
+        {failureTitle(props.failure)}
       </AlertTitle>
       <AlertDescription className="gap-2">
-        {!isRetained(failure) && <p>{failure.message}</p>}
-        {consequence && <p className="text-foreground">{consequence}</p>}
-        <SupportReference traceId={failure.traceId} />
-        {consequence && (
-          <FailureRemedies failure={failure} selection={retainedSelection} />
-        )}
+        <FailureBody {...props} />
       </AlertDescription>
     </Alert>
   );
 }
 
-function FailureRemedies({
-  failure,
-  selection,
-}: Readonly<{
-  failure: PrepareFailure;
-  selection: AttachmentSelection | null;
-}>) {
-  const retained = isRetained(failure);
+function FailureBody({ failure, selection }: FailureCardProps) {
+  const consequence = failureConsequence(failure);
+  return (
+    <>
+      {!isRetained(failure) && <p>{failure.message}</p>}
+      {consequence && <p className="text-foreground">{consequence}</p>}
+      <SupportReference traceId={failure.traceId} />
+      {consequence && (
+        <FailureRemedies failure={failure} selection={selection} />
+      )}
+    </>
+  );
+}
+
+function FailureRemedies(props: FailureCardProps) {
   return (
     <section aria-label="What you can do" className="grid gap-2 pt-1">
       <h3 className="font-medium text-foreground">What you can do</h3>
-      <p>
-        {retained
-          ? "Fix the question names, then rebuild."
-          : "Retry the rebuild, or run a full recompile."}
-      </p>
-      {retained && <ConflictDetails message={failure.message} />}
-      {retained && (
-        <RetainedExportDownload key={selection?.url} selection={selection} />
+      {isRetained(props.failure) ? (
+        <RetainedRemedies {...props} />
+      ) : (
+        <p>Retry the rebuild, or run a full recompile.</p>
       )}
     </section>
+  );
+}
+
+function RetainedRemedies({ failure, selection = null }: FailureCardProps) {
+  return (
+    <>
+      <p>Fix the question names, then rebuild.</p>
+      <ConflictDetails message={failure.message} />
+      <RetainedExportDownload key={selection?.url} selection={selection} />
+    </>
   );
 }
 

@@ -178,7 +178,7 @@ export function useExportDialog({
     const result = await prepare(fullRecompile);
     if (Result.isError(result)) {
       // A refusal changed nothing, so the earlier readiness still holds.
-      if (result.step !== "refused") setReadinessPassed(false);
+      setReadinessPassed((passed) => passed && result.step === "refused");
       setInlineError(result.message);
       setPhase("error");
       return;

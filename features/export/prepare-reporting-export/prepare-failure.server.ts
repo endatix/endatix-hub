@@ -45,6 +45,16 @@ function isUnexpected(failure: ResultError) {
   return status === undefined || status >= 500;
 }
 
+type FailureContext = { formId: string; step: PrepareStep; traceId: string };
+
+function logPrepareFailure(context: FailureContext, failure: ResultError) {
+  const { statusCode, message, details, errorCode } = failure;
+  const attributes = { ...context, statusCode, message, details, errorCode };
+  if (isUnexpected(failure))
+    TelemetryLogger.error(FAILURE_LOG, undefined, attributes, LOGGER_NAME);
+  else TelemetryLogger.warn(FAILURE_LOG, attributes, LOGGER_NAME);
+}
+
 /** Logs the failure under the support reference the user sees, then returns it with that reference. */
 export function recordPrepareFailure(
   formId: string,
@@ -52,18 +62,6 @@ export function recordPrepareFailure(
   failure: ResultError,
 ) {
   const traceId = failure.traceId || randomUUID();
-  const { statusCode, message, details, errorCode } = failure;
-  const attributes = {
-    formId,
-    step,
-    traceId,
-    statusCode,
-    message,
-    details,
-    errorCode,
-  };
-  if (isUnexpected(failure))
-    TelemetryLogger.error(FAILURE_LOG, undefined, attributes, LOGGER_NAME);
-  else TelemetryLogger.warn(FAILURE_LOG, attributes, LOGGER_NAME);
+  logPrepareFailure({ formId, step, traceId }, failure);
   return { ...failure, traceId, step };
 }

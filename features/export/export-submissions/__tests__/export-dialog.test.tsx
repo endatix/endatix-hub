@@ -314,6 +314,39 @@ async function waitForReady() {
   });
 }
 
+/** Opens the panel, rebuilds, and lands on a retained-schema conflict. */
+async function openRetainedConflict() {
+  mockPrepareReportingExportAction.mockResolvedValue({
+    ...Result.error("The alias has conflicting meanings."),
+    step: "compile",
+    previousSchema: "retained",
+    traceId: "conflict-ref",
+  });
+  render(<ExportSubmissionsDialog {...createProps()} />);
+  await waitForReady();
+  fireEvent.click(
+    screen.getByRole("button", { name: /rebuild reporting data/i }),
+  );
+  fireEvent.click(screen.getByRole("button", { name: /prepare for export/i }));
+  await screen.findByRole("button", { name: "Download with previous schema" });
+}
+
+/** Serves a complete attachment in the requested format; the save itself is stubbed. */
+function stubAttachments() {
+  const request = vi.fn().mockImplementation(async (url: string) => {
+    const json = url.includes("format=json");
+    return new Response(json ? "[]" : "a,b", {
+      headers: {
+        "Content-Type": json ? "application/json" : "text/csv",
+        "Content-Disposition": `attachment; filename="old.${json ? "json" : "csv"}"`,
+      },
+    });
+  });
+  vi.stubGlobal("fetch", request);
+  vi.spyOn(downloads, "initiateFileDownload").mockImplementation(() => {});
+  return request;
+}
+
 Element.prototype.scrollIntoView = vi.fn();
 
 describe("ExportSubmissionsDialog", () => {
@@ -878,25 +911,9 @@ describe("ExportSubmissionsDialog", () => {
 
   it("blocks a retained schema when rows exist but the selected plan is unverified", async () => {
     // Arrange
-    mockPrepareReportingExportAction.mockResolvedValue({
-      ...Result.error("The alias has conflicting meanings."),
-      step: "compile",
-      previousSchema: "retained",
-      traceId: "conflict-ref",
-    });
-    render(<ExportSubmissionsDialog {...createProps()} />);
-    await waitForReady();
+    await openRetainedConflict();
 
     // Act
-    fireEvent.click(
-      screen.getByRole("button", { name: /rebuild reporting data/i }),
-    );
-    fireEvent.click(
-      screen.getByRole("button", { name: /prepare for export/i }),
-    );
-    await screen.findByRole("button", {
-      name: "Download with previous schema",
-    });
     fireEvent.submit(
       screen
         .getByRole("heading", { name: "Export submissions" })
@@ -924,35 +941,10 @@ describe("ExportSubmissionsDialog", () => {
 
   it("discards a downloaded previous-schema file when the format changes", async () => {
     // Arrange
-    mockPrepareReportingExportAction.mockResolvedValue({
-      ...Result.error("The alias has conflicting meanings."),
-      step: "compile",
-      previousSchema: "retained",
-      traceId: "conflict-ref",
-    });
-    const request = vi.fn().mockImplementation(async (url: string) => {
-      const json = url.includes("format=json");
-      return new Response(json ? "[]" : "a,b", {
-        headers: {
-          "Content-Type": json ? "application/json" : "text/csv",
-          "Content-Disposition": `attachment; filename="old.${json ? "json" : "csv"}"`,
-        },
-      });
-    });
-    vi.stubGlobal("fetch", request);
-    vi.spyOn(downloads, "initiateFileDownload").mockImplementation(() => {});
-    render(<ExportSubmissionsDialog {...createProps()} />);
-    await waitForReady();
+    const request = stubAttachments();
+    await openRetainedConflict();
     fireEvent.click(
-      screen.getByRole("button", { name: /rebuild reporting data/i }),
-    );
-    fireEvent.click(
-      screen.getByRole("button", { name: /prepare for export/i }),
-    );
-    fireEvent.click(
-      await screen.findByRole("button", {
-        name: "Download with previous schema",
-      }),
+      screen.getByRole("button", { name: "Download with previous schema" }),
     );
     await screen.findByText(/old\.csv is in your browser/);
 
