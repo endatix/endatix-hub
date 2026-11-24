@@ -92,6 +92,29 @@ it("keeps B's destructive partial result when A succeeds afterwards", async () =
   expect(restored()).toMatchObject(partial);
 });
 
+it("keeps A unconfirmed after B succeeds, then keeps A's destructive failure", async () => {
+  // Arrange
+  const finishA = startAfterMount();
+  const finishB = startAfterMount();
+
+  // Act
+  await finishB(success);
+  const whileARuns = restored();
+  await finishA(partial);
+
+  // Assert
+  expect(whileARuns?.message).toMatch(/could not be confirmed/i);
+  expect(restored()).toMatchObject(partial);
+});
+
+it("an earlier success after a later success leaves readiness available", async () => {
+  const finishA = startAfterMount();
+  const finishB = startAfterMount();
+  await finishB(success);
+  await finishA(success);
+  expect(restored()).toBeNull();
+});
+
 it.each([success, retained, partial, refusal])(
   "only the owning attempt may finish after remount (late outcome %#)",
   async (late) => {

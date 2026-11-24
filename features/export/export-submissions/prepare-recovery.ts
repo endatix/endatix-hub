@@ -26,6 +26,8 @@ const settledSchema = z.discriminatedUnion("state", [
 const pendingSchema = z.object({
   state: z.literal("pending"),
   owners: z.array(z.string()).min(1),
+  // Earlier owners a later attempt already settled past: their success cannot clear that result.
+  superseded: z.array(z.string()).default([]),
   settled: settledSchema.nullable(),
 });
 const recoverySchema = z.union([settledSchema, pendingSchema]);
@@ -82,10 +84,13 @@ export function startPrepare(key: string): Attempt {
   const attempt = { key, owner: crypto.randomUUID() };
   const prior = read(key);
   const pending =
-    prior?.state === "pending" ? prior : { owners: [], settled: prior };
+    prior?.state === "pending"
+      ? prior
+      : { owners: [], superseded: [], settled: prior };
   write(key, {
     state: "pending",
     settled: pending.settled,
+    superseded: pending.superseded,
     owners: [...pending.owners, attempt.owner],
   });
   return attempt;
@@ -112,19 +117,35 @@ function resolved(
   };
 }
 
-// Refusal removes just that request. A mutation settles through its position;
-// later requests still mask the settled result until they finish.
+function settle(
+  pending: Pending,
+  index: number,
+  failure: PrepareFailure | null,
+): Pending["settled"] {
+  const supersededSuccess =
+    !failure && pending.superseded.includes(pending.owners[index]);
+  if (supersededSuccess) return pending.settled;
+  return resolved(index === 0 ? pending.settled : pending, failure);
+}
+
+// Every request settles only itself; others keep masking the result until
+// they finish. Requests that started earlier stay pending, so a late
+// destructive failure still lands, but their success cannot clear it.
 function finishAt(
   pending: Pending,
   index: number,
   failure: PrepareFailure | null,
 ): Prior {
-  const owners =
-    failure?.step === "refused"
-      ? pending.owners.filter((_, position) => position !== index)
-      : pending.owners.slice(index + 1);
-  const settled = resolved(index === 0 ? pending.settled : pending, failure);
-  return owners.length ? { state: "pending", owners, settled } : settled;
+  const owners = pending.owners.filter((_, position) => position !== index);
+  const earlier =
+    failure?.step === "refused" ? [] : pending.owners.slice(0, index);
+  const superseded = [...pending.superseded, ...earlier].filter((owner) =>
+    owners.includes(owner),
+  );
+  const settled = settle(pending, index, failure);
+  return owners.length
+    ? { state: "pending", owners, superseded, settled }
+    : settled;
 }
 
 export function finishPrepare(
@@ -136,5 +157,6 @@ export function finishPrepare(
   const index = current.owners.indexOf(attempt.owner);
   if (index < 0) return false;
   write(attempt.key, finishAt(current, index, failure));
-  return index === current.owners.length - 1;
+  const superseded = current.superseded.includes(attempt.owner);
+  return index === current.owners.length - 1 && !superseded;
 }
