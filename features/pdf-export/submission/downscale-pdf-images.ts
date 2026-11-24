@@ -78,7 +78,25 @@ async function downscaleFile(file: IFile): Promise<IFile> {
 function inlineImageBytes(source: string): Buffer | null {
   const comma = source.indexOf(",");
   if (comma < 0) return null;
+  const header = source.slice(0, comma);
   const payload = source.slice(comma + 1);
+  if (/;base64$/i.test(header)) return base64ImageBytes(payload);
+  if (!/^data:image\/svg\+xml(?:;|$)/i.test(header)) return null;
+  return svgTextBytes(payload);
+}
+
+function svgTextBytes(payload: string): Buffer | null {
+  // A percent escape takes three characters per byte; bound the decode as well as its result.
+  if (payload.length > 3 * MAX_SOURCE_BYTES) return null;
+  try {
+    const xml = decodeURIComponent(payload);
+    return Buffer.byteLength(xml, "utf8") <= MAX_SOURCE_BYTES ? Buffer.from(xml, "utf8") : null;
+  } catch {
+    return null;
+  }
+}
+
+function base64ImageBytes(payload: string): Buffer | null {
   // Base64 expands ~4/3; reject before allocating the decoded buffer.
   if (Math.floor((payload.length * 3) / 4) > MAX_SOURCE_BYTES) {
     return null;

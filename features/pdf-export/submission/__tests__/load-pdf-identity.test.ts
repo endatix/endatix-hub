@@ -145,6 +145,43 @@ it("retains the deployment logo for an unreadable form logo", async () => {
   expect(await resolve("data:image/png;base64,AA==")).toEqual(expected);
 });
 
+it.each(["percent", "base64"])(
+  "uses the %s-encoded form SVG in the PDF header",
+  async (encoding) => {
+    // Arrange: unlike the 16×8 pack logo, the form logo is square.
+    await mountLogo();
+    const square = svg.toString().replaceAll('height="8"', 'height="16"');
+    const uri =
+      encoding === "percent"
+        ? `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(square)}`
+        : `data:image/svg+xml;base64,${Buffer.from(square).toString("base64")}`;
+
+    // Act
+    const identity = await resolve(uri);
+
+    // Assert
+    const png = Buffer.from(identity!.logo!.split(",")[1], "base64");
+    expect(await sharp(png).metadata()).toMatchObject({
+      format: "png",
+      width: 16,
+      height: 16,
+    });
+  },
+);
+
+it("keeps the pack logo if a percent-encoded form SVG is malformed or exceeds the byte limit", async () => {
+  // Arrange
+  await mountLogo();
+  const deployment = await resolve();
+  const square = svg.toString().replaceAll('height="8"', 'height="16"');
+  const prefix = `data:image/svg+xml,${encodeURIComponent(square)}<!--`;
+  const oversized = "é".repeat(10 * 1024 * 1024);
+
+  // Act & Assert
+  expect(await resolve(`${prefix}%ZZ-->`)).toEqual(deployment);
+  expect(await resolve(`${prefix}${oversized}-->`)).toEqual(deployment);
+});
+
 it("reads an allowlisted external logo without following redirects", async () => {
   // Arrange
   await mountLogo();
