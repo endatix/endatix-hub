@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type SubmitEvent } from "react";
+import {
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+  type SubmitEvent,
+} from "react";
 import { useTrackEvent } from "@/features/analytics/posthog/client";
 import { usePrepareAttempt } from "./use-prepare-attempt.hook";
 import {
@@ -191,6 +198,16 @@ export function useExportDialog({
     }
   };
 
+  const restoreIncomplete = useEffectEvent(() => {
+    const incomplete = lastFailure();
+    if (!incomplete) return false;
+    setRebuildMode(canRebuild);
+    setReadinessPassed(false);
+    setInlineError(incomplete.message);
+    setPhase(prepareFailure ? "error" : "needsPrepare");
+    return true;
+  });
+
   useEffect(() => {
     const justOpened = open && !wasOpenRef.current;
     wasOpenRef.current = open;
@@ -214,14 +231,7 @@ export function useExportDialog({
     setRebuildMode(false);
     setFullRecompile(false);
 
-    const incomplete = lastFailure();
-    if (incomplete) {
-      setRebuildMode(canRebuild);
-      setReadinessPassed(false);
-      setInlineError(incomplete.message);
-      setPhase(prepareFailure ? "error" : "needsPrepare");
-      return;
-    }
+    if (restoreIncomplete()) return;
     let cancelled = false;
     void (async () => {
       setPhase("checking");
