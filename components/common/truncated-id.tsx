@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 const DEFAULT_VISIBLE_CHARS = 4;
 const ELLIPSIS = "\u2026";
 const HOVER_REVEAL =
-  "opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 has-[[role=status]]:opacity-100";
+  "opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 has-[output]:opacity-100";
 
 export function truncateId(
   id: string,

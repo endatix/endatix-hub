@@ -124,9 +124,9 @@ const CopyToClipboard = ({
   };
   const inlineConfirmation =
     confirmation === "inline" && isCopied ? (
-      <span role="status" className="text-xs text-muted-foreground">
+      <output className="text-xs text-muted-foreground">
         Copied
-      </span>
+      </output>
     ) : null;
 
   const tooltipBody = getTooltipContent(tooltipContent, isCopied);
