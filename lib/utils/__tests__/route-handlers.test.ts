@@ -87,6 +87,23 @@ describe("toUpstreamFileResponse", () => {
     });
   });
 
+  it("passes the API's support reference with the error", async () => {
+    // Arrange
+    const result = ApiResult.serverError<Response>("Export failed", {
+      statusCode: 400,
+      traceId: "00-plan-ref",
+    });
+
+    // Act
+    const response = toUpstreamFileResponse(result);
+
+    // Assert
+    await expect(response.json()).resolves.toEqual({
+      error: "Export failed",
+      traceId: "00-plan-ref",
+    });
+  });
+
   it("defaults error status to 500 when ApiResult has no statusCode", async () => {
     // Arrange
     const result = ApiResult.unknownError<Response>("Boom");
