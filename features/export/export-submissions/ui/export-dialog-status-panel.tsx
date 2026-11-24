@@ -3,11 +3,17 @@
 import { PanelSection } from "@/components/common/panel-section";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import type { PrepareFailure } from "../use-prepare-attempt.hook";
 import type { AttachmentSelection } from "../retained-attachment";
 import { SCHEMA_NEEDS_PREPARE_MESSAGE } from "../../export-error-message";
 import {
   CheckCircle2,
+  ChevronDown,
   CircleAlert,
   FileDown,
   ListFilter,
@@ -158,7 +164,7 @@ function PrepareFailureAlert({
         {failureTitle(failure)}
       </AlertTitle>
       <AlertDescription className="gap-2">
-        <p>{failure.message}</p>
+        {!isRetained(failure) && <p>{failure.message}</p>}
         {consequence && <p className="text-foreground">{consequence}</p>}
         <SupportReference traceId={failure.traceId} />
         {consequence && (
@@ -185,10 +191,26 @@ function FailureRemedies({
           ? "Fix the question names, then rebuild."
           : "Retry the rebuild, or run a full recompile."}
       </p>
+      {retained && <ConflictDetails message={failure.message} />}
       {retained && (
         <RetainedExportDownload key={selection?.url} selection={selection} />
       )}
     </section>
+  );
+}
+
+/** The API's account of the conflict names the questions; folded so the card fits a phone. */
+function ConflictDetails({ message }: Readonly<{ message: string }>) {
+  return (
+    <Collapsible className="grid gap-1">
+      <CollapsibleTrigger className="group inline-flex items-center gap-1 font-medium text-foreground underline-offset-4 hover:underline">
+        Which questions conflict
+        <ChevronDown className="size-4 transition-transform group-data-[state=open]:rotate-180" />
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <p>{message}</p>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 

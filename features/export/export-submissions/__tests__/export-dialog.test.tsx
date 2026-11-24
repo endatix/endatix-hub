@@ -911,6 +911,12 @@ describe("ExportSubmissionsDialog", () => {
       screen.getByText("Rebuild stopped: two questions map to the same column"),
     ).toBeDefined();
     expect(screen.getByRole("button", { name: "Rebuild again" })).toBeDefined();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Which questions conflict" }),
+    );
+    expect(
+      screen.getByText("The alias has conflicting meanings."),
+    ).toBeDefined();
     expect(mockOnExport).not.toHaveBeenCalled();
     expect(mockRefreshIncompleteSubmissionsAction).not.toHaveBeenCalled();
     expect(mockPrepareReportingExportAction).toHaveBeenCalledTimes(1);
