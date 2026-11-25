@@ -14,12 +14,15 @@ it("opens the provider page for a resolver and the help page for a non-resolver"
   );
 });
 
-it.each(["/profile", "/profile/", "/signin", "/required-actions"])(
-  "does not redirect from %s",
-  (path) => {
-    expect(resolveTarget([pending], path)).toBeNull();
-  },
-);
+it.each([
+  "/profile",
+  "/profile/",
+  "/signin",
+  "/t/example/signin",
+  "/required-actions",
+])("does not redirect from %s", (path) => {
+  expect(resolveTarget([pending], path)).toBeNull();
+});
 
 it.each([
   "https://example.org",

@@ -27,11 +27,15 @@ export function resolveTarget(
   pathname: string,
 ) {
   const path = pathname.replace(/\/+$/, "");
-  if (path === "/signin" || path === REQUIRED_ACTIONS_PATH) return null;
+  if (isSignInPath(path) || path === REQUIRED_ACTIONS_PATH) return null;
   const blocking = actions.filter((a) => a.severity === "blocking");
-  if (!blocking.length || blocking.some((a) => resolverPath(a) === path))
+  if (!blocking.length || blocking.some((a) => a.resolvePath === path))
     return null;
   return firstResolverPath(blocking) ?? REQUIRED_ACTIONS_PATH;
+}
+
+function isSignInPath(path: string) {
+  return path === "/signin" || /^\/t\/[^/]+\/signin$/.test(path);
 }
 
 export function firstResolverPath(blocking: readonly PendingAction[]) {

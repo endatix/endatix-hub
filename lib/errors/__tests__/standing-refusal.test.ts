@@ -33,7 +33,11 @@ it.each([
   [401, { errorCode: "required_action", requiredActions: [action] }, "auth"],
   [403, { requiredActions: [action] }, "forbidden"],
   [403, { errorCode: "required_action", requiredActions: [{}] }, "forbidden"],
-  [503, { detail: "Required action status is unavailable. Try again." }, "api"],
+  [
+    503,
+    { detail: "Required action status is unavailable. Try again." },
+    "unavailable",
+  ],
 ] as const)(
   "keeps HTTP %i with %o on its normal error path",
   async (status, body, kind) => {
