@@ -9,7 +9,6 @@ import {
   AlertTitle,
 } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/toast";
 import { showActionFailure } from "@/components/error-handling/show-action-failure";
 import { Result, type ResultType } from "@/lib/result";
 

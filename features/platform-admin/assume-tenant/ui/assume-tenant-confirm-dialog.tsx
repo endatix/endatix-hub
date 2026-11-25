@@ -10,7 +10,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { toast } from "@/components/ui/toast";
 import { showActionFailure } from "@/components/error-handling/show-action-failure";
 import { Result } from "@/lib/result";
 import { assumeTenantAction } from "../assume-tenant.action";
