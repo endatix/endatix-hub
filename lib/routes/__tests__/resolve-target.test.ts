@@ -7,6 +7,15 @@ const pending = {
   canResolve: true,
 } as const;
 
+it("does not bounce from a resolver back through its settings alias", () => {
+  expect(
+    resolveTarget(
+      [{ ...pending, resolvePath: "/settings/organization" }],
+      "/settings/organization/forms",
+    ),
+  ).toBeNull();
+});
+
 it("opens the provider page for a resolver and the help page for a non-resolver", () => {
   expect(resolveTarget([pending], "/forms")).toBe("/profile");
   expect(resolveTarget([{ ...pending, canResolve: false }], "/forms")).toBe(

@@ -1,4 +1,4 @@
-import { ApiErrorType, ApiResult } from "@/lib/endatix-api";
+import { ApiErrorType, ApiResult, type ApiError } from "@/lib/endatix-api";
 import type { RequiredActionError } from "@/lib/endatix-api/auth/required-action";
 
 export type ApiPageError =
@@ -14,7 +14,10 @@ export function toApiPageError<T>(result: ApiResult<T>): ApiPageError | null {
   if (ApiResult.isSuccess(result)) {
     return null;
   }
+  return apiPageFailure(result);
+}
 
+function apiPageFailure(result: ApiError): ApiPageError {
   if (result.error.type === ApiErrorType.AuthError) {
     return { kind: "auth" };
   }
@@ -26,4 +29,10 @@ export function toApiPageError<T>(result: ApiResult<T>): ApiPageError | null {
     return { kind: "unavailable", message: result.error.message };
   }
   return { kind: "api", message: result.error.message };
+}
+
+export function toDetailPageError(result: ApiError): PageError {
+  return result.error.type === ApiErrorType.NotFoundError
+    ? { kind: "not_found" }
+    : apiPageFailure(result);
 }

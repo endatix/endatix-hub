@@ -14,13 +14,13 @@ export function resolverPath(
   if (!action.canResolve || !/^\/[\w-]+(?:\/[\w-]+)*$/.test(action.resolvePath))
     return null;
   if (
-    /^\/(?:api|_next|signin|signout|required-actions)(?:\/|$)/i.test(
+    /^\/(?:api|_next|ingest|login|signin|signout|session-bridge|t|required-actions)(?:\/|$)/i.test(
       action.resolvePath,
     )
   )
     return null;
   // A module supplies its route at runtime; Next's generated union cannot name it here.
-  return action.resolvePath as Route;
+  return canonicalPath(action.resolvePath) as Route;
 }
 
 /** Call only for a refusal (or a snapshot known to be enforced). */
@@ -31,9 +31,18 @@ export function resolveTarget(
   const path = pathname.replace(/\/+$/, "");
   if (isSignInPath(path) || path === REQUIRED_ACTIONS_PATH) return null;
   const blocking = actions.filter((a) => a.severity === "blocking");
-  if (!blocking.length || blocking.some((a) => a.resolvePath === path))
+  if (
+    !blocking.length ||
+    blocking.some((a) => canonicalPath(a.resolvePath) === path)
+  )
     return null;
   return firstResolverPath(blocking) ?? REQUIRED_ACTIONS_PATH;
+}
+
+function canonicalPath(path: string) {
+  return path === "/settings/organization"
+    ? "/settings/organization/forms"
+    : path;
 }
 
 function isSignInPath(path: string) {

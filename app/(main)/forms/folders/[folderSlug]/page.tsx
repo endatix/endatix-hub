@@ -10,9 +10,9 @@ import { parseFormsListParams } from "@/features/forms/list-forms/utils";
 import { listQueryKey } from "@/lib/list-page/list-query-key";
 import { PagedListFrame, PagedListUrlProvider } from "@/components/table";
 import { OpenCreateFormButton } from "@/features/forms/use-cases/create-form/ui/open-create-form-button";
-import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
-import { notFound, redirect } from "next/navigation";
-import { SIGNIN_PATH, UNAUTHORIZED_PATH } from "@/features/auth";
+import { ApiResult, EndatixApi } from "@/lib/endatix-api";
+import { toDetailPageError } from "@/lib/errors/page-error";
+import { resolvePageError } from "@/lib/errors/resolve-page-error";
 import {
   Empty,
   EmptyContent,
@@ -48,13 +48,7 @@ export default async function FolderSlugFormsPage({
   const folderResult = await api.folders.getBySlug(folderSlug);
 
   if (ApiResult.isError(folderResult)) {
-    if (folderResult.error.type === ApiErrorType.AuthError) {
-      redirect(SIGNIN_PATH);
-    }
-    if (folderResult.error.type === ApiErrorType.ForbiddenError) {
-      redirect(UNAUTHORIZED_PATH);
-    }
-    notFound();
+    return resolvePageError(toDetailPageError(folderResult));
   }
 
   const folder = folderResult.data;

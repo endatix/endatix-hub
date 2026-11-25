@@ -3,7 +3,6 @@ import { expect, it, vi } from "vitest";
 import { NoticeSlot } from "../notice-slot";
 
 const { readSnapshot } = vi.hoisted(() => ({ readSnapshot: vi.fn() }));
-vi.mock("@/auth", () => ({ auth: async () => ({}) }));
 vi.mock("../../authorization/application/authorization-data.provider", () => ({
   getAuthDataForCurrentUser: () => readSnapshot,
 }));
@@ -27,7 +26,7 @@ it.each([{}, { requiredActions: [] }, { requiredActions: [pending] }])(
     // Act
     render(
       <>
-        {await NoticeSlot()}
+        {await NoticeSlot({ session: null })}
         <button>Open form</button>
       </>,
     );
@@ -48,7 +47,7 @@ it("shows a projected non-resolver notice without a resolution link", async () =
   });
 
   // Act
-  render(await NoticeSlot());
+  render(await NoticeSlot({ session: null }));
 
   // Assert
   expect(screen.getByRole("status").textContent).toContain("continue working");

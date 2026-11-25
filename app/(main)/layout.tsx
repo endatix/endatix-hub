@@ -13,6 +13,8 @@ import {
   getBrand,
 } from "@/lib/branding/server";
 import { SupportAccessBannerSlot } from "@/features/platform-admin/assume-tenant/ui/support-access-banner-slot";
+import { NoticeSlot } from "@/features/auth/required-actions/notice-slot";
+import { Suspense } from "react";
 
 export async function generateMetadata(): Promise<Metadata> {
   const brand = await getBrand();
@@ -44,12 +46,9 @@ export default async function RootLayout({
       getClientEndatixConfig(),
       getBrand(),
     ]);
-  const osClass = getOsClass(requestHeaders);
-  const sidebarValue = cookieStore.get("sidebar_state");
-  const defaultSidebarOpen = sidebarValue?.value === "true";
-
+  const defaultSidebarOpen = cookieStore.get("sidebar_state")?.value === "true";
   return (
-    <html lang="en" className={osClass} suppressHydrationWarning>
+    <html lang="en" className={getOsClass(requestHeaders)} suppressHydrationWarning>
       <head />
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <AppProvider
@@ -61,6 +60,9 @@ export default async function RootLayout({
           {nav}
           <main data-slot="sidebar-inset">
             <SupportAccessBannerSlot accessToken={session?.accessToken} />
+            <Suspense fallback={null}>
+              <NoticeSlot session={session} />
+            </Suspense>
             {header}
             <div data-slot="content-wrapper">{children}</div>
           </main>

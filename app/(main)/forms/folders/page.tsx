@@ -1,13 +1,13 @@
 import PageTitle from "@/components/headings/page-title";
 import { auth } from "@/auth";
-import { SIGNIN_PATH, UNAUTHORIZED_PATH } from "@/features/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
 import { CreateFolderDialog } from "@/features/folders/create-folder";
 import { FolderNavigationCards } from "@/features/folders/list-folders";
 import { HubPageLoadError } from "@/components/error-handling/error-page";
-import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
+import { EndatixApi } from "@/lib/endatix-api";
+import { toApiPageError } from "@/lib/errors/page-error";
+import { resolvePageError } from "@/lib/errors/resolve-page-error";
 import { Result, toResult } from "@/lib/result";
-import { redirect } from "next/navigation";
 import {
   Empty,
   EmptyContent,
@@ -26,18 +26,8 @@ export default async function FormFoldersPage() {
   const api = new EndatixApi(session?.accessToken);
   const foldersApiResult = await api.folders.list();
 
-  if (
-    ApiResult.isError(foldersApiResult) &&
-    foldersApiResult.error.type === ApiErrorType.AuthError
-  ) {
-    redirect(SIGNIN_PATH);
-  }
-  if (
-    ApiResult.isError(foldersApiResult) &&
-    foldersApiResult.error.type === ApiErrorType.ForbiddenError
-  ) {
-    redirect(UNAUTHORIZED_PATH);
-  }
+  const error = toApiPageError(foldersApiResult);
+  if (error && error.kind !== "api") return resolvePageError(error);
 
   const foldersResult = toResult(foldersApiResult, {
     fallbackMessage: "Failed to load form folders.",
