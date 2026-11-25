@@ -1,4 +1,5 @@
 import type { RequiredAction } from "@/lib/endatix-api/auth/required-action";
+import type { Route } from "next";
 
 export const REQUIRED_ACTIONS_PATH = "/required-actions";
 type PendingAction = Pick<
@@ -18,7 +19,8 @@ export function resolverPath(
     )
   )
     return null;
-  return action.resolvePath;
+  // A module supplies its route at runtime; Next's generated union cannot name it here.
+  return action.resolvePath as Route;
 }
 
 /** Call only for a refusal (or a snapshot known to be enforced). */

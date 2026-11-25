@@ -8,11 +8,11 @@ it("dismisses the notice locally while leaving the page usable", () => {
   vi.stubGlobal("fetch", fetch);
   render(
     <>
-      <NoticeBanner href="/profile" />
+      <NoticeBanner href="/settings/security" />
       <button>Open form</button>
     </>,
   );
-  expect(screen.getByRole("link").getAttribute("href")).toBe("/profile");
+  expect(screen.getByRole("link").getAttribute("href")).toBe("/settings/security");
 
   // Act
   fireEvent.click(screen.getByRole("button", { name: "Dismiss notice" }));
