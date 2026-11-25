@@ -31,5 +31,9 @@ export function resolveTarget(
   const blocking = actions.filter((a) => a.severity === "blocking");
   if (!blocking.length || blocking.some((a) => resolverPath(a) === path))
     return null;
-  return blocking.map(resolverPath).find(Boolean) ?? REQUIRED_ACTIONS_PATH;
+  return firstResolverPath(blocking) ?? REQUIRED_ACTIONS_PATH;
+}
+
+export function firstResolverPath(blocking: readonly PendingAction[]) {
+  return blocking.map((action) => resolverPath(action)).find(Boolean);
 }

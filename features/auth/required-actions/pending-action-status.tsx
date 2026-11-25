@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ReviewActionLink } from "./review-action-link";
-import { resolverPath } from "@/lib/routes/resolve-target";
+import { firstResolverPath } from "@/lib/routes/resolve-target";
 import type { RequiredAction } from "@/lib/endatix-api/auth/required-action";
 import { AuthStatus } from "../ui/auth-status";
 import {
@@ -20,7 +20,7 @@ export function PendingActionStatus({ actions }: Readonly<StatusProps>) {
         <Link href={DEFAULT_RETURN_URL}>Return to workspace</Link>
       </AuthStatus>
     );
-  const href = blocking.map(resolverPath).find(Boolean);
+  const href = firstResolverPath(blocking);
   return (
     <AuthStatus
       tone="warning"
