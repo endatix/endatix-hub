@@ -15,6 +15,7 @@ import {
   ResponsivePanelTitle,
 } from "@/components/ui/responsive-panel";
 import { toast } from "@/components/ui/toast";
+import { showActionFailure } from "@/components/error-handling/show-action-failure";
 import { TenantAccessFields } from "@/features/platform-admin/ui/tenant-access-fields";
 import { TenantIdentityFields } from "@/features/platform-admin/ui/tenant-identity-fields";
 import { TenantSignInUrlField } from "@/features/platform-admin/ui/tenant-signin-url-field";
@@ -83,7 +84,7 @@ export function CreateTenantPanel() {
       });
 
       if (Result.isError(result)) {
-        toast.error(result.message || "Failed to create tenant");
+        showActionFailure(result, "Failed to create tenant");
         return;
       }
 

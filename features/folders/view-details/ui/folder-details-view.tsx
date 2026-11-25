@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toast";
+import { showActionFailure } from "@/components/error-handling/show-action-failure";
 import { moveFormToFolderAction } from "@/features/folders/move-form-to-folder";
 import { moveTemplateToFolderAction } from "@/features/folders/move-template-to-folder";
 import {
@@ -121,7 +122,7 @@ export function FolderDetailsView({
           : await moveTemplateToFolderAction(moveItemId, moveTargetFolderId);
 
       if (Result.isError(result)) {
-        toast.error(result.message);
+        showActionFailure(result);
         return;
       }
 

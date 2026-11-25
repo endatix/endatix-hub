@@ -25,7 +25,9 @@ export async function register() {
     await import("@/lib/survey-features/safe-html");
     await import("@/lib/hosting/check-node-version");
     await import("@/lib/hosting/check-environment");
-    await registerApiHooks();
+    const { registerVisitorIpForwarding } =
+      await import("@/lib/hosting/visitor-ip.server");
+    registerVisitorIpForwarding();
     await import("@/instrumentation.node");
 
     // Once per process: the registry module itself is evaluated again per
@@ -35,12 +37,4 @@ export async function register() {
       await import("@/features/auth/infrastructure/log-auth-providers");
     logAuthProviders();
   }
-}
-
-async function registerApiHooks() {
-  const { registerVisitorIpForwarding } = await import("@/lib/hosting/visitor-ip.server");
-  const { registerStandingRefusalHandler } = await import("@/lib/endatix-api/shared/standing-refusal-handler");
-  const { handleActionRefusal } = await import("@/features/auth/required-actions/handle-action-refusal.server");
-  registerVisitorIpForwarding();
-  registerStandingRefusalHandler(handleActionRefusal);
 }

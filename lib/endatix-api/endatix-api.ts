@@ -8,7 +8,6 @@ import {
 } from "./shared/outbound-headers";
 import { ERROR_CODE } from "./shared/error-codes";
 import { mapResponseToApiError } from "./shared/http-error-mapper";
-import { handleStandingRefusal } from "./shared/standing-refusal-handler";
 import { Definitions } from "./definitions/definitions";
 import { DataLists } from "./data-lists/data-lists";
 import { Forms } from "./forms/forms";
@@ -306,6 +305,9 @@ export class EndatixApi {
     return this._signupRequests;
   }
 
+  /**
+   * Main request method that handles all API calls with Result pattern
+   */
   async request<T>(
     endpoint: string,
     options: RequestOptions = {},
@@ -314,18 +316,24 @@ export class EndatixApi {
     const outbound = await readOutboundHeaders();
 
     try {
-      const requestInitResult = this.initializeRequest(endpoint, options, (builder) => builder.acceptJson());
+      const requestInitResult = this.initializeRequest(
+        endpoint,
+        options,
+        (headerBuilder) => {
+          headerBuilder.acceptJson();
+        },
+      );
 
       if (ApiResult.isError(requestInitResult)) {
         return requestInitResult;
       }
 
       const requestInit = setOutboundHeaders(requestInitResult.data, outbound);
-      const response = await fetch(`${this.baseUrl}${endpoint}`, requestInit);
+      const url = `${this.baseUrl}${endpoint}`;
 
-      return handleStandingRefusal(
-        await this.handleResponse<T>(response, endpoint, method),
-      );
+      const response = await fetch(url, requestInit);
+
+      return await this.handleResponse<T>(response, endpoint, method);
     } catch (error) {
       return this.handleNetworkError<T>(error, endpoint, method);
     }
@@ -333,6 +341,8 @@ export class EndatixApi {
 
   /**
    * Request method for streaming responses (file downloads, etc.)
+   * Returns the raw Response object with all headers preserved.
+   * Does NOT parse JSON - use this for binary/streaming responses.
    */
   async requestStream(
     endpoint: string,
@@ -352,10 +362,15 @@ export class EndatixApi {
       const url = `${this.baseUrl}${endpoint}`;
       const response = await fetch(url, requestInit);
 
-      if (response.ok) return ApiResult.success(response);
-      const details = { statusCode: response.status, endpoint, method };
-      const failure = await this.handleErrorResponse<Response>(response, details);
-      return handleStandingRefusal(failure);
+      if (!response.ok) {
+        return await this.handleErrorResponse<Response>(response, {
+          statusCode: response.status,
+          endpoint,
+          method,
+        });
+      }
+
+      return ApiResult.success(response);
     } catch (error) {
       return this.handleNetworkError<Response>(error, endpoint, method);
     }

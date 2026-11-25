@@ -7,6 +7,8 @@ import { PendingActionStatus } from "@/features/auth/required-actions/pending-ac
 import { AuthLogo } from "@/features/auth/ui/auth-logo";
 import { RetryStatus } from "@/features/auth/required-actions/retry-status";
 
+export const metadata = { title: "Account actions" };
+
 export default async function RequiredActionsPage() {
   const session = await auth();
   if (!session?.accessToken || session.error) redirect(SIGNIN_PATH);

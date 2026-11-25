@@ -4,7 +4,8 @@ import { useState, useTransition } from "react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/toast";
-import { Result } from "@/lib/result";
+import { Result, type Error as ResultError } from "@/lib/result";
+import { showStandingRefusal } from "@/components/error-handling/show-action-failure";
 
 type Mutation = {
   action: () => Promise<Result<unknown>>;
@@ -40,7 +41,7 @@ export function useAudienceMutation() {
     startTransition(async () => {
       const result = await runAction(action);
       if (result === "rejected") return setError(REJECTED_MESSAGE);
-      if (Result.isError(result)) return setError(result.message);
+      if (Result.isError(result)) return presentFailure(result, setError);
       toast.success(successMessage);
       onSuccess?.();
       if (navigateTo) router.push(navigateTo);
@@ -50,4 +51,12 @@ export function useAudienceMutation() {
   /** `status` is what an overlay shows: spread it into the panel's props. */
   const status = { pending, error };
   return { ...status, status, run, clearError: () => setError(null) };
+}
+
+function presentFailure(
+  result: ResultError,
+  setError: (message: string) => void,
+) {
+  if (result.requiredAction) showStandingRefusal(result.requiredAction);
+  else setError(result.message);
 }

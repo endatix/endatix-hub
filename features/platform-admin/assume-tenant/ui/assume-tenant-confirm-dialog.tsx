@@ -11,6 +11,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/toast";
+import { showActionFailure } from "@/components/error-handling/show-action-failure";
 import { Result } from "@/lib/result";
 import { assumeTenantAction } from "../assume-tenant.action";
 import { useTransition } from "react";
@@ -70,7 +71,7 @@ export function AssumeTenantConfirmDialog({
               startTransition(async () => {
                 const result = await assumeTenantAction(tenant.id);
                 if (result && Result.isError(result)) {
-                  toast.error(result.message || "Failed to enter tenant");
+                  showActionFailure(result, "Failed to enter tenant");
                 }
               });
             }}

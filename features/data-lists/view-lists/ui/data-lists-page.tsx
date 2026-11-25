@@ -37,6 +37,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/toast";
+import { showActionFailure } from "@/components/error-handling/show-action-failure";
 import type {
   DataList,
   DataListListSortBy,
@@ -177,7 +178,7 @@ export function DataListsPage({
       const result = await deleteDataListAction(String(selectedForDelete.id));
 
       if (Result.isError(result)) {
-        toast.error(result.message || "Failed to delete data list");
+        showActionFailure(result, "Failed to delete data list");
         return;
       }
 

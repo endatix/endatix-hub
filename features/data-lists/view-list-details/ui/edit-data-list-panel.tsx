@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/responsive-panel";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
+import { showActionFailure } from "@/components/error-handling/show-action-failure";
 import { formatLocaleLabel } from "@/features/data-lists/translations/locale-discovery";
 import { setDataListDefaultLocaleAction } from "@/features/data-lists/translations/translations-csv.action";
 import { RemoveLocaleConfirmDialog } from "@/features/data-lists/remove-locale";
@@ -93,7 +94,7 @@ export function EditDataListPanel({
         description: description.trim(),
       });
       if (Result.isError(result)) {
-        toast.error(result.message);
+        showActionFailure(result);
         return;
       }
 
@@ -112,7 +113,7 @@ export function EditDataListPanel({
     startLocaleTransition(async () => {
       const result = await setDataListDefaultLocaleAction(dataListId, locale);
       if (Result.isError(result)) {
-        toast.error(result.message);
+        showActionFailure(result);
         return;
       }
 

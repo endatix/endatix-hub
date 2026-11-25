@@ -11,6 +11,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/toast";
+import { showActionFailure } from "@/components/error-handling/show-action-failure";
 import type { DataListDetails } from "@/lib/endatix-api/data-lists/types";
 import { Result } from "@/lib/result";
 import { useEffect, useTransition, type MouseEvent } from "react";
@@ -55,7 +56,7 @@ export function RemoveLocaleConfirmDialog({
     startTransition(async () => {
       const result = await removeLocaleAction(dataListId, localeToRemove);
       if (Result.isError(result)) {
-        toast.error(result.message);
+        showActionFailure(result);
         return;
       }
 

@@ -1,5 +1,4 @@
 "use client";
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,6 +42,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
+import { showActionFailure } from "@/components/error-handling/show-action-failure";
 import type { Folder } from "@/lib/endatix-api/folders/types";
 import {
   urlSlugFromDisplayName,
@@ -143,7 +143,7 @@ export function FolderSettingsCard({
           ? await moveFormToFolderAction(moveResourceId, targetId)
           : await moveTemplateToFolderAction(moveResourceId, targetId);
       if (Result.isError(result)) {
-        toast.error(result.message);
+        showActionFailure(result);
         return;
       }
       toast.success("Moved");
@@ -182,7 +182,7 @@ export function FolderSettingsCard({
         immutable: editImmutable,
       });
       if (Result.isError(result)) {
-        toast.error(result.message);
+        showActionFailure(result);
         return;
       }
       toast.success("Folder saved");
@@ -195,7 +195,7 @@ export function FolderSettingsCard({
     startTransition(async () => {
       const result = await updateFolderAction(folder.id, { isActive: next });
       if (Result.isError(result)) {
-        toast.error(result.message);
+        showActionFailure(result);
         return;
       }
       toast.success(next ? "Folder activated" : "Folder deactivated");
@@ -207,7 +207,7 @@ export function FolderSettingsCard({
     startTransition(async () => {
       const result = await updateFolderAction(folder.id, { immutable: next });
       if (Result.isError(result)) {
-        toast.error(result.message);
+        showActionFailure(result);
         return;
       }
       toast.success(next ? "Folder locked" : "Folder unlocked");
