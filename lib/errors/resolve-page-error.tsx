@@ -2,8 +2,12 @@ import { SIGNIN_PATH, UNAUTHORIZED_PATH } from "@/features/auth";
 import type { PageError } from "@/lib/errors/page-error";
 import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
+import { StandingRefusal } from "@/components/error-handling/standing-refusal";
 
 export function resolvePageError(error: PageError): ReactNode {
+  if (error.kind === "required_action") {
+    return <StandingRefusal refusal={error} />;
+  }
   if (error.kind === "not_found") {
     notFound();
   }

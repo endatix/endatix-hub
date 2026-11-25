@@ -21,6 +21,7 @@ const AUTH_ROUTES = [
 ];
 
 const HUB_PATHS = [
+  "/required-actions",
   "/forms",
   "/settings",
   "/my-account",

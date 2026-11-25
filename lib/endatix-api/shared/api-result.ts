@@ -1,3 +1,4 @@
+import type { RequiredActionError } from "../auth/required-action";
 import {
   DEFAULT_ERROR_MESSAGE,
   ERROR_CODE,
@@ -21,6 +22,7 @@ export enum ApiErrorType {
 }
 
 export interface ApiErrorDetails {
+  requiredAction?: RequiredActionError;
   statusCode?: number;
   endpoint?: string;
   method?: string;

@@ -1,9 +1,12 @@
+import type { RequiredActionError } from "@/lib/endatix-api/auth/required-action";
+
 type Success<T> = {
   kind: Kind.Success;
   value: T;
 };
 
 type ErrorSupport = {
+  requiredAction?: RequiredActionError;
   traceId?: string;
   statusCode?: number;
   problemTitle?: string;
@@ -12,17 +15,12 @@ type ErrorSupport = {
   existingId?: string;
 };
 
-type Error = {
+type Error = ErrorSupport & {
   kind: Kind.Error;
   errorType: ErrorType;
   message: string;
   details?: string;
   errorCode?: string;
-  traceId?: string;
-  statusCode?: number;
-  problemTitle?: string;
-  problemMediaType?: string;
-  existingId?: string;
 };
 
 type Result<T> = Success<T> | Error;
@@ -51,6 +49,7 @@ const Result = {
   ): Result<T> => ({
     kind: Kind.Error,
     errorType: ErrorType.Error,
+    requiredAction: support?.requiredAction,
     message,
     details,
     errorCode,

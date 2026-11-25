@@ -1,6 +1,8 @@
 import { ApiErrorType, ApiResult } from "@/lib/endatix-api";
+import type { RequiredActionError } from "@/lib/endatix-api/auth/required-action";
 
 export type ApiPageError =
+  | RequiredActionError
   | { kind: "auth" }
   | { kind: "forbidden" }
   | { kind: "api"; message: string };
@@ -17,7 +19,7 @@ export function toApiPageError<T>(result: ApiResult<T>): ApiPageError | null {
   }
 
   if (result.error.type === ApiErrorType.ForbiddenError) {
-    return { kind: "forbidden" };
+    return result.error.details?.requiredAction ?? { kind: "forbidden" };
   }
 
   return { kind: "api", message: result.error.message };

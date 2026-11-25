@@ -87,6 +87,7 @@ export interface SendVerificationEmailRequest {
 }
 
 export interface AuthorizationData {
+  requiredActions?: import("./required-action").RequiredAction[];
   userId: string;
   tenantId: string;
   roles: string[];

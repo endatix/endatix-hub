@@ -13,40 +13,38 @@ export async function mapResponseToApiError<T>(
 ): Promise<ApiResult<T>> {
   const problemDetails = await parseErrorResponse(response).catch(() => null);
 
-  const serverErrorCode = problemDetails?.errorCode;
-
-  const problemMessage =
-    (problemDetails?.detail ?? problemDetails?.title)?.trim() || undefined;
-  // Prefer the server's problem detail over a canned error-code message.
-  // When the body has no readable detail/title and no errorCode, leave message
-  // undefined so status-specific factories (e.g. conflictError) apply their own fallback.
-  let message: string | undefined;
-  if (problemDetails) {
-    message = problemMessage;
-    if (!message && serverErrorCode) {
-      message = getErrorMessageWithFallback(serverErrorCode);
-    }
-  }
-
-  const enrichedDetails = enrichDetails(details, response, problemDetails);
-
-  const retryAfter = response.headers.get("Retry-After");
-  const retryAfterSeconds = parseRetryAfter(retryAfter);
-  const detailsWithRetryAfter =
-    response.status === 429 && retryAfterSeconds !== undefined
-      ? {
-          ...enrichedDetails,
-          retryAfter: retryAfterSeconds,
-        }
-      : enrichedDetails;
-
   return ApiResult.httpStatusError(
     response.status,
-    message,
-    serverErrorCode,
-    detailsWithRetryAfter,
+    problemMessage(problemDetails),
+    problemDetails?.errorCode,
+    enrichDetails(details, response, problemDetails),
     problemDetails?.fields,
   );
+}
+
+function problemMessage(problem: ProblemDetails | null) {
+  const message = (problem?.detail ?? problem?.title)?.trim();
+  return (
+    message ||
+    (problem?.errorCode && getErrorMessageWithFallback(problem.errorCode))
+  );
+}
+
+function standingRefusal(
+  status: number,
+  problemDetails: ProblemDetails | null,
+): ApiErrorDetails["requiredAction"] {
+  if (
+    status === 403 &&
+    problemDetails?.status === 403 &&
+    problemDetails.errorCode === "required_action" &&
+    problemDetails.requiredActions?.some((a) => a.severity === "blocking")
+  ) {
+    return {
+      kind: "required_action",
+      actions: problemDetails.requiredActions,
+    };
+  }
 }
 
 /** The request's details, completed from the response and its problem details. */
@@ -58,6 +56,8 @@ function enrichDetails(
   const problemMediaType = mediaTypeOf(response);
   return {
     ...details,
+    requiredAction: standingRefusal(response.status, problemDetails),
+    retryAfter: retryDelay(response) ?? details.retryAfter,
     statusCode: details.statusCode ?? response.status,
     details: problemDetails?.detail ?? details.details,
     traceId: problemDetails?.traceId ?? details.traceId,
@@ -67,6 +67,11 @@ function enrichDetails(
     previousSchemaRetained:
       problemDetails?.previousSchemaRetained ?? details.previousSchemaRetained,
   };
+}
+
+function retryDelay(response: Response) {
+  if (response.status === 429 || response.status === 503)
+    return parseRetryAfter(response.headers.get("Retry-After"));
 }
 
 function mediaTypeOf(response: Response): string | undefined {
