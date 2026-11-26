@@ -10,11 +10,19 @@ import {
 } from "@/features/form-templates/application/create-template.action";
 import Link from "next/link";
 import PageTitle from "@/components/headings/page-title";
-import { useActionState, useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { unstable_rethrow, useRouter } from "next/navigation";
 import { toast } from "@/components/ui/toast";
 import { Loader2 } from "lucide-react";
 import type { TemplateCreateContext } from "@/features/form-templates/application/get-template-create-context.action";
+import { HubPageLoadError } from "@/components/error-handling/error-page/hub-page-load-error";
+import { Result } from "@/lib/result";
 import {
   Select,
   SelectContent,
@@ -29,56 +37,61 @@ import { ServerActionState } from "@/lib/utils/zod-error-utils";
 const NO_FOLDER_ID = "__none__";
 const INITIAL_STATE: CreateTemplateActionState = ServerActionState.emptyState();
 
-function unconfirmedCreation(error: unknown): CreateTemplateActionState {
+function unconfirmedCreation(
+  error: unknown,
+  data: FormData,
+): CreateTemplateActionState {
   unstable_rethrow(error);
   return {
     isSuccess: false,
-    formErrors: ["Could not confirm creation. Check your templates before trying again."],
+    data: {
+      name: data.get("name")?.toString(),
+      description: data.get("description")?.toString(),
+      folderId: data.get("folderId")?.toString(),
+    },
+    formErrors: [
+      "Could not confirm creation. Check your templates before trying again.",
+    ],
   };
 }
 
-async function createAndOpenTemplate(
-  previous: CreateTemplateActionState,
-  data: FormData,
-  router: ReturnType<typeof useRouter>,
-): Promise<CreateTemplateActionState> {
-  const createPath = window.location.pathname;
-  const result = await createTemplateAction(previous, data).catch(unconfirmedCreation);
-  if (result.isSuccess && result.templateId && window.location.pathname === createPath) {
+function useOpenCreatedTemplate(templateId?: string) {
+  const router = useRouter();
+  useEffect(() => {
+    if (!templateId) return;
     toast.success({
       title: "Form template created successfully",
       description: "Opening template editor...",
     });
-    router.push(`/forms/templates/${result.templateId}`);
-  }
-  return result;
+    router.push(`/forms/templates/${templateId}`);
+  }, [router, templateId]);
 }
 
 function useCreateTemplate() {
-  const router = useRouter();
   const submitting = useRef(false);
   async function submit(previous: CreateTemplateActionState, data: FormData) {
-    const result = await createAndOpenTemplate(previous, data, router);
+    const result = await createTemplateAction(previous, data).catch((error) =>
+      unconfirmedCreation(error, data),
+    );
     submitting.current = Boolean(result.isSuccess && result.templateId);
     return result;
   }
   const [state, action, pending] = useActionState(submit, INITIAL_STATE);
+  const createdId = state.isSuccess ? state.templateId : undefined;
+  useOpenCreatedTemplate(createdId);
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     if (submitting.current) event.preventDefault();
     else submitting.current = true;
   }
-  return { state, action, pending, onSubmit };
+  return { state, action, isPending: pending || Boolean(createdId), onSubmit };
 }
 
 export default function CreateTemplateForm({
-  folders,
-  requireFolderAssignment,
-}: Readonly<TemplateCreateContext>) {
-  const { state, action, pending, onSubmit } = useCreateTemplate();
+  context,
+}: Readonly<{ context: Result<TemplateCreateContext> }>) {
+  const { state, action, isPending, onSubmit } = useCreateTemplate();
   const [selectedFolderId, setSelectedFolderId] =
     useState<string>(NO_FOLDER_ID);
-  const createdId = state.isSuccess ? state.templateId : undefined;
-  const isPending = pending || Boolean(createdId);
 
   useEffect(() => {
     if (state?.data?.folderId) {
@@ -88,6 +101,9 @@ export default function CreateTemplateForm({
     }
   }, [state?.data?.folderId]);
 
+  if (Result.isError(context)) return <HubPageLoadError result={context} />;
+  const { folders, requireFolderAssignment } = context.value;
+
   return (
     <>
       <PageTitle title="Create Form Template" />
@@ -96,7 +112,10 @@ export default function CreateTemplateForm({
           {isPending ? (
             <span aria-disabled="true">← Back to templates</span>
           ) : (
-            <Link href="/forms/templates" className="text-primary hover:underline">
+            <Link
+              href="/forms/templates"
+              className="text-primary hover:underline"
+            >
               ← Back to templates
             </Link>
           )}
@@ -209,8 +228,17 @@ export default function CreateTemplateForm({
             </div>
 
             <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" asChild={!isPending} disabled={isPending}>
-                {isPending ? "Cancel" : <Link href="/forms/templates">Cancel</Link>}
+              <Button
+                type="button"
+                variant="outline"
+                asChild={!isPending}
+                disabled={isPending}
+              >
+                {isPending ? (
+                  "Cancel"
+                ) : (
+                  <Link href="/forms/templates">Cancel</Link>
+                )}
               </Button>
               <Button type="submit" disabled={isPending}>
                 {isPending ? (

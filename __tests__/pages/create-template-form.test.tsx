@@ -21,7 +21,8 @@ vi.mock("@/features/auth/required-actions/workspace-redirect.server", () => ({
   admitWorkspacePage: async (guard: Promise<void>) => guard,
 }));
 vi.mock("@/features/onboarding/server", () => ({
-  withWorkspaceSetupEntry: (content: React.ReactNode) => content,
+  withWorkspaceSetupAfter: (_admitted: boolean, content: React.ReactNode) =>
+    content,
 }));
 vi.mock("next/navigation", async (original) => ({
   ...(await original<object>()),
@@ -241,6 +242,12 @@ it("unlocks without retrying when the create response is lost", async () => {
   create.mockRejectedValueOnce(new Error("Connection lost"));
   context.mockResolvedValue(folderContext(false));
   render(await CreateFormTemplatePage());
+  fireEvent.change(screen.getByLabelText("Name"), {
+    target: { value: "My template" },
+  });
+  fireEvent.change(screen.getByLabelText(/Description/), {
+    target: { value: "Draft description" },
+  });
 
   // Act
   fireEvent.submit(pendingButton("Create Template").form!);
@@ -250,6 +257,34 @@ it("unlocks without retrying when the create response is lost", async () => {
   expect(pendingButton("Create Template").disabled).toBe(false);
   expect(create).toHaveBeenCalledOnce();
   expect(router.push).not.toHaveBeenCalled();
+  create.mockResolvedValueOnce({ isSuccess: true, templateId: "46" });
+  fireEvent.click(pendingButton("Create Template"));
+  await waitFor(() =>
+    expect(router.push).toHaveBeenCalledWith("/forms/templates/46"),
+  );
+  expect(create.mock.calls[1][1].get("name")).toBe("My template");
+  expect(create.mock.calls[1][1].get("description")).toBe("Draft description");
+});
+
+it("does not navigate a new visit when an abandoned create completes", async () => {
+  // Arrange
+  context.mockResolvedValue(folderContext(false));
+  const pending = Promise.withResolvers<{
+    isSuccess: true;
+    templateId: string;
+  }>();
+  create.mockReturnValueOnce(pending.promise);
+  const first = render(await CreateFormTemplatePage());
+  fireEvent.submit(pendingButton("Create Template").form!);
+
+  // Act
+  first.unmount();
+  render(await CreateFormTemplatePage());
+  await act(async () => pending.resolve({ isSuccess: true, templateId: "45" }));
+
+  // Assert
+  expect(router.push).not.toHaveBeenCalled();
+  expect(pendingButton("Create Template").disabled).toBe(false);
 });
 
 it("opens the saved template even when a context refresh replaces the submitting form", async () => {
