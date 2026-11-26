@@ -53,19 +53,24 @@ export async function createTenantUserAction(
     };
   }
 
+  let response;
   try {
-    const session = await auth();
-    const { requirePermission } = await authorization(session);
-    await requirePermission(Permissions.Tenant.InviteUsers);
-
-    const api = new EndatixApi(session?.accessToken);
-    const failure = await inviteFailure(await api.users.create(validatedData.data), canResumeWorkspaceSetup);
-    if (failure) return { ...failure, data: rawData };
-    revalidatePath("/settings/organization/users");
-    return { isSuccess: true, message: "Invite sent." };
+    response = await sendAuthorizedInvite(validatedData.data);
+    if (response.success) revalidatePath("/settings/organization/users");
   } catch (error) {
     return stateFromUnexpectedError(error, rawData, "createTenantUserAction");
   }
+  const failure = await inviteFailure(response, canResumeWorkspaceSetup);
+  if (failure) return { ...failure, data: rawData };
+  return { isSuccess: true, message: "Invite sent." };
+}
+
+async function sendAuthorizedInvite(payload: z.infer<typeof createTenantUserSchema>) {
+  const session = await auth();
+  const { requirePermission } = await authorization(session);
+  await requirePermission(Permissions.Tenant.InviteUsers);
+  const api = new EndatixApi(session?.accessToken);
+  return api.users.create(payload);
 }
 
 function getCreateTenantUserData(payload: CreateTenantUserPayload): {
