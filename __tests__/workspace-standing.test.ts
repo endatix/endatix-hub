@@ -136,6 +136,12 @@ it("rechecks the tenants page grant before a pending blocker even with a warm ro
   });
 });
 
+it("keeps the default sidebar's folder reader off a blocked workspace page", async () => {
+  const { default: DefaultNavigation } = await import("@/app/(main)/@nav/default");
+  nextHeaders.mockResolvedValue(new Headers({ [WORKSPACE_NAVIGATION]: "/folders" }));
+  expect(await DefaultNavigation()).toBeNull();
+});
+
 it.each([
   snapshot(true, []),
   snapshot(true, [{ ...action, severity: "notice" }]),
