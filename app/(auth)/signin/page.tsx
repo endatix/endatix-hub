@@ -18,6 +18,7 @@ import {
   RETURN_URL_PARAM,
 } from "@/features/auth/infrastructure";
 import SigninForm from "@/features/auth/use-cases/signin/ui/signin-form";
+import { DeclinedNotice } from "@/features/legal/operator-contact";
 
 export async function generateMetadata(): Promise<Metadata> {
   const brand = await getBrand();
@@ -69,7 +70,7 @@ const SignInPage = async ({ searchParams }: SignInPageProps) => {
         externalAuthProviders={externalAuthProviders}
         returnUrl={returnUrl}
       />
-      {/* <NewAccountLink /> */}
+      <DeclinedNotice />
     </>
   );
 };

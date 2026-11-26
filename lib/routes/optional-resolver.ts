@@ -2,6 +2,7 @@ import type { Route } from "next";
 
 /** Optional workspace pages that redirect elsewhere when their feature is disabled. */
 export function resolverFeature(path: string) {
+  if (path === "/accept-terms") return "terms";
   if (path === "/settings/organization/export-formats") return "reporting";
   if (/^\/forms\/[^/]+\/analytics$/.test(path)) return "analytics";
   if (/^\/forms\/[^/]+\/audience(?:\/|$)/.test(path)) return "audience";

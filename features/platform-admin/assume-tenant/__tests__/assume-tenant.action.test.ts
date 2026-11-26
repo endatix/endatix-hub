@@ -49,6 +49,7 @@ vi.mock(
 );
 
 vi.mock("@/lib/feature-flags/flags", () => ({
+  termsAcceptanceEnabled: async () => true,
   tenantManagementFlag: tenantManagementFlagMock,
 }));
 
@@ -112,10 +113,12 @@ describe("assume-tenant actions", () => {
     authMock.mockResolvedValue({ accessToken: ASSUMED_TOKEN });
     exitMock.mockResolvedValue(ApiResult.success(TOKENS));
 
-    await expect(exitAssumeAction()).rejects.toThrow("REDIRECT:/admin/tenants");
+    await expect(exitAssumeAction()).rejects.toThrow(
+      "REDIRECT:/required-actions?home=1",
+    );
     expect(replaceMock).toHaveBeenCalledWith("access", "refresh");
     expect(revalidatePath).toHaveBeenCalledWith("/", "layout");
-    expect(redirect).toHaveBeenCalledWith("/admin/tenants");
+    expect(redirect).toHaveBeenCalledWith("/required-actions?home=1");
   });
 
   it("still calls exit-assume when the multi-tenancy flag is off", async () => {
@@ -123,7 +126,9 @@ describe("assume-tenant actions", () => {
     authMock.mockResolvedValue({ accessToken: ASSUMED_TOKEN });
     exitMock.mockResolvedValue(ApiResult.success(TOKENS));
 
-    await expect(exitAssumeAction()).rejects.toThrow("REDIRECT:/admin/tenants");
+    await expect(exitAssumeAction()).rejects.toThrow(
+      "REDIRECT:/required-actions?home=1",
+    );
     expect(exitMock).toHaveBeenCalled();
   });
 

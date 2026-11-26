@@ -2,12 +2,14 @@ import {
   formAnalyticsFlag,
   personalizationFlag,
   reportingExportFlag,
+  termsAcceptanceEnabled,
 } from "@/lib/feature-flags/flags";
 import type { RequiredAction } from "@/lib/endatix-api/auth/required-action";
 import { resolverFeature } from "@/lib/routes/optional-resolver";
 import { resolverPath } from "@/lib/routes/resolve-target";
 
 const flags = {
+  terms: () => termsAcceptanceEnabled(),
   analytics: formAnalyticsFlag,
   audience: personalizationFlag,
   reporting: reportingExportFlag,

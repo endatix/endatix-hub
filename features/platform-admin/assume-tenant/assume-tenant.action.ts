@@ -9,6 +9,7 @@ import { validateEndatixId } from "@/lib/utils/type-validators";
 import type { Route } from "next";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { termsAcceptanceEnabled } from "@/lib/feature-flags/flags";
 import { TENANTS_LOGGER_NAME } from "../tenant-management.constants";
 import { requireTenantManagement } from "../tenant-management.server";
 import { readAssumeSession } from "./read-assume-session";
@@ -80,5 +81,9 @@ export async function exitAssumeAction(): Promise<ResultType<boolean>> {
     return result;
   }
 
-  return swapSessionAndRedirect(result.value, "/admin/tenants");
+  return swapSessionAndRedirect(result.value, await exitDestination());
+}
+
+async function exitDestination() {
+  return (await termsAcceptanceEnabled()) ? "/required-actions?home=1" : "/admin/tenants";
 }

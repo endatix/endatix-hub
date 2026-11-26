@@ -15,6 +15,7 @@ import {
 import { SupportAccessBannerSlot } from "@/features/platform-admin/assume-tenant/ui/support-access-banner-slot";
 import { NoticeSlot } from "@/features/auth/required-actions/notice-slot";
 import { Suspense } from "react";
+import { workspaceScope } from "@/lib/routes/workspace-scope.server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const brand = await getBrand();
@@ -58,7 +59,7 @@ export default async function RootLayout({
           brand={brand}
         >
           {nav}
-          <main data-slot="sidebar-inset">
+          <main data-slot="sidebar-inset" data-workspace-scope={workspaceScope(session?.accessToken)}>
             <SupportAccessBannerSlot accessToken={session?.accessToken} />
             <Suspense fallback={null}>
               <NoticeSlot session={session} />

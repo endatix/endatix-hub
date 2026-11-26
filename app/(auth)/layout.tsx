@@ -75,7 +75,7 @@ export default async function AuthLayout({ children }: AuthLayoutProps) {
             <main className="grid h-full gap-8 p-6 lg:grid-cols-2">
               {/* Left — sign-in form */}
               <div className="flex items-center justify-center">
-                <div className="w-[400px] space-y-6">{children}</div>
+                <div className="w-full min-w-0 max-w-[400px] space-y-6">{children}</div>
               </div>
 
               {/* Right — hero panel */}

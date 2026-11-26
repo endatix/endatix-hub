@@ -3,6 +3,7 @@ import { requiredActionsSchema } from "@/lib/endatix-api/auth/required-action";
 import { resolverPath } from "@/lib/routes/resolve-target";
 import { getAuthDataForCurrentUser } from "../authorization/application/authorization-data.provider";
 import { NoticeBanner } from "./notice-banner";
+import { workspaceScope } from "@/lib/routes/workspace-scope.server";
 import { availableResolvers } from "./available-resolvers.server";
 
 export async function NoticeSlot({
@@ -17,6 +18,7 @@ export async function NoticeSlot({
     <NoticeBanner
       key={`${result.data.userId}:${result.data.tenantId}:${action.key}`}
       href={resolverPath(action)}
+      scope={workspaceScope(session?.accessToken)}
     />
   ));
 }

@@ -5,6 +5,7 @@ import RequiredActionsPage from "@/app/(auth)/required-actions/page";
 
 const { exitAction } = vi.hoisted(() => ({ exitAction: vi.fn() }));
 vi.mock("@/lib/feature-flags/flags", () => ({
+  termsAcceptanceEnabled: async () => true,
   reportingExportFlag: async () => false,
   personalizationFlag: async () => false,
   formAnalyticsFlag: async () => false,
@@ -16,7 +17,12 @@ vi.mock("@/features/platform-admin/assume-tenant/assume-tenant.action", () => ({
   exitAssumeAction: exitAction,
 }));
 vi.mock("@/features/auth/ui/auth-logo", () => ({ AuthLogo: () => null }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn() }),
+  redirect: (href: string) => {
+    throw new Error(`navigate:${href}`);
+  },
+}));
 
 const blocker = {
   key: "saas.legal.return-home",
@@ -28,11 +34,74 @@ const blocker = {
   blockNonResolvers: true,
 };
 
-async function openStatus(response: Response) {
+async function openStatus(response: Response, home?: string) {
   vi.stubEnv("ENDATIX_BASE_URL", "https://api.example");
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response));
-  render(await RequiredActionsPage());
+  render(
+    await RequiredActionsPage({ searchParams: Promise.resolve({ home }) }),
+  );
 }
+
+const homeTerms = {
+  ...blocker,
+  key: "saas.legal.terms",
+  scope: "user",
+  canResolve: true,
+  resolvePath: "/accept-terms",
+};
+
+it.each([
+  {
+    roles: ["PlatformAdmin"],
+    enforced: true,
+    actions: [],
+    destination: "/admin/tenants",
+  },
+  { roles: [], enforced: true, actions: [], destination: "/forms" },
+  {
+    roles: ["PlatformAdmin"],
+    enforced: false,
+    actions: [homeTerms],
+    destination: "/admin/tenants",
+  },
+])(
+  "uses fresh home roles and enforcement after support exit: $destination, enforced=$enforced",
+  async ({ roles, enforced, actions, destination }) => {
+    const response = Response.json({
+      roles,
+      requiredActionsEnforced: enforced,
+      requiredActions: actions,
+    });
+    await expect(openStatus(response, "1")).rejects.toMatchObject({
+      message: `navigate:${destination}`,
+    });
+  },
+);
+
+it("directs the returning operator to outstanding home Terms before opening the tenant list", async () => {
+  const response = Response.json({
+    roles: ["PlatformAdmin"],
+    requiredActionsEnforced: true,
+    requiredActions: [homeTerms],
+  });
+  await expect(openStatus(response, "1")).rejects.toThrow(
+    /^navigate:\/accept-terms\?returnUrl=%2Fadmin%2Ftenants&scope=.+$/,
+  );
+});
+
+it("keeps a returning operator at account guidance when another home obligation has no resolver", async () => {
+  const requiredActions = [{ ...blocker, key: "organization.review" }];
+  await openStatus(
+    Response.json({
+      roles: ["PlatformAdmin"],
+      requiredActionsEnforced: true,
+      requiredActions,
+    }),
+    "1",
+  );
+  expect(screen.getByText(/organization’s admin must/i)).toBeTruthy();
+  expect(screen.queryByRole("link", { name: "Review action" })).toBeNull();
+});
 
 it("offers the authorized return-home action, never a target-tenant Terms link", async () => {
   // Arrange

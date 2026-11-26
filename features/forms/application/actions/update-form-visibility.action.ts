@@ -2,11 +2,12 @@
 
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
-import { Result } from "@/lib/result";
+import { Result, toResult } from "@/lib/result";
 import { EndatixApi } from "@/lib/endatix-api";
 import { revalidatePath } from "next/cache";
 
 export type UpdateFormVisibilityResult = Result<string>;
+const visibilityFailure = { fallbackMessage: "Failed to update form visibility", logMessage: "Failed to update form visibility", loggerName: "forms.visibility" };
 
 export async function updateFormVisibilityAction(
   formId: string,
@@ -20,8 +21,7 @@ export async function updateFormVisibilityAction(
   const result = await api.forms.update(formId, { isPublic });
 
   if (!result.success) {
-    console.error("Failed to update form visibility", result.error);
-    return Result.error("Failed to update form visibility");
+    return toResult<string>(result, visibilityFailure);
   }
 
   revalidatePath("/(main)/forms");

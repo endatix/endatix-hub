@@ -2,11 +2,12 @@
 
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
-import { Result } from "@/lib/result";
+import { Result, toResult } from "@/lib/result";
 import { EndatixApi } from "@/lib/endatix-api";
 import { revalidatePath } from "next/cache";
 
 export type UpdateFormStatusResult = Result<string>;
+const statusFailure = {fallbackMessage:"Failed to update form status", logMessage:"Failed to update form status", loggerName:"forms.status"};
 
 export async function updateFormStatusAction(
   formId: string,
@@ -20,8 +21,7 @@ export async function updateFormStatusAction(
   const result = await api.forms.update(formId, { isEnabled });
 
   if (!result.success) {
-    console.error("Failed to update form status", result.error);
-    return Result.error("Failed to update form status");
+    return toResult<string>(result, statusFailure);
   }
 
   revalidatePath("/(main)/forms");

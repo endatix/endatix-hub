@@ -1,6 +1,8 @@
 "use client";
 
 import { toast } from "@/components/ui/toast";
+import { showActionFailure } from "@/components/error-handling/show-action-failure";
+import { Result, toActionFailure } from "@/lib/result";
 import { editSubmissionUseCase } from "@/features/submissions/use-cases/edit-submission.use-case";
 import { Submission } from "@/lib/endatix-api";
 import { useDesignerRuntime } from "@/lib/designer-runtime";
@@ -25,19 +27,11 @@ export function HubEditSubmission({
 
   const onSave = useCallback(
     async (jsonData: Record<string, unknown>) => {
-      try {
-        await editSubmissionUseCase(submission.formId, submission.id, {
-          jsonData: JSON.stringify(jsonData),
-        });
-        toast.success("Changes saved");
-        router.push(`/forms/${submission.formId}/submissions/${submission.id}`);
-      } catch (error) {
-        console.error(error);
-        toast.error("Failed to save changes");
-        throw error;
-      }
+      await saveChanges(submission, jsonData);
+      toast.success("Changes saved");
+      router.push(`/forms/${submission.formId}/submissions/${submission.id}`);
     },
-    [router, submission.formId, submission.id],
+    [router, submission],
   );
 
   const onDiscard = useCallback(() => {
@@ -55,4 +49,14 @@ export function HubEditSubmission({
       onDiscard={onDiscard}
     />
   );
+}
+
+async function saveChanges(submission: Submission, changes: Record<string, unknown>) {
+  const result = await editSubmissionUseCase(submission.formId, submission.id, {
+    jsonData: JSON.stringify(changes),
+  }).catch(toActionFailure("Failed to save changes"));
+  if (Result.isError(result)) {
+    showActionFailure(result);
+    throw new Error("Submission was not saved");
+  }
 }
