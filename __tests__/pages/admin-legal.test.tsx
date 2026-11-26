@@ -104,6 +104,12 @@ it("shows the empty state for a genuine empty history page", async () => {
   expect(screen.getByText("No versions on this page.")).toBeTruthy();
 });
 
+it("keeps a publication whose text is a byte order mark", async () => {
+  // Act & Assert
+  await renderHistory({ ...historyPage, items: [{ ...publication, markdown: "\uFEFF" }] });
+  expect(screen.getByText(/published by user 9007199254740993/)).toBeTruthy();
+});
+
 it.each([
   ["null body", null],
   ["failed envelope with paging fields", { ...emptyPage, success: false, message: "Internal diagnostic" }],
@@ -113,7 +119,7 @@ it.each([
   ["inconsistent totals", { ...emptyPage, totalPages: 1 }],
   ["missing publication", { ...historyPage, items: [] }],
   ["invalid row", { ...historyPage, items: [publication, null] }],
-  ["blank text", { ...historyPage, items: [{ ...publication, markdown: "  " }] }],
+  ["blank text", { ...historyPage, items: [{ ...publication, markdown: " \u0085" }] }],
   ["null character", { ...historyPage, items: [{ ...publication, markdown: "bad\0text" }] }],
   ...Object.entries({
     id: "9223372036854775808", number: 0, change: "unknown", markdown: null,

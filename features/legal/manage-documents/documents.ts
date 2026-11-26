@@ -37,7 +37,8 @@ export const publication = z.object({
   id: createEndatixIdSchema("id"),
   number: z.number().int().positive(),
   change,
-  markdown: z.string().refine((text) => /\S/u.test(text) && !text.includes("\0")),
+  // Match the API's string.IsNullOrWhiteSpace without trimming published Markdown.
+  markdown: z.string().refine((text) => /\P{White_Space}/u.test(text) && !text.includes("\0")),
   publishedByUserId: createEndatixIdSchema("publishedByUserId"),
   publishedAt: z.iso.datetime({ offset: true, local: true }),
 });
