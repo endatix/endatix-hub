@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
-import { useStorageWithCreator } from "@/features/asset-storage/client";
+import { RichTextImageDisplay, useStorageWithCreator } from "@/features/asset-storage/client";
 import { TelemetryLogger } from "@/features/telemetry";
 import { useSurveyLicenseKey } from "@/features/config/survey-license-provider";
 import { useDesignerRuntime } from "@/lib/designer-runtime";
@@ -451,7 +451,7 @@ function FormTemplateEditorContent({
             </div>
           </div>
         ) : creator ? (
-          <SurveyCreatorComponent creator={creator} />
+          <RichTextImageDisplay><SurveyCreatorComponent creator={creator} /></RichTextImageDisplay>
         ) : (
           <div>Error loading form editor</div>
         )}

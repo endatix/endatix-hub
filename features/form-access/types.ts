@@ -16,6 +16,8 @@ export interface FormStorageGateInput {
 
 /** Resolved storage permissions for public-form storage routes. */
 export interface FormStorageAccess {
+  /** Snapshot already loaded by the gate. Null means an expected snapshot was missing. */
+  definitionJson?: string | null;
   formId: string;
   submissionId?: string;
   isPublicForm: boolean;

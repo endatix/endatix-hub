@@ -4,6 +4,7 @@ import type { FormStorageGateInput, FormStorageTokenType } from "../types";
 import { validateGateInput } from "./validate-gate-input";
 
 export interface PublicReadUrlsRequestBody {
+  richTextImages?: unknown;
   formId?: string;
   submissionId?: string;
   token?: string;
@@ -111,12 +112,12 @@ export function parseHubReadUrlsBody(body: HubReadUrlsRequestBody): Result<{
  */
 export function parsePublicReadUrlsBody(
   body: PublicReadUrlsRequestBody,
-): Result<{ gate: FormStorageGateInput; urls: string[] }> {
+): Result<{ gate: FormStorageGateInput; urls: string[]; richTextImages?: true }> {
   if (!body.formId?.trim()) {
     return Result.validationError("formId is required");
   }
 
-  const urlsResult = parseUrlsField(body.urls);
+  const urlsResult = parseUrlsField(body.richTextImages ?? body.urls);
   if (Result.isError(urlsResult)) {
     return urlsResult;
   }
@@ -133,6 +134,7 @@ export function parsePublicReadUrlsBody(
 
   return Result.success({
     gate: gateResult.value,
+    ...(body.richTextImages !== undefined ? { richTextImages: true as const } : {}),
     urls: urlsResult.value,
   });
 }

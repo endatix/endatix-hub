@@ -34,7 +34,8 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const session = await auth();
-  const gateResult = await resolvePublicStorageGate(parsed.value.gate, session);
+  const gateResult = await resolvePublicStorageGate(parsed.value.gate, session,
+    parsed.value.richTextImages ? { allowCookieFallback: true } : undefined);
   if (Result.isError(gateResult)) {
     return mapGateResultToResponse(gateResult)!;
   }
@@ -43,6 +44,7 @@ export async function POST(request: Request): Promise<Response> {
     gate: gateResult.value,
     hubAccessToken: session?.accessToken,
     urls: parsed.value.urls,
+    richTextImages: parsed.value.richTextImages,
     clientConfig: getClientStorageConfig(),
   });
 

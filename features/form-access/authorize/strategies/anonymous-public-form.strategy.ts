@@ -9,7 +9,7 @@ export async function anonymousPublicFormStrategy(
   context: FormStorageGateRunContext,
 ): Promise<Result<FormStorageAccess>> {
   const { gate } = context;
-  const definitionResult = await new EndatixApi().get<unknown>(
+  const definitionResult = await new EndatixApi().get<{ jsonData: string }>(
     `/forms/${gate.formId}/definition`,
     { requireAuth: false },
   );
@@ -19,6 +19,7 @@ export async function anonymousPublicFormStrategy(
   }
 
   return Result.success({
+    definitionJson: definitionResult.data?.jsonData ?? null,
     formId: gate.formId,
     submissionId: gate.submissionId,
     isPublicForm: true,

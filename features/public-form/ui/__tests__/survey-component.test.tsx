@@ -87,6 +87,7 @@ vi.mock("@/features/analytics/posthog/client", () => ({
 }));
 
 vi.mock("@/features/asset-storage/client", () => ({
+  RichTextImageDisplay: ({ children }: React.PropsWithChildren) => children,
   useStorageWithSurvey: (...args: unknown[]) =>
     mockUseStorageWithSurvey(...args),
 }));

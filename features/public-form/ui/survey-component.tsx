@@ -2,7 +2,7 @@
 
 import { PublicStatusPage } from "@/components/public-status/public-status-page";
 import { useTrackEvent } from "@/features/analytics/posthog/client";
-import { useStorageWithSurvey } from "@/features/asset-storage/client";
+import { RichTextImageDisplay, useStorageWithSurvey } from "@/features/asset-storage/client";
 import { useSurveyEmbedBehavior } from "@/features/embed-form";
 import { DEFAULT_FILL_BACKGROUND_COLOR } from "@/features/embed-form/height-mode";
 import { getEmbedMessagingContext } from "@/features/embed-form/ui/embed-messaging-context";
@@ -415,7 +415,7 @@ export default function SurveyComponent({
         availableLocales={surveyLocales}
         surveyModel={surveyModel}
       />
-      <Survey model={surveyModel} />
+      <RichTextImageDisplay><Survey model={surveyModel} /></RichTextImageDisplay>
     </div>
   );
 }

@@ -76,6 +76,7 @@ export async function tokenGateStrategy(
     const canMutateFiles = canEdit || canSubmitIncomplete;
 
     return Result.success({
+      definitionJson: submissionResult.data.formDefinition?.jsonData ?? null,
       formId: gate.formId,
       submissionId,
       isPublicForm: false,

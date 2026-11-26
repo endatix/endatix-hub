@@ -24,6 +24,7 @@ export {
 export async function fetchStorageReadUrls(
   urls: string[],
   runtime: StorageReadRuntime | null,
+  purpose?: "rich-text",
 ): Promise<ReadUrlsResponse | null> {
   if (runtime === null) {
     return null;
@@ -37,7 +38,9 @@ export async function fetchStorageReadUrls(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify(body),
+      body: JSON.stringify(purpose === "rich-text" && runtime.policyName === "public"
+        ? { ...body, urls: undefined, richTextImages: urls }
+        : body),
     });
 
     if (!res.ok) {

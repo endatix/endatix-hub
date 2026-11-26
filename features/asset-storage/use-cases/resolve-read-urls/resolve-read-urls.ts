@@ -17,6 +17,9 @@ import {
   type ParsedStorageObjectUrl,
 } from "@/features/asset-storage/utils";
 import type { ClientStorageConfig } from "@endatix/storage-core";
+import { collectRichTextImageSources } from "./rich-text-image-sources";
+import { canonicalContentImage } from "../view-protected-files/canonical-content-image";
+import { getActiveFormDefinition } from "@/services/api";
 
 export type ReadUrlResolvedEntry = { url: string } | { error: string };
 
@@ -32,6 +35,7 @@ interface ParsedReadUrl {
 
 type StorageObjectAccessAssert = (
   parsed: ParsedStorageObjectUrl,
+  originalUrl: string,
 ) => string | null;
 
 interface ResolvePresignedReadUrlsInput {
@@ -49,6 +53,7 @@ interface PrivateReadUrlParseResult {
  * Public form read-urls: OSS gate, per-object path checks, then provider presign.
  */
 export async function resolvePublicReadUrls(input: {
+  richTextImages?: true;
   gate: FormStorageGateInput;
   hubAccessToken?: string;
   urls: string[];
@@ -71,12 +76,29 @@ export async function resolvePublicReadUrls(input: {
     submissionId: access.submissionId ?? input.gate.submissionId,
   };
 
+  const sources = input.richTextImages
+    ? await loadRichTextSources(access)
+    : undefined;
   return resolvePresignedReadUrls({
     urls: input.urls,
     clientConfig: input.clientConfig,
-    assertObject: (parsed) =>
-      assertPublicObjectAccess(parsed, accessForPaths, input.clientConfig),
+    assertObject: (parsed, originalUrl) =>
+      assertPublicObjectAccess(parsed, accessForPaths, input.clientConfig) ??
+      (sources && (!canonicalContentImage(originalUrl, input.clientConfig) || !sources.has(originalUrl))
+        ? "Image is not in the form definition"
+        : null),
   });
+}
+
+async function loadRichTextSources(access: { formId: string; definitionJson?: string | null }) {
+  try {
+    const json = access.definitionJson === undefined
+      ? (await getActiveFormDefinition(access.formId, true)).jsonData
+      : access.definitionJson;
+    return json ? collectRichTextImageSources(JSON.parse(json)) : new Set<string>();
+  } catch {
+    return new Set<string>();
+  }
 }
 
 /**
@@ -166,7 +188,7 @@ function parsePrivateReadUrls(
       continue;
     }
 
-    const accessError = assertObject(located);
+    const accessError = assertObject(located, url);
     if (accessError !== null) {
       resolved[url] = { error: accessError };
       continue;
