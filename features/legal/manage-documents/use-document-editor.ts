@@ -1,7 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import { unstable_rethrow, useRouter } from "next/navigation";
-import { Result, type ResultType } from "@/lib/result";
+import { ErrorType, Result, type Error as RequestError, type ResultType } from "@/lib/result";
 import { editDocument, previewDraft } from "./edit-document.action";
 import type { Change, DocumentState, Edit } from "./documents";
 
@@ -9,15 +9,23 @@ type Failure = { message: string; needsReload: boolean };
 type Operation = () => Promise<ResultType<DocumentState>>;
 type Receive = (value: DocumentState) => void;
 
+function failureFor(error: RequestError, mode: "read" | "write"): Failure {
+  const status = error.statusCode;
+  const uncertain = mode === "write" && error.errorType !== ErrorType.ValidationError &&
+    (!status || status === 408 || (status >= 500 && status !== 503));
+  if (uncertain) return {message: "Could not confirm the change. Reload the saved document.", needsReload: true};
+  return {message: error.message, needsReload: status === 409};
+}
+
 function useDocumentRequest() {
   const [failure, setFailure] = useState<Failure>();
   const [pending, start] = useTransition();
-  function run(operation: Operation, receive: Receive) {
+  function run(operation: Operation, receive: Receive, mode: "read" | "write" = "read") {
     start(async () => {
       try {
         const result = await operation();
         if (Result.isError(result))
-          return setFailure(old => ({message: result.message, needsReload: !!old?.needsReload || result.statusCode === 409}));
+          return setFailure(old => combineFailure(old, failureFor(result, mode)));
         setFailure(undefined);
         receive(result.value);
       } catch (cause) {
@@ -27,6 +35,10 @@ function useDocumentRequest() {
     });
   }
   return { failure, pending, run };
+}
+
+function combineFailure(previous: Failure | undefined, next: Failure) {
+  return { ...next, needsReload: !!previous?.needsReload || next.needsReload };
 }
 
 async function readDisplayedDraft(document: DocumentState) {
@@ -49,7 +61,7 @@ function useDraft(snapshot: DocumentState) {
     setLocal(undefined);
   }
   function reconcile(value: DocumentState) {
-    setPreviousText(local?.text);
+    if (local) setPreviousText(local.text);
     adopt(value);
   }
   return {base, text: local?.text ?? base.draftMarkdown ?? "", dirty: !!local, setText, adopt, reconcile, previousText};
@@ -65,7 +77,7 @@ function useDocumentOperations(draft: ReturnType<typeof useDraft>) {
     draft.reconcile(value); close(); router.refresh();
   });
   const review = () => run(() => readDisplayedDraft(draft.base), setPreview);
-  const write = (edit: Edit) => run(() => editDocument(edit), complete);
+  const write = (edit: Edit) => run(() => editDocument(edit), complete, "write");
   return {...request, write, review, reload, preview, close};
 }
 

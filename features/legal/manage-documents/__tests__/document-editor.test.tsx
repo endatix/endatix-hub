@@ -98,7 +98,7 @@ it("does not open a publish confirmation for a newer saved revision", async () =
 it("keeps the reviewed change available after an ordinary publication failure", async () => {
   // Arrange
   vi.mocked(previewDraft).mockResolvedValue(Result.success(doc));
-  vi.mocked(editDocument).mockResolvedValue(Result.error("Service is busy."));
+  vi.mocked(editDocument).mockResolvedValue(Result.error("Service is busy.", undefined, undefined, { statusCode: 503 }));
   render(<DocumentEditor document={doc} />);
   // Act
   fireEvent.click(screen.getByRole("button", { name: "Review and publish" }));
@@ -113,4 +113,19 @@ it("keeps the reviewed change available after an ordinary publication failure", 
     operation: "publish",
     change: "material",
   });
+});
+
+it("requires a fresh read when the publish response is lost", async () => {
+  // Arrange
+  vi.mocked(previewDraft).mockResolvedValue(Result.success(doc));
+  vi.mocked(editDocument).mockResolvedValue(Result.error("Connection lost"));
+  render(<DocumentEditor document={doc} />);
+  // Act
+  fireEvent.click(screen.getByRole("button", {name:"Review and publish"}));
+  fireEvent.click(await screen.findByLabelText("Minor"));
+  fireEvent.click(screen.getByRole("button",{name:"Publish version"}));
+  // Assert
+  expect(await screen.findByRole("button",{name:"Reload saved document"})).toBeTruthy();
+  expect(screen.getByRole("button",{name:"Publish version"}).hasAttribute("disabled")).toBe(true);
+  expect(editDocument).toHaveBeenCalledTimes(1);
 });

@@ -33,7 +33,7 @@ export function PublishDialog({ document, editor }: Readonly<Props>) {
         </DialogHeader>
         <LegalMarkdown text={document.draftMarkdown ?? ""} />
         <DocumentFailure editor={editor} />
-        <PublishDecision editor={editor} kind={document.kind} />
+        <PublishDecision editor={editor} document={document} />
       </DialogContent>
     </Dialog>
   );
@@ -41,8 +41,12 @@ export function PublishDialog({ document, editor }: Readonly<Props>) {
 
 const changeDescriptions = {
   terms: {
-    material: "A substantive update. For required Terms, people must accept again.",
-    minor: "A clarification. When Terms are required, people who accepted the latest material Terms receive a notice.",
+    material: "A substantive update. People without a covering tenant agreement must accept the new Terms.",
+    minor: "A clarification. People who accepted the latest material Terms receive a notice unless a tenant agreement covers them.",
+  },
+  optional: {
+    material: "A substantive update. Required is off, so publication does not request acceptance.",
+    minor: "A clarification. Required is off, so publication does not show a notice.",
   },
   privacy: {
     material: "A substantive update to the notice. It does not require acceptance.",
@@ -50,13 +54,14 @@ const changeDescriptions = {
   },
 };
 
-function PublishDecision({ editor, kind }: Readonly<{ editor: Editor; kind: DocumentState["kind"] }>) {
+function PublishDecision({ editor, document }: Readonly<Props>) {
   const [change, setChange] = useState<Change>();
+  const copy = changeDescriptions[document.kind === "terms" && !document.required ? "optional" : document.kind];
   return <>
     <fieldset disabled={editor.pending} className="space-y-2">
       <legend>Type of change</legend>
-      <Choice value="material" select={setChange}>{changeDescriptions[kind].material}</Choice>
-      <Choice value="minor" select={setChange}>{changeDescriptions[kind].minor}</Choice>
+      <Choice value="material" select={setChange}>{copy.material}</Choice>
+      <Choice value="minor" select={setChange}>{copy.minor}</Choice>
     </fieldset>
     <DialogFooter>
       <Button variant="outline" disabled={editor.pending} onClick={editor.close}>Cancel</Button>

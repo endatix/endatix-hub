@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
+import { PagedListFrame } from "@/components/table/paged-list-frame";
+import { Skeleton } from "@/components/ui/skeleton";
+import { listQueryKey } from "@/lib/list-page/list-query-key";
 import { HubPageLoadError } from "@/components/error-handling/error-page/hub-page-load-error";
 import { PlatformAdminShell } from "@/features/platform-admin/ui/platform-admin-shell";
 import { documentApi, documentsPath, options } from "@/features/legal/manage-documents/document-api.server";
@@ -27,9 +29,9 @@ export default async function LegalPage({ searchParams }: Readonly<Props>) {
     <PlatformAdminShell title="Legal documents" description="Manage drafts, publication history and Terms acceptance.">
       <DocumentNav documents={result.value} selected={document.kind} />
       {result.value.map(item => <DocumentEditor key={item.kind} document={item} active={item.kind === kind} />)}
-      <Suspense key={`${kind}:${page}`} fallback={<p>Loading version history…</p>}>
+      <PagedListFrame listKey={listQueryKey({kind, page})} fallback={<Skeleton aria-label="Loading version history" className="h-24 w-full" />}>
         <VersionHistory api={api} kind={document.kind} page={page} />
-      </Suspense>
+      </PagedListFrame>
     </PlatformAdminShell>
   );
 }
