@@ -83,6 +83,19 @@ const TEMPLATE_EXTENSION_IDS = ALL_EXTENSIONS.filter(
   (extension) => !TEMPLATE_EXCLUDED_EXTENSION_IDS.has(extension.id),
 ).map((extension) => extension.id);
 
+async function saveTemplateDefinition(templateId: string, definition: object) {
+  const result = await updateTemplateJsonAction(templateId, definition);
+  if (!result) {
+    toast.error("Could not proceed with updating template JSON");
+    return false;
+  }
+  if (Result.isError(result)) {
+    showActionFailure(result, "Failed to update template JSON");
+    return false;
+  }
+  return true;
+}
+
 function FormTemplateEditorContent({
   templateJson,
   templateId,
@@ -154,7 +167,7 @@ function FormTemplateEditorContent({
     return () => creator.onModified.remove(setAsModified);
   }, [creator, setHasUnsavedChanges]);
 
-  useCreatorJson(creator, templateJson);
+  const rememberCanvasSave = useCreatorJson(creator, templateJson);
 
   const handleNameSave = useCallback(async () => {
     if (name === originalName) return;
@@ -345,23 +358,15 @@ function FormTemplateEditorContent({
     }
 
     const creatorJson = jsonResult.value;
-
+    const stillSaved = rememberCanvasSave(creatorJson);
     setIsSaving(true);
     try {
-      const result = await updateTemplateJsonAction(templateId, creatorJson);
+      if (!(await saveTemplateDefinition(templateId, creatorJson))) return;
 
-      if (!result) {
-        toast.error("Could not proceed with updating template JSON");
-        return;
+      if (stillSaved(getJsonModel(creator))) {
+        setHasUnsavedChanges(false);
+        setIsJsonModified(false);
       }
-
-      if (Result.isError(result)) {
-        showActionFailure(result, "Failed to update template JSON");
-        return;
-      }
-
-      setHasUnsavedChanges(false);
-      setIsJsonModified(false);
       setShowSavedSuccess(true);
 
       toast.success("Template saved");

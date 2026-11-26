@@ -9,7 +9,7 @@ type CreatorJsonProps = { creator: FakeCreator; json: object | null };
 const createCreator = (): FakeCreator => ({ JSON: null });
 
 const renderCreatorJson = (initialProps: CreatorJsonProps) =>
-  renderHook<void, CreatorJsonProps>(
+  renderHook(
     ({ creator, json }) => useCreatorJson(creator as never, json),
     { initialProps },
   );
@@ -80,6 +80,21 @@ describe("useCreatorJson", () => {
     creator.JSON = draft;
     // Act
     rerender({ creator, json: { title: "Saved" } });
+    // Assert
+    expect(creator.JSON).toBe(draft);
+  });
+
+  it("preserves a newer canvas edit when its earlier save is first read back", () => {
+    // Arrange
+    const creator = createCreator();
+    const { rerender, result } = renderCreatorJson({ creator, json: { title: "Original" } });
+    creator.JSON = { title: "Saving" };
+    result.current(creator.JSON);
+    const draft = { title: "Edited while saving" };
+    creator.JSON = draft;
+    // Act
+    rerender({ creator, json: { title: "Original" } });
+    rerender({ creator, json: { title: "Saving" } });
     // Assert
     expect(creator.JSON).toBe(draft);
   });
