@@ -3,7 +3,7 @@ import { renderToReadableStream } from "react-dom/server";
 import { beforeEach, expect, it, vi } from "vitest";
 import { Result } from "@/lib/result";
 import { canResumeWorkspaceSetup } from "@/features/onboarding/start-workspace/workspace-api.server";
-import { requirePlatformAdmin } from "@/features/platform-admin/server";
+import { listPlatformTenants, requirePlatformAdmin } from "@/features/platform-admin/server";
 import Admin from "@/app/(main)/admin/page";
 import AuthSettings from "@/app/(main)/admin/auth/page";
 import EmailSettings from "@/app/(main)/admin/email/page";
@@ -23,7 +23,7 @@ vi.mock("@/features/platform-admin/server", () => ({
   getEmailSettings: vi.fn(),
   getEnvironmentSettings: vi.fn(),
   getStorageSettings: vi.fn(),
-  listPlatformTenants: async () => Result.success({ items: [] }),
+  listPlatformTenants: vi.fn(async () => Result.success({ items: [] })),
   listPlatformAdminUsers: async () => ({ items: [], totalRecords: 0 }),
 }));
 vi.mock("@/features/platform-admin/list-signup-requests/list-signup-requests.server", () => ({
@@ -67,4 +67,12 @@ it.each([
   expect(document).toContain(`<h1>${heading}</h1>`);
   expect(document).toContain('href="/forms#workspace-setup"');
   expect(canResumeWorkspaceSetup).toHaveBeenCalledOnce();
+});
+
+it("keeps setup on Platform Admins when only its optional tenant filter is unavailable", async () => {
+  vi.mocked(listPlatformTenants).mockResolvedValueOnce(Result.error("Tenant filter unavailable"));
+  const stream = await renderToReadableStream(await PlatformAdmins({}));
+  const document = await new Response(stream).text();
+  expect(document).toContain("<h1>Platform Admins</h1>");
+  expect(document).toContain('href="/forms#workspace-setup"');
 });
