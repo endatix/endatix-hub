@@ -97,7 +97,7 @@ export function CreateFolderDialog({
           isActive: false,
         });
         if (Result.isError(updateResult)) {
-          toast.error(updateResult.message);
+          showActionFailure(updateResult);
           return;
         }
       }

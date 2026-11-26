@@ -5,6 +5,7 @@ import { useTransition, useState, useEffect, useMemo } from "react";
 import { updateFormStatusAction } from "../application/actions/update-form-status.action";
 import { updateFormVisibilityAction } from "../application/actions/update-form-visibility.action";
 import { toast } from "@/components/ui/toast";
+import { applyFolderChoices } from "@/features/folders/list-folders";
 import { Result } from "@/lib/result";
 import { useRouter } from "next/navigation";
 import { updateFormSettingsAction } from "../application/actions/update-form-settings.action";
@@ -142,10 +143,8 @@ const FormDetails = ({ form, enableEditing = false }: FormDetailsProps) => {
     }
     let cancelled = false;
     void listFoldersAction().then((result) => {
-      if (cancelled || !Result.isSuccess(result)) {
-        return;
-      }
-      setFolders(result.value);
+      if (cancelled) return;
+      applyFolderChoices(result, setFolders);
     });
     return () => {
       cancelled = true;

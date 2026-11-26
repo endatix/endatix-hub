@@ -96,6 +96,13 @@ export class FormTemplates {
     }
     return this.endatix.patch<void>(`/form-templates/${idResult.value}`, body);
   }
+
+  async delete(templateId: string): Promise<ApiResult<string>> {
+    const id = validateEndatixId(templateId, "templateId");
+    return Result.isError(id)
+      ? ApiResult.validationError(id.message)
+      : this.endatix.delete<string>(`/form-templates/${id.value}`);
+  }
 }
 
 export function buildListFormTemplatesEndpoint(

@@ -2,6 +2,7 @@
 
 import { redirect, usePathname } from "next/navigation";
 import Link from "next/link";
+import { resolverVisit } from "@/lib/routes/optional-resolver";
 import {
   REQUIRED_ACTIONS_PATH,
   resolveTarget,
@@ -12,7 +13,7 @@ export function StandingRefusal({
   refusal,
 }: Readonly<{ refusal: RequiredActionError }>) {
   const target = resolveTarget(refusal.actions, usePathname());
-  if (target) redirect(target);
+  if (target) redirect(resolverVisit(target));
   return (
     <p>
       This request needs a pending account action.{" "}

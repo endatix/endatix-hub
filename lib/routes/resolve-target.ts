@@ -1,5 +1,6 @@
 import type { RequiredAction } from "@/lib/endatix-api/auth/required-action";
 import type { Route } from "next";
+import { trimTrailingSlashes } from "@/lib/utils/url-utils";
 
 export const REQUIRED_ACTIONS_PATH = "/required-actions";
 type PendingAction = Pick<
@@ -37,14 +38,11 @@ export function resolveTarget(
   actions: readonly PendingAction[],
   pathname: string,
 ) {
-  const path = pathname.replace(/\/+$/, "");
+  const path = trimTrailingSlashes(pathname);
   if (isSignInPath(path) || path === REQUIRED_ACTIONS_PATH) return null;
   if (mustReturnHome(actions)) return REQUIRED_ACTIONS_PATH;
   const blocking = actions.filter((a) => a.severity === "blocking");
-  if (
-    !blocking.length ||
-    blocking.some((a) => resolverPath(a) === path)
-  )
+  if (!blocking.length || blocking.some((a) => resolverPath(a) === path))
     return null;
   return firstResolverPath(blocking) ?? REQUIRED_ACTIONS_PATH;
 }

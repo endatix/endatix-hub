@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { updateFormTemplate } from "@/services/api";
+import { updateTemplate } from "./update-template.server";
 import { Result } from "@/lib/result";
 import { authorization } from "@/features/auth/authorization";
 
@@ -14,28 +14,22 @@ export async function updateTemplateNameAction(
   const { requireHubAccess } = await authorization();
   await requireHubAccess();
 
-  try {
-    if (!templateId) {
-      return Result.error("Template ID is required");
-    }
-
-    if (!name || name.trim() === "") {
-      return Result.error("Template name is required");
-    }
-
-    await updateFormTemplate(templateId, {
-      name: name.trim(),
-    });
-
-    // Revalidate the template page and templates list
-    revalidatePath(`/(main)/forms/templates/${templateId}`);
-    revalidatePath("/(main)/forms/templates");
-
-    return Result.success(templateId);
-  } catch (error) {
-    console.error("Error updating template name:", error);
-    return Result.error(
-      `Failed to update template name: ${(error as Error).message}`,
-    );
+  if (!templateId) {
+    return Result.error("Template ID is required");
   }
+
+  if (!name || name.trim() === "") {
+    return Result.error("Template name is required");
+  }
+
+  const result = await updateTemplate(templateId, {
+    name: name.trim(),
+  });
+  if (Result.isError(result)) return result;
+
+  // Revalidate the template page and templates list
+  revalidatePath(`/(main)/forms/templates/${templateId}`);
+  revalidatePath("/(main)/forms/templates");
+
+  return result;
 }

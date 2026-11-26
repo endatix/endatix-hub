@@ -173,9 +173,7 @@ function FormTemplateEditorContent({
       }
 
       if (Result.isError(updateTemplateNameResult)) {
-        toast.error(
-          updateTemplateNameResult.message || "Failed to update template name",
-        );
+        showActionFailure(updateTemplateNameResult, "Failed to update template name");
         setName(originalName);
         return;
       }

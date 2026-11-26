@@ -49,7 +49,8 @@ export default async function proxy(request: NextRequest) {
   }
 
   const target =
-    request.method === "GET" && (await workspaceRedirect(session, pathname));
+    request.method === "GET" &&
+    (await workspaceRedirect(session, request.nextUrl));
   return target ? redirectToResolver(request, target) : NextResponse.next();
 }
 

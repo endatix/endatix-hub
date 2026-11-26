@@ -8,12 +8,12 @@ import { RetryRequest } from "@/components/error-handling/retry-request";
 export function resolvePageError(error: PageError): ReactNode {
   if (error.kind === "unavailable")
     return (
-      <div role="status">
-        <p>{error.message}</p>
-        <RetryRequest />
-      </div>
+      <output>
+        <span>{error.message}</span> <RetryRequest />
+      </output>
     );
-  if (error.kind === "required_action") return <StandingRefusal refusal={error} />;
+  if (error.kind === "required_action")
+    return <StandingRefusal refusal={error} />;
   if (error.kind === "not_found") notFound();
   if (error.kind === "auth") redirect(SIGNIN_PATH);
   if (error.kind === "forbidden") redirect(UNAUTHORIZED_PATH);

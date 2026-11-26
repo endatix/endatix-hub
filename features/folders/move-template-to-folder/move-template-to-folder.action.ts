@@ -3,8 +3,8 @@
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
 import { EndatixApi } from "@/lib/endatix-api";
-import { Result } from "@/lib/result";
-import { revalidatePath } from "next/cache";
+import type { Result } from "@/lib/result";
+import { finishFolderMove } from "../move-to-folder/finish-folder-move";
 
 export type MoveTemplateToFolderResult = Result<void>;
 
@@ -26,15 +26,5 @@ export async function moveTemplateToFolderAction(
     updateCommand,
   );
 
-  if (!updatedResult.success) {
-    return Result.error(
-      updatedResult.error.message || "Failed to move template",
-    );
-  }
-
-  revalidatePath("/folders");
-  revalidatePath("/forms");
-  revalidatePath("/forms/folders");
-  revalidatePath("/forms/templates");
-  return Result.success(undefined);
+  return finishFolderMove(updatedResult, "template");
 }

@@ -4,6 +4,7 @@ import { listFoldersAction } from "@/features/folders/server";
 import { getTenantSettingsAction } from "@/features/forms/application/actions/get-tenant-settings.action";
 import type { Folder } from "@/lib/endatix-api/folders/types";
 import { Result } from "@/lib/result";
+import { applyFolderChoices } from "@/features/folders/list-folders";
 import { useEffect, useState } from "react";
 
 interface UseCreateFormSheetBootstrapOptions {
@@ -20,7 +21,9 @@ export function useCreateFormSheetBootstrap({
     initialRequireFolderAssignment,
   );
   const [folders, setFolders] = useState<Folder[]>(initialFolders ?? []);
-  const [foldersReady, setFoldersReady] = useState(initialFolders !== undefined);
+  const [foldersReady, setFoldersReady] = useState(
+    initialFolders !== undefined,
+  );
 
   useEffect(() => {
     setRequireFolderAssignment(initialRequireFolderAssignment);
@@ -55,10 +58,7 @@ export function useCreateFormSheetBootstrap({
         return;
       }
 
-      if (Result.isSuccess(foldersResult)) {
-        setFolders(foldersResult.value.filter((folder) => folder.isActive));
-      }
-
+      applyFolderChoices(foldersResult, choices => setFolders(choices.filter(folder => folder.isActive)));
       setFoldersReady(true);
     })();
 

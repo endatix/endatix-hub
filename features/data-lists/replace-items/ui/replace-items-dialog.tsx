@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toast";
+import { showActionFailure } from "@/components/error-handling/show-action-failure";
 import type { DataListDetails } from "@/lib/endatix-api/data-lists/types";
 import { Result } from "@/lib/result";
 import { Upload } from "lucide-react";
@@ -143,7 +144,7 @@ function reportReplaceImportResult(
   failureFallback: string,
 ): void {
   if (Result.isError(importResult)) {
-    toast.error(importResult.message || failureFallback);
+    showActionFailure(importResult, failureFallback);
     return;
   }
 

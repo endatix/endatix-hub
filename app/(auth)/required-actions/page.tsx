@@ -9,6 +9,7 @@ import { RetryStatus } from "@/features/auth/required-actions/retry-status";
 import { SupportActionStatus } from "@/features/auth/required-actions/support-action-status";
 import { exitAssumeAction } from "@/features/platform-admin/assume-tenant/assume-tenant.action";
 import { mustReturnHome } from "@/lib/routes/resolve-target";
+import { availableResolvers } from "@/features/auth/required-actions/available-resolvers.server";
 
 export const metadata = { title: "Account actions" };
 
@@ -34,5 +35,7 @@ async function accountStatus(token: string) {
   if (!actions.success) return <RetryStatus />;
   if (mustReturnHome(actions.data))
     return <SupportActionStatus exitAction={exitAssumeAction} />;
-  return <PendingActionStatus actions={actions.data} />;
+  return (
+    <PendingActionStatus actions={await availableResolvers(actions.data)} />
+  );
 }

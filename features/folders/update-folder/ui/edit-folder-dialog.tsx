@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
+import { showActionFailure } from "@/components/error-handling/show-action-failure";
 import type { Folder } from "@/lib/endatix-api/folders/types";
 import { Result } from "@/lib/result";
 import { FolderPen, Lock, Shield } from "lucide-react";
@@ -116,7 +117,7 @@ export function FolderEditDialog({
             : details && !isDuplicateDetails
               ? `${message}\n${details}`
               : message;
-        toast.error(errorMessage);
+        showActionFailure({ ...result, message: errorMessage });
         return;
       }
 

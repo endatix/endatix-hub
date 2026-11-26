@@ -1,5 +1,7 @@
 import { FolderOpen } from "lucide-react";
 import { toast } from "@/components/ui/toast";
+import { showStandingRefusal } from "@/components/error-handling/show-action-failure";
+import type { Error as ResultError } from "@/lib/result";
 import type { FolderChoice, MovableItem } from "../move-to-folder";
 
 /** The dialog's title and its folder field's id. */
@@ -50,13 +52,14 @@ export function toastMoved(
   });
 }
 
-export function toastMoveFailed(item: MovableItem, message: string) {
+export function toastMoveFailed(
+  kind: MovableItem["kind"],
+  failure: ResultError,
+) {
+  if (failure.requiredAction)
+    return showStandingRefusal(failure.requiredAction);
   toast.error({
-    title: `Cannot move ${item.kind} to folder`,
-    description: message,
+    title: `Cannot move ${kind} to folder`,
+    description: failure.message,
   });
-}
-
-export function toastFoldersUnavailable(message: string) {
-  toast.error(message);
 }

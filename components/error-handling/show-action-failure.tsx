@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { resolverVisit } from "@/lib/routes/optional-resolver";
 import { toast } from "@/components/ui/toast";
 import type { RequiredActionError } from "@/lib/endatix-api/auth/required-action";
 import { normalizeBasePath, withBasePath } from "@/lib/hosting/base-path";
@@ -24,7 +25,8 @@ export function showActionFailure(failure: ActionFailure, fallback?: string) {
 export function showStandingRefusal(refusal: RequiredActionError) {
   const path = window.location.pathname.slice(normalizeBasePath().length);
   const target = resolveTarget(refusal.actions, path);
-  if (target) return window.location.replace(withBasePath(target));
+  if (target)
+    return window.location.replace(withBasePath(resolverVisit(target)));
   return toast.warning({
     title: "An account action is required.",
     description: <Link href={REQUIRED_ACTIONS_PATH}>View account status</Link>,

@@ -4,6 +4,11 @@ import { Result } from "@/lib/result/result";
 import RequiredActionsPage from "@/app/(auth)/required-actions/page";
 
 const { exitAction } = vi.hoisted(() => ({ exitAction: vi.fn() }));
+vi.mock("@/lib/feature-flags/flags", () => ({
+  reportingExportFlag: async () => false,
+  personalizationFlag: async () => false,
+  formAnalyticsFlag: async () => false,
+}));
 vi.mock("@/auth", () => ({
   auth: async () => ({ accessToken: "session-token" }),
 }));
@@ -91,4 +96,21 @@ it("keeps unavailable status retryable", async () => {
     screen.getByRole("heading", { name: "Account status is unavailable" }),
   ).toBeTruthy();
   expect(screen.queryByRole("link")).toBeNull();
+});
+
+it("does not send the user back to a disabled resolver from account guidance", async () => {
+  await openStatus(
+    Response.json({
+      requiredActions: [
+        {
+          ...blocker,
+          key: "report.review",
+          canResolve: true,
+          resolvePath: "/settings/organization/export-formats",
+        },
+      ],
+    }),
+  );
+  expect(screen.getByText(/page for this action is unavailable/i)).toBeTruthy();
+  expect(screen.queryByRole("link", { name: "Review action" })).toBeNull();
 });
