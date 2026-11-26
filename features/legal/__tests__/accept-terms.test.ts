@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { acceptTerms } from "../accept-terms.action";
+import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { workspaceScope, homeScope } from "@/lib/routes/workspace-scope.server";
 import { invalidateUserAuthorizationCache } from "@/features/auth/server";
 
@@ -91,6 +92,27 @@ describe("accepting the displayed publication", () => {
     expect(post).not.toHaveBeenCalled();
   });
   it.each([
+    { status: 401, destination: "/signin" },
+    { status: 403, destination: "/required-actions" },
+  ])(
+    "does not resume the workspace when the acceptance write is refused with $status",
+    async ({ status, destination }) => {
+      post.mockResolvedValue(ApiResult.httpStatusError(status, "Refused"));
+      await expect(acceptTerms(display, checked)).rejects.toMatchObject({
+        message: `navigate:${destination}`,
+      });
+      expect(invalidateUserAuthorizationCache).not.toHaveBeenCalled();
+    },
+  );
+  it("asks the member to reload rather than implying success after an unavailable write", async () => {
+    post.mockResolvedValue(ApiResult.httpStatusError(503, "Busy"));
+    expect(await acceptTerms(display, checked)).toBe(
+      "Could not confirm acceptance. Reload the Terms and try again.",
+    );
+    expect(post).toHaveBeenCalledTimes(1);
+    expect(invalidateUserAuthorizationCache).not.toHaveBeenCalled();
+  });
+  it.each([
     ["PlatformAdmin", "/admin/tenants"],
     ["Authenticated", "/forms"],
   ])(
@@ -175,7 +197,9 @@ describe("accepting the displayed publication", () => {
       success: false,
       error: { type: "NetworkError" },
     });
-    await expect(acceptTerms(display, checked)).rejects.toThrow(/^navigate:\/accept-terms\?returnUrl=/);
+    await expect(acceptTerms(display, checked)).rejects.toThrow(
+      /^navigate:\/accept-terms\?returnUrl=/,
+    );
   });
   it("does not fetch or submit when the resolver is disabled", async () => {
     enabled.mockResolvedValue(false);
