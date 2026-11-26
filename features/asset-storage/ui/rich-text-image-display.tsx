@@ -10,12 +10,19 @@ import {
 import { canonicalContentImage } from "../use-cases/view-protected-files/canonical-content-image";
 import { useAssetStorage } from "./asset-storage.context";
 import { useStorageReadRuntime } from "./use-storage-read-runtime";
+import { showQuillImage } from "./quill-image-preview";
 
 const richText = ".sv-string-viewer, .sv-string-editor--html, .sd-html";
 type ReadImage = (src: string) => Promise<string | null>;
 
 function isDisplayImage(image: HTMLImageElement) {
   return image.closest(richText) && !image.closest(".ql-editor, [contenteditable=true]:focus");
+}
+
+function displayTarget(image: HTMLImageElement) {
+  const editor = image.closest(".ql-editor")?.closest<HTMLElement>(".rich-text-editor[id]");
+  if (editor) return { editable: true, show: (src: string, signed: string) => showQuillImage(editor, src, signed) };
+  if (isDisplayImage(image)) return { editable: false, show: (_src: string, signed: string) => { image.src = signed; } };
 }
 
 function readImages(runtime: () => StorageReadRuntime | null): ReadImage {
@@ -39,21 +46,27 @@ class DisplaySources {
   ) {}
 
   async project(image: HTMLImageElement) {
-    if (!isDisplayImage(image)) return;
+    const target = displayTarget(image);
+    if (!target) return;
     const src = canonicalContentImage(
       image.getAttribute("src") ?? "",
       this.config,
     );
     if (!src) return;
     const previous = this.projections.get(image);
-    if (previous?.source === src && !previous.display) return;
+    if (previous?.source === src && (target.editable || !previous.display)) return;
     const projection: { source: string; display?: string } = { source: src };
     this.projections.set(image, projection);
     const signed = await this.read(src);
-    if (!this.active || this.projections.get(image) !== projection || image.getAttribute("src") !== src) return;
+    if (!this.isCurrent(image, projection)) return;
     if (!signed) { this.projections.delete(image); return; }
     projection.display = signed;
-    image.src = signed;
+    target.show(src, signed);
+  }
+
+  private isCurrent(image: HTMLImageElement, projection: { source: string }) {
+    return this.active && this.projections.get(image) === projection &&
+      image.getAttribute("src") === projection.source;
   }
 
   /** Creator reads innerHTML on focus. Restore its canonical markup first. */
@@ -68,6 +81,7 @@ class DisplaySources {
   stop(container: Element) {
     this.active = false;
     this.restore(container);
+    container.querySelectorAll(".rich-text-editor > style[data-image-preview]").forEach(style => style.remove());
   }
 }
 
@@ -100,7 +114,7 @@ function observeImages(container: Element, display: DisplaySources) {
 function bindRichTextImages(container: Element, display: DisplaySources) {
   const observer = observeImages(container, display);
   const onFocus = (event: Event) => {
-    if (event.target instanceof Element && event.target.matches("[contenteditable=true]")) {
+    if (event.target instanceof Element && event.target.matches("[contenteditable=true]:not(.ql-editor)")) {
       display.restore(event.target);
     }
   };
