@@ -1,8 +1,9 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import TermsPage from "@/app/(auth)/accept-terms/page";
 import PrivacyPage from "@/app/(auth)/accept-terms/privacy/page";
 import { confirmedScope, workspaceScope } from "@/lib/routes/workspace-scope.server";
+import { acceptTerms } from "@/features/legal/accept-terms.action";
 
 const { enabled, me, publication } = vi.hoisted(() => ({
   enabled: vi.fn(),
@@ -114,6 +115,24 @@ it("restores a cleared member's page on a confirmed retry, not an edited or unco
   await expect(page(confirmedScope("member", returnUrl), returnUrl)).rejects.toThrow(`redirect:${returnUrl}`);
   await expect(page(confirmedScope("member", returnUrl), "/admin/tenants")).rejects.toThrow("redirect:/forms");
   await expect(page(workspaceScope("member"), returnUrl)).rejects.toThrow("redirect:/forms");
+});
+
+it.each([
+  ["member", "/forms/42/settings?tab=details", "/forms/42/settings?tab=details"],
+  ["previous-tenant-token", "/forms/42/settings?tab=details", "/forms"],
+  ["member", "/forms/other", "/forms"],
+])("requires a new decision and binds the next acceptance to the recovered page (%s, %s)", async (credential, target, expected) => {
+  const original = "/forms/42/settings?tab=details";
+  const params = { scope: confirmedScope(credential, original), returnUrl: target };
+  render(await TermsPage({searchParams:Promise.resolve(params)}));
+  const accept = screen.getByRole("button", {name:"Accept and continue"}) as HTMLButtonElement;
+  expect(accept.disabled).toBe(true);
+  expect(acceptTerms).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("checkbox"));
+  fireEvent.click(accept);
+  await waitFor(() => expect(acceptTerms).toHaveBeenCalledWith({
+    versionId:"9007199254740995", scope:workspaceScope("member"), returnUrl:expected,
+  }, expect.any(FormData)));
 });
 it("renders only the published Privacy notice, with no acceptance", async () => {
   render(await PrivacyPage());

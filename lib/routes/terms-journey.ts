@@ -1,10 +1,7 @@
 import type { Route } from "next";
+import { isWorkspaceDestinationPath } from "./workspace-path";
 
 export const TERMS_PATH = "/accept-terms";
-const workspacePath =
-  /^\/(?:forms|admin|folders|data-lists|settings|my-account)(?:\/[\w-]+)*\/?$/;
-const submissionFile =
-  /^\/forms\/\d+\/submissions\/\d+\/files\/[\w-]+(?:%20[\w-]+)*(?:\.[\w-]+)+$/;
 const navigationKeys = new Set([
   "tab",
   "page",
@@ -20,7 +17,7 @@ const navigationKeys = new Set([
 export function workspaceDestination(value?: string): Route {
   if (typeof value !== "string") return "/forms";
   const [path, query] = value.split("?");
-  if (!workspacePath.test(path) && !submissionFile.test(path)) return "/forms";
+  if (!isWorkspaceDestinationPath(path)) return "/forms";
   const safe = new URLSearchParams();
   for (const [key, val] of new URLSearchParams(query)) {
     if (navigationKeys.has(key) && /^[\w:-]{1,40}$/.test(val))

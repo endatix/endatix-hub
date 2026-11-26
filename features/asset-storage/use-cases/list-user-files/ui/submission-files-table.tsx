@@ -10,6 +10,7 @@ import {
 import { FileQuestion } from "lucide-react";
 import { FileTableRow } from "./file-table-row";
 import { withBasePath } from "@/lib/hosting";
+import { submissionFilePath } from "@/lib/routes/workspace-path";
 import type { UserFileMetadata } from "@/features/asset-storage/types";
 
 interface SubmissionFilesTableProps {
@@ -47,7 +48,7 @@ export function SubmissionFilesTable({
       </TableHeader>
       <TableBody>
         {files.map((file) => {
-          const fileHref = `/forms/${formId}/submissions/${submissionId}/files/${encodeURIComponent(file.displayName)}`;
+          const fileHref = submissionFilePath(formId, submissionId, file.displayName);
           const downloadApiUrl = withBasePath(
             `/api/hub/v0/storage/submission-files/${formId}/${submissionId}/${encodeURIComponent(file.displayName)}/download-url`,
           );

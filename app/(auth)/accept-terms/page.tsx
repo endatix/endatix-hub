@@ -32,8 +32,9 @@ export default async function TermsPage({
   const standing = await termsStanding(token);
   if (!standing) return <Unavailable decline={decline} />;
   const params = await searchParams;
-  if (!pendingTerms(standing)) resumeWorkspace(standing, confirmedJourney(params, token));
-  const returnUrl = scopedDestination(standing, params);
+  const recovered = confirmedJourney(params, token);
+  if (!pendingTerms(standing)) resumeWorkspace(standing, recovered ?? {});
+  const returnUrl = scopedDestination(standing, recovered ?? params);
   const terms = await readPublication("terms");
   if (!terms.document)
     return <Unavailable message={terms.error} decline={decline} />;
@@ -42,9 +43,9 @@ export default async function TermsPage({
   return <Reader terms={terms.document} submit={submit} decline={decline} updated={params.updated === "1"} />;
 }
 
-function confirmedJourney(params: Journey, token: string): Journey {
+function confirmedJourney(params: Journey, token: string): Journey | undefined {
   const returnUrl = workspaceDestination(params.returnUrl);
-  return params.scope === confirmedScope(token, returnUrl) ? {scope:workspaceScope(token), returnUrl} : {};
+  if (params.scope === confirmedScope(token, returnUrl)) return {scope:workspaceScope(token), returnUrl};
 }
 
 interface ReaderProps {
