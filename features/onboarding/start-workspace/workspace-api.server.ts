@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { unstable_rethrow } from "next/navigation";
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
 import { EndatixApi, type ApiResult } from "@/lib/endatix-api";
@@ -48,6 +49,11 @@ export const currentWorkspaceStart = cache(async () => {
 });
 
 export async function canResumeWorkspaceSetup() {
-  const current = await currentWorkspaceStart();
-  return !!current && Result.isSuccess(current.result) && current.result.value.kind !== "complete";
+  try {
+    const current = await currentWorkspaceStart();
+    return !!current && Result.isSuccess(current.result) && current.result.value.kind !== "complete";
+  } catch (error) {
+    unstable_rethrow(error);
+    return false;
+  }
 }
