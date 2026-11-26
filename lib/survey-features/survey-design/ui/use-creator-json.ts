@@ -108,6 +108,8 @@ function needsHydration(snapshot: ReadSnapshot, previous: ReadSnapshot | null, p
   const previousJson = previous?.json ?? null;
   const submitted = takeReadback(pending, snapshot.json, previousJson);
   if (submitted || isSameDefinition(previousJson, snapshot.json)) return false;
+  // Reading creator.JSON would apply or reject Ace's local buffer before the external read.
+  if (snapshot.creator.activeTab === SURVEY_CREATOR_BUILT_IN_TAB.json) return true;
   return !previous || !isSameDefinition(snapshot.creator.JSON, snapshot.json);
 }
 

@@ -182,6 +182,27 @@ it("loads an external saved definition into open Ace and then Preview", () => {
   expect(creator.JSON.title).toBe("External C");
 });
 
+it.each([false, true])("acknowledges an external read matching the last valid Ace text (invalid draft: %s)", invalidDraft => {
+  // Arrange
+  const { creator, editor, hook } = view;
+  const onExternalRead = vi.fn();
+  const { rerender } = renderHook(({ json }) => useCreatorJson(creator, json, { ...hook, onExternalRead }), {
+    initialProps: { json: { title: "A" } },
+  });
+  editor.setValue('{"title":"B"}');
+  if (invalidDraft) {
+    creator.getPlugin<TabJsonEditorAcePlugin>("json").model.applyChanges();
+    editor.setValue("{");
+  }
+
+  // Act
+  rerender({ json: { title: "B" } });
+
+  // Assert
+  expect(JSON.parse(editor.getValue())).toEqual({ title: "B" });
+  expect(onExternalRead).toHaveBeenCalledOnce();
+});
+
 it("accepts a canvas save in a newly opened JSON tab only while untouched", () => {
   // Arrange
   const { creator, hook } = view;
