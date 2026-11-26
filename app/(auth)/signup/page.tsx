@@ -4,7 +4,7 @@ import { saasManagementFlag } from "@/lib/feature-flags/flags";
 import type { Metadata } from "next";
 import { getBrand, isBuiltInBrand } from "@/lib/branding/server";
 import { notFound } from "next/navigation";
-import { RetryRequest } from "@/components/error-handling/retry-request";
+import { PublicationStatus } from "../publication-status";
 import { publicLegalLinks } from "@/features/legal/public-links.server";
 import { SignupTerms } from "@/features/legal/signup-terms";
 
@@ -28,12 +28,7 @@ export default async function SignupPage() {
 
   const [description, legal] = await Promise.all([intro(), publicLegalLinks()]);
   if (legal.unavailable)
-    return (
-      <>
-        <p role="status">The Terms are temporarily unavailable.</p>
-        <RetryRequest />
-      </>
-    );
+    return <PublicationStatus title="The Terms are temporarily unavailable." />;
   return (
     <SignupRequestForm intro={description}>
       <SignupTerms legal={legal} />

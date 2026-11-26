@@ -17,8 +17,8 @@ export function SignupTerms({
         <input type="checkbox" required name="acceptedTermsVersionId" value={versionId} />
         I agree to the Terms (version {number}).
       </label>
-      <DocumentLink href={`${legal.terms}?version=${versionId}`}>Open these Terms in a new tab</DocumentLink>
-      <DocumentLink href={legal.privacy}>Read the Privacy notice</DocumentLink>
+      <DocumentLink href={`${legal.terms}?version=${versionId}`} newTab>Open these Terms</DocumentLink>
+      <DocumentLink href={legal.privacy} newTab>Read the Privacy notice</DocumentLink>
     </div>
   );
 }

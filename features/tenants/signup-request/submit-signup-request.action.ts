@@ -4,6 +4,7 @@ import { z } from "zod";
 import { refresh } from "next/cache";
 import { readPublicEndatixEnv } from "@/features/config/client-endatix-config";
 import { EndatixApi } from "@/lib/endatix-api";
+import { isConflictError } from "@/lib/endatix-api/shared/api-result";
 import type { CreateSignupRequestBody } from "@/lib/endatix-api/signup-requests/types";
 import {
   saasManagementFlag,
@@ -108,15 +109,15 @@ async function createRequest(
   body: CreateSignupRequestBody,
   rawData: SignupRequestData,
 ): Promise<SignupRequestActionState> {
-  const result = toResult(await new EndatixApi().signupRequests.create(body), {
+  const response = await new EndatixApi().signupRequests.create(body);
+  const result = toResult(response, {
     fallbackMessage: "We could not submit your request. Please try again.",
     preferredFields: ["email"],
-    logMessage: "Failed to submit signup request.",
+    logMessage: isConflictError(response) ? undefined : "Failed to submit signup request.",
     loggerName: "tenants.signup-request",
   });
 
   if (Result.isSuccess(result)) return requestAccepted;
-
   if (result.statusCode === 409) {
     refresh();
     return ServerActionState.fromFailure("The Terms changed. Review the current version before submitting.", rawData);

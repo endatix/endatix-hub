@@ -19,11 +19,10 @@ export const publicLegalLinks = cache(async () => {
   return {
     terms: terms?.document
       ? withBasePath("/legal/terms")
-      : (webLink(brand.links.terms) ?? webLink(process.env.ENDATIX_TERMS_URL)),
+      : (brand.links.terms ?? webLink(process.env.ENDATIX_TERMS_URL)),
     privacy: privacy?.document
       ? withBasePath("/accept-terms/privacy")
-      : (webLink(brand.links.privacy) ??
-        webLink(process.env.ENDATIX_PRIVACY_URL)),
+      : (brand.links.privacy ?? webLink(process.env.ENDATIX_PRIVACY_URL)),
     required: terms?.document?.acceptanceRequired ? terms.document : undefined,
     unavailable: enabled && !terms?.missing && terms?.document?.acceptanceRequired === undefined,
   };

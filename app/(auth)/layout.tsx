@@ -1,6 +1,7 @@
 import "@/app/globals.css";
 import { auth } from "@/auth";
 import { AuthFooter } from "@/features/legal/auth-footer";
+import { Suspense } from "react";
 import { AppProvider } from "@/components/providers";
 import { getClientEndatixConfig } from "@/features/config/server";
 import { brandLayoutMetadata, getBrand } from "@/lib/branding/server";
@@ -113,7 +114,7 @@ export default async function AuthLayout({ children }: AuthLayoutProps) {
                 </div>
               </div>
             </main>
-            <AuthFooter website={brand.links.website} />
+            <Suspense fallback={null}><AuthFooter website={brand.links.website} /></Suspense>
           </div>
         </AppProvider>
       </body>
