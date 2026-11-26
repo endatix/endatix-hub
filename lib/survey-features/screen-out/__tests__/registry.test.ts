@@ -1,11 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { editorLocalization, getLocaleStrings } from "survey-creator-core";
 import { isScreenOutTrigger, SCREEN_OUT_TRIGGER_CLASS } from "../constants";
 import { registerScreenOutCreatorUi } from "../infrastructure/creator-bindings";
 import { registerScreenOutTrigger } from "../infrastructure/registry";
 import { Serializer } from "survey-core";
+import { isolateCreatorRegistration } from "./isolate-creator-registration";
 
 describe("screen-out trigger", () => {
+  beforeEach(isolateCreatorRegistration);
+
   it("is the screenout type", () => {
     // Act & Assert
     expect(
