@@ -57,12 +57,11 @@ export function useCreatorJson(
 
   useEffect(() => {
     if (!creator || !json) return;
-    const previous = lastRead.current;
-    const sameCreator = previous?.creator === creator;
-    if (sameCreator && isSameDefinition(previous.json, json)) return;
+    const previous = lastRead.current?.creator === creator ? lastRead.current.json : null;
+    if (isSameDefinition(previous, json)) return;
 
     const submitted = isSameDefinition(pending.current?.definition ?? null, json);
-    if (!sameCreator || (!submitted && !isSameDefinition(creator.JSON, json))) {
+    if (!previous || (!submitted && !isSameDefinition(creator.JSON, json))) {
       creator.JSON = json;
     }
     lastRead.current = { creator, json };
