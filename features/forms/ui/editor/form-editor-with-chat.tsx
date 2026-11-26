@@ -57,9 +57,7 @@ export default function FormEditorWithChat({
   const chatPanelRef = useRef<PanelImperativeHandle>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [updatedFormJson, setUpdatedFormJson] = useState<object | null>(
-    formJson,
-  );
+  const [proposal, setProposal] = useState<object | null>(null);
   const [conversationLoaded, setConversationLoaded] = useState(false);
   const propertyGridControllerRef = useRef<((visible: boolean) => void) | null>(
     null,
@@ -78,7 +76,7 @@ export default function FormEditorWithChat({
 
       // If form definition is empty but conversation has resultJson, load it
       if (chatContext?.resultDefinition) {
-        setUpdatedFormJson(chatContext?.resultDefinition);
+        setProposal(chatContext.resultDefinition);
         setHasUnsavedChanges(true);
       }
       setConversationLoaded(true);
@@ -136,7 +134,8 @@ export default function FormEditorWithChat({
           {shouldRenderEditor ? (
             <FormEditorContainer
               formId={formId}
-              formJson={updatedFormJson}
+              formJson={formJson}
+              proposal={proposal}
               formName={formName}
               options={options}
               themeId={themeId}

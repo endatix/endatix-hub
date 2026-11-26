@@ -5,17 +5,33 @@ import { useCreatorJson } from "../ui/use-creator-json";
 import { Result } from "@/lib/result/result";
 
 type FakeCreator = { JSON: object | null };
-type CreatorJsonProps = { creator: FakeCreator; json: object | null };
+type CreatorJsonProps = { creator: FakeCreator; json: object | null; proposal?: object };
 
 const createCreator = (): FakeCreator => ({ JSON: null });
 
 const renderCreatorJson = (initialProps: CreatorJsonProps) =>
   renderHook(
-    ({ creator, json }) => useCreatorJson(creator as never, json, () => () => true),
+    ({ creator, json, proposal }) => useCreatorJson(creator as never, json, { proposal, captureJsonSave: () => () => true }),
     { initialProps },
   );
 
 describe("useCreatorJson", () => {
+  it("applies an assistant proposal equal to a previous save over a newer canvas edit", async () => {
+    // Arrange
+    const creator = createCreator();
+    const json = { title: "A" };
+    const { result, rerender } = renderCreatorJson({ creator, json });
+    const proposal = { title: "B" };
+    await result.current(proposal, async () => Result.success("saved"));
+    creator.JSON = { title: "C" };
+
+    // Act
+    rerender({ creator, json, proposal });
+
+    // Assert
+    expect(creator.JSON).toEqual(proposal);
+  });
+
   it("does not overwrite live edits when the same snapshot is refetched", () => {
     // Arrange
     const creator = createCreator();

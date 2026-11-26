@@ -132,6 +132,7 @@ registerThemes();
 interface FormEditorProps {
   formId: string;
   formJson: object | null;
+  proposal?: object | null;
   formName: string;
   options?: ICreatorOptions;
   themeId?: string;
@@ -169,6 +170,7 @@ function nameToTitle(name: string): string {
 
 function FormEditor({
   formJson,
+  proposal,
   formId,
   formName,
   options,
@@ -248,7 +250,7 @@ function FormEditor({
     creator,
     markFormModified,
   });
-  const saveCanvas = useCreatorJson(creator, formJson, captureJsonSave);
+  const saveCanvas = useCreatorJson(creator, formJson, { captureJsonSave, proposal });
   useCreatorTabUrl(creator);
 
   const saveCustomQuestion = useCallback(

@@ -150,7 +150,7 @@ it("allows a Designer save after leaving the JSON tab", () => {
 it("acknowledges the saved definition after JSON gives way to Preview", async () => {
   // Arrange
   const { creator, editor, hook } = view;
-  const { result } = renderHook(() => useCreatorJson(creator, null, hook.captureJsonSave));
+  const { result } = renderHook(() => useCreatorJson(creator, null, hook));
   editor.setValue('{"title":"Submitted"}');
   const response = Promise.withResolvers<Result<string>>();
   const save = result.current({ title: "Submitted" }, () => response.promise);
@@ -161,4 +161,25 @@ it("acknowledges the saved definition after JSON gives way to Preview", async ()
 
   // Assert
   expect((await save).stillSaved(hook.getJsonModel(creator))).toBe(true);
+});
+
+it("accepts a canvas save in a newly opened JSON tab only while untouched", () => {
+  // Arrange
+  const { creator, hook } = view;
+  creator.activeTab = "designer";
+  const acknowledge = hook.captureJsonSave();
+
+  // Act & Assert
+  creator.activeTab = "json";
+  const model = creator.getPlugin<TabJsonEditorAcePlugin>("json").model;
+  if (!(model instanceof AceJsonEditorModel)) throw new Error("Expected Ace");
+  const editor = ace.edit(document.createElement("div"));
+  try {
+    model.init(editor);
+    expect(acknowledge()).toBe(true);
+    editor.setValue('{"title":"Edited after opening JSON"}');
+    expect(acknowledge()).toBe(false);
+  } finally {
+    editor.destroy();
+  }
 });

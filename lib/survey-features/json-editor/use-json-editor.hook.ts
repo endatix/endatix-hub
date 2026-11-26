@@ -85,7 +85,8 @@ function useJsonSaveBuffer() {
     const buffer = activeBuffer.current;
     const submitted = buffer?.model.text;
     return () => {
-      if (activeBuffer.current !== buffer) return false;
+      // A newly opened JSON tab can acknowledge the canvas save only until its first edit.
+      if (activeBuffer.current !== buffer) return activeBuffer.current?.modified === false;
       if (!buffer || submitted === undefined) return true;
       buffer.savedText = submitted;
       buffer.modified = buffer.model.text !== submitted;

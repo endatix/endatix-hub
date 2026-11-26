@@ -146,7 +146,7 @@ function FormTemplateEditorContent({
   const [isLoading, setIsLoading] = useState(true);
   const [questionClasses, setQuestionClasses] = useState<any[]>([]);
   useRichTextEditing(creator);
-  const saveCanvas = useCreatorJson(creator, templateJson, captureJsonSave);
+  const saveCanvas = useCreatorJson(creator, templateJson, { captureJsonSave });
   useCreatorTabUrl(creator);
 
   const creatorTheme = useEndatixCreatorTheme();

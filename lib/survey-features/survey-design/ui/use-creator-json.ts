@@ -66,14 +66,12 @@ function useCanvasSubmission(creator: SurveyCreatorModel | null, captureJsonSave
   return { pending, saveCanvas };
 }
 
-/** Loads a saved canvas snapshot into the Creator without clobbering live edits. */
-export function useCreatorJson(
+function useSavedSnapshot(
   creator: SurveyCreatorModel | null,
   json: object | null,
-  captureJsonSave: CaptureJsonSave,
+  pending: Set<Submission>,
 ) {
   const lastRead = useRef<{ creator: SurveyCreatorModel; json: object } | null>(null);
-  const { pending, saveCanvas } = useCanvasSubmission(creator, captureJsonSave);
 
   useEffect(() => {
     if (!creator || !json) return;
@@ -85,6 +83,19 @@ export function useCreatorJson(
     }
     lastRead.current = { creator, json };
   }, [creator, json, pending]);
+}
+
+/** Saved readbacks preserve live edits; assistant proposals explicitly change the canvas. */
+export function useCreatorJson(
+  creator: SurveyCreatorModel | null,
+  json: object | null,
+  { captureJsonSave, proposal }: { captureJsonSave: CaptureJsonSave; proposal?: object | null },
+) {
+  const { pending, saveCanvas } = useCanvasSubmission(creator, captureJsonSave);
+  useSavedSnapshot(creator, json, pending);
+  useEffect(() => {
+    if (creator && proposal) creator.JSON = proposal;
+  }, [creator, proposal]);
 
   return saveCanvas;
 }
