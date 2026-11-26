@@ -13,6 +13,7 @@ import {
   useThemeManagement,
 } from "@/features/themes/manage-theme-editor";
 import { selectedThemeId } from "./selected-theme-id";
+import type { DefinitionRevision } from "@/lib/survey-features/survey-design/definition-revision";
 import { updateFormThemeAction } from "@/features/themes/update-form-theme";
 import { useDesignerRuntime } from "@/lib/designer-runtime";
 import type { DesignerAudience } from "@/lib/personalization/authoring";
@@ -30,7 +31,7 @@ import {
   ConvertInlineChoicesDialog,
   useConvertInlineChoicesUi,
 } from "@/lib/survey-features/data-lists";
-import { useSurveyDesigner } from "@/lib/survey-features/designer/design-survey.context";
+import { useAcknowledgeDefinition, useSurveyDesigner } from "@/lib/survey-features/designer/design-survey.context";
 import {
   applyFormDiagnosticsAudience,
   useFormDiagnostics,
@@ -133,6 +134,7 @@ interface FormEditorProps {
   isSaving?: boolean;
   formId: string;
   formJson: object | null;
+  revision?: DefinitionRevision;
   proposal?: object | null;
   formName: string;
   options?: ICreatorOptions;
@@ -170,6 +172,7 @@ function nameToTitle(name: string): string {
 }
 
 function FormEditor({
+  revision,
   isSaving,
   formJson,
   proposal,
@@ -252,7 +255,11 @@ function FormEditor({
     creator,
     markFormModified,
   });
-  const saveCanvas = useCreatorJson(creator, formJson, { captureJsonSave, proposal });
+  const acknowledgeDefinition = useAcknowledgeDefinition();
+  const saveCanvas = useCreatorJson(creator, formJson, {
+    captureJsonSave, proposal, revision,
+    onExternalRead: () => acknowledgeDefinition(selectedThemeId(creator?.theme, themeId) !== (themeId ?? DEFAULT_THEME_ID)),
+  });
   useCreatorTabUrl(creator, isSaving);
 
   const saveCustomQuestion = useCallback(
@@ -325,16 +332,12 @@ function FormEditor({
     const newThemeId = selectedThemeId(theme, themeId);
     let isThemeUpdated = false;
 
-    const { result: updateDefinitionResult, stillSaved } = await saveCanvas(
+    const { result, stillSaved } = await saveCanvas(
       jsonResult.value,
       definition => updateFormDefinitionJsonAction(formId, false, definition),
     );
 
-    if (updateDefinitionResult === undefined) {
-      toast.error("Could not proceed with updating form definition");
-      return;
-    }
-
+    const updateDefinitionResult = result ?? Result.error("Could not proceed with updating form definition");
     if (Result.isError(updateDefinitionResult)) {
       toast.error(
         updateDefinitionResult.message || "Failed to update form definition",
@@ -345,15 +348,10 @@ function FormEditor({
     const currentThemeId = themeId ?? DEFAULT_THEME_ID;
 
     if (newThemeId !== currentThemeId) {
-      const updateThemeResult = await updateFormThemeAction({
+      const updateThemeResult = (await updateFormThemeAction({
         formId,
         themeId: newThemeId,
-      });
-
-      if (updateThemeResult === undefined) {
-        toast.error("Could not proceed with updating form theme");
-        return;
-      }
+      })) ?? Result.error("Could not proceed with updating form theme");
 
       if (Result.isError(updateThemeResult)) {
         toast.error(updateThemeResult.message || "Failed to update form theme");
@@ -364,8 +362,7 @@ function FormEditor({
     }
 
     if (stillSaved(getJsonModel(creator)) && selectedThemeId(creator?.theme, themeId) === newThemeId) {
-      setHasUnsavedChanges(false);
-      setIsJsonModified(false);
+      acknowledgeDefinition();
     }
     toast.success(
       <p>
@@ -383,8 +380,7 @@ function FormEditor({
     creator,
     formId,
     themeId,
-    setHasUnsavedChanges,
-    setIsJsonModified,
+    acknowledgeDefinition,
   ]);
 
   const [customQuestionRequest, setCustomQuestionRequest] =

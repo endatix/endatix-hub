@@ -19,11 +19,13 @@ import {
 } from "@/lib/survey-extensions";
 import {
   DesignSurveyProvider,
+  useAcknowledgeDefinition,
   useSurveyDesigner,
 } from "@/lib/survey-features/designer/design-survey.context";
 import { JSON_CHANGED_TYPE } from "@/lib/survey-features/json-editor/json-editor-state";
 import { useJsonEditor } from "@/lib/survey-features/json-editor/use-json-editor.hook";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
+import type { DefinitionRevision } from "@/lib/survey-features/survey-design/definition-revision";
 import {
   SurveyDesignSaveButton,
   SurveyDesignStatusBadge,
@@ -58,6 +60,7 @@ registerThemes();
 export interface FormTemplateEditorProps {
   templateId: string;
   templateJson: object | null;
+  revision?: DefinitionRevision;
   templateName: string;
   description?: string;
   options?: ICreatorOptions;
@@ -96,6 +99,7 @@ function templateSaveSucceeded(result: UpdateTemplateJsonResult | undefined) {
 }
 
 function FormTemplateEditorContent({
+  revision,
   templateJson,
   templateId,
   templateName,
@@ -141,12 +145,14 @@ function FormTemplateEditorContent({
     },
     downloadName: originalName,
   });
-  const [isSaving, setIsSaving] = useState(false);
+  const [pendingWrites, setPendingWrites] = useState(0);
+  const isSaving = pendingWrites > 0;
   const [showSavedSuccess, setShowSavedSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [questionClasses, setQuestionClasses] = useState<any[]>([]);
   useRichTextEditing(creator);
-  const saveCanvas = useCreatorJson(creator, templateJson, { captureJsonSave });
+  const acknowledgeDefinition = useAcknowledgeDefinition();
+  const saveCanvas = useCreatorJson(creator, templateJson, { captureJsonSave, revision, onExternalRead: acknowledgeDefinition });
   useCreatorTabUrl(creator, isSaving);
 
   const creatorTheme = useEndatixCreatorTheme();
@@ -170,7 +176,7 @@ function FormTemplateEditorContent({
   const handleNameSave = useCallback(async () => {
     if (name === originalName) return;
 
-    setIsSaving(true);
+    setPendingWrites(count => count + 1);
 
     try {
       const updateTemplateNameResult = await updateTemplateNameAction(
@@ -193,7 +199,7 @@ function FormTemplateEditorContent({
       toast.success("Template name updated");
       setIsEditingName(false);
     } finally {
-      setIsSaving(false);
+      setPendingWrites(count => count - 1);
     }
   }, [templateId, name, originalName]);
 
@@ -355,21 +361,18 @@ function FormTemplateEditorContent({
       return;
     }
 
-    setIsSaving(true);
+    setPendingWrites(count => count + 1);
     try {
       const { result, stillSaved } = await saveCanvas(jsonResult.value, definition =>
         updateTemplateJsonAction(templateId, definition));
       if (!templateSaveSucceeded(result)) return;
 
-      if (stillSaved(getJsonModel(creator))) {
-        setHasUnsavedChanges(false);
-        setIsJsonModified(false);
-      }
+      if (stillSaved(getJsonModel(creator))) acknowledgeDefinition();
       setShowSavedSuccess(true);
 
       toast.success("Template saved");
     } finally {
-      setIsSaving(false);
+      setPendingWrites(count => count - 1);
     }
   };
 

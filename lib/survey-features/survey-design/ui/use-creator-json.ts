@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef } from "react";
 import type { SurveyCreatorModel, TabJsonEditorBasePlugin } from "survey-creator-core";
 import type { AceJsonPlugin } from "../../json-editor/json-editor-state";
+import type { DefinitionRevision } from "../definition-revision";
 import { Result } from "@/lib/result/result";
 import { SURVEY_CREATOR_BUILT_IN_TAB } from "@/lib/survey-js";
 
@@ -17,6 +18,12 @@ function isSameDefinition(left: unknown, right: unknown): boolean {
 }
 
 type CaptureJsonSave = () => () => boolean;
+interface SavedDefinitionOptions {
+  revision?: DefinitionRevision;
+  captureJsonSave: CaptureJsonSave;
+  onExternalRead?: () => void;
+  proposal?: object | null;
+}
 
 function loadDefinition(creator: SurveyCreatorModel, definition: object, captureJsonSave: CaptureJsonSave) {
   if (creator.activeTab !== SURVEY_CREATOR_BUILT_IN_TAB.json) {
@@ -87,33 +94,52 @@ function useCanvasSubmission(creator: SurveyCreatorModel | null, captureJsonSave
   return { pending: session.pending, saveCanvas };
 }
 
+interface ReadSnapshot {
+  creator: SurveyCreatorModel;
+  json: object;
+  revision?: DefinitionRevision;
+}
+
+function isOlderRead(previous?: DefinitionRevision, next?: DefinitionRevision) {
+  return previous && next && previous.id === next.id && next.updatedAt < previous.updatedAt;
+}
+
+function needsHydration(snapshot: ReadSnapshot, previous: ReadSnapshot | null, pending: Set<Submission>) {
+  const previousJson = previous?.json ?? null;
+  const submitted = takeReadback(pending, snapshot.json, previousJson);
+  if (submitted || isSameDefinition(previousJson, snapshot.json)) return false;
+  return !previous || !isSameDefinition(snapshot.creator.JSON, snapshot.json);
+}
+
 function useSavedSnapshot(
   creator: SurveyCreatorModel | null,
   json: object | null,
-  { pending, captureJsonSave }: { pending: Set<Submission>; captureJsonSave: CaptureJsonSave },
+  { pending, captureJsonSave, onExternalRead, revision }: SavedDefinitionOptions & { pending: Set<Submission> },
 ) {
-  const lastRead = useRef<{ creator: SurveyCreatorModel; json: object } | null>(null);
+  const lastRead = useRef<ReadSnapshot | null>(null);
+  const notifyExternalRead = useEffectEvent(() => onExternalRead?.());
 
   useEffect(() => {
     if (!creator || !json) return;
-    const previous = lastRead.current?.creator === creator ? lastRead.current.json : null;
-    const submitted = takeReadback(pending, json, previous);
-    if (isSameDefinition(previous, json)) return;
-    if (!submitted && (!previous || !isSameDefinition(creator.JSON, json))) {
-      loadDefinition(creator, json, captureJsonSave);
-    }
-    lastRead.current = { creator, json };
-  }, [creator, json, pending, captureJsonSave]);
+    const previous = lastRead.current?.creator === creator ? lastRead.current : null;
+    if (isOlderRead(previous?.revision, revision)) return;
+    const snapshot = { creator, json, revision };
+    lastRead.current = snapshot;
+    if (!needsHydration(snapshot, previous, pending)) return;
+    loadDefinition(creator, json, captureJsonSave);
+    if (previous) notifyExternalRead();
+  }, [creator, json, pending, captureJsonSave, revision]);
 }
 
 /** Saved readbacks preserve live edits; assistant proposals explicitly change the canvas. */
 export function useCreatorJson(
   creator: SurveyCreatorModel | null,
   json: object | null,
-  { captureJsonSave, proposal }: { captureJsonSave: CaptureJsonSave; proposal?: object | null },
+  options: SavedDefinitionOptions,
 ) {
+  const { captureJsonSave, proposal } = options;
   const { pending, saveCanvas } = useCanvasSubmission(creator, captureJsonSave);
-  useSavedSnapshot(creator, json, { pending, captureJsonSave });
+  useSavedSnapshot(creator, json, { ...options, pending });
   useEffect(() => {
     if (creator && proposal) loadDefinition(creator, proposal, captureJsonSave);
   }, [creator, proposal, captureJsonSave]);

@@ -3,19 +3,43 @@ import { renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { useCreatorJson } from "../ui/use-creator-json";
 import { Result } from "@/lib/result/result";
+import { definitionRevision, type DefinitionRevision } from "../definition-revision";
 
 type FakeCreator = { JSON: object | null };
-type CreatorJsonProps = { creator: FakeCreator; json: object | null; proposal?: object };
+type CreatorJsonProps = { creator: FakeCreator; json: object | null; proposal?: object; revision?: DefinitionRevision };
 
 const createCreator = (): FakeCreator => ({ JSON: null });
 
 const renderCreatorJson = (initialProps: CreatorJsonProps) =>
   renderHook(
-    ({ creator, json, proposal }) => useCreatorJson(creator as never, json, { proposal, captureJsonSave: () => () => true }),
+    ({ creator, json, proposal, revision }) => useCreatorJson(creator as never, json, { proposal, revision, captureJsonSave: () => () => true }),
     { initialProps },
   );
 
 describe("useCreatorJson", () => {
+  it("ignores a late read from an older completed save but applies a newer external revert", async () => {
+    // Arrange
+    const creator = createCreator();
+    const { result, rerender } = renderCreatorJson({ creator, json: {} });
+    const saved = (title: string, microseconds: string) => ({
+      creator, json: { title },
+      revision: definitionRevision({ id: "1", createdAt: `2026-01-01T00:00:00.${microseconds}Z` }),
+    });
+    const older = saved("B", "123001");
+    const newer = saved("C", "123002");
+    await result.current(older.json, async () => Result.success("saved"));
+    await result.current(newer.json, async () => Result.success("saved"));
+    const draft = { title: "D" };
+    creator.JSON = draft;
+
+    // Act & Assert
+    rerender(newer);
+    rerender(older);
+    expect(creator.JSON).toBe(draft);
+    rerender(saved("B", "123003"));
+    expect(creator.JSON).toEqual(older.json);
+  });
+
   it("applies an assistant proposal equal to a previous save over a newer canvas edit", async () => {
     // Arrange
     const creator = createCreator();

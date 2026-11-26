@@ -28,6 +28,7 @@ import { getCurrentConversationUseCase } from "@/features/forms/use-cases/design
 import { aiFeaturesFlag } from "@/lib/feature-flags/flags";
 import { getFormDesignReturn } from "@/features/forms/form-workspace";
 import { parseSurveyJson } from "@/lib/survey-js";
+import { definitionRevision } from "@/lib/survey-features/survey-design/definition-revision";
 import { firstSearchParam, type SearchParamValue } from "@/lib/utils/next-utils";
 import { EndatixApi } from "@/lib/endatix-api";
 import { Result, toResult } from "@/lib/result";
@@ -98,8 +99,7 @@ export default async function FormDesignerPage({
       ? foldersRes.data.map((f) => ({ id: f.id, name: f.name }))
       : [];
 
-  let formJson: object | null = null;
-  let formDefinitionJson: string | undefined;
+  let definition: Pick<FormDesignerWrapperProps, "formJson" | "revision"> = { formJson: null };
 
   if (form.activeDefinitionId) {
     const definitionResult = toResult(
@@ -117,15 +117,15 @@ export default async function FormDesignerPage({
       return <HubPageLoadError result={definitionResult} />;
     }
 
-    formDefinitionJson = definitionResult.value.jsonData;
-    // A stored definition that is not valid JSON must not take the whole route
-    // segment into error.tsx - open the designer empty, as it did before.
-    formJson = parseSurveyJson(formDefinitionJson);
+    definition = {
+      formJson: parseSurveyJson(definitionResult.value.jsonData),
+      revision: definitionRevision(definitionResult.value),
+    };
   }
 
   const props: FormDesignerWrapperProps = {
-    formId: formId,
-    formJson: formJson,
+    formId,
+    ...definition,
     formName: form.name,
     themeId: form.themeId ?? undefined,
     isPublic: form.isPublic,

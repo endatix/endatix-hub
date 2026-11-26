@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useMemo,
   useState,
@@ -59,4 +60,12 @@ export function useSurveyDesigner(): DesignSurveyContextValue {
     );
   }
   return ctx;
+}
+
+export function useAcknowledgeDefinition() {
+  const { setIsJsonModified, setHasUnsavedChanges } = useSurveyDesigner();
+  return useCallback((hasOtherChanges = false) => {
+    setIsJsonModified(false);
+    setHasUnsavedChanges(hasOtherChanges);
+  }, [setIsJsonModified, setHasUnsavedChanges]);
 }

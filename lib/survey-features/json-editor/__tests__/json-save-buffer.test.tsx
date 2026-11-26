@@ -166,15 +166,18 @@ it("acknowledges the saved definition after JSON gives way to Preview", async ()
 it("loads an external saved definition into open Ace and then Preview", () => {
   // Arrange
   const { creator, editor, hook } = view;
-  const { rerender } = renderHook(({ json }) => useCreatorJson(creator, json, hook), {
+  const onExternalRead = vi.fn();
+  const { rerender } = renderHook(({ json }) => useCreatorJson(creator, json, { ...hook, onExternalRead }), {
     initialProps: { json: { title: "B" } },
   });
+  editor.setValue('{"title":"Unsaved local text"}');
 
   // Act
   rerender({ json: { title: "External C" } });
 
   // Assert
   expect(JSON.parse(editor.getValue()).title).toBe("External C");
+  expect(onExternalRead).toHaveBeenCalledOnce();
   creator.activeTab = "preview";
   expect(creator.JSON.title).toBe("External C");
 });

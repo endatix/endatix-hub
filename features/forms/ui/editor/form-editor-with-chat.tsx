@@ -25,6 +25,7 @@ import { useSurveyDesigner } from "@/lib/survey-features/designer/design-survey.
 import { ICreatorOptions } from "survey-creator-core";
 import { useFormAssistant } from "../../use-cases/design-form/form-assistant.context";
 import type { DesignerAudience } from "./form-editor";
+import type { DefinitionRevision } from "@/lib/survey-features/survey-design/definition-revision";
 
 const CRITICAL_WIDTH = 600;
 
@@ -32,6 +33,7 @@ export interface FormEditorWithChatProps {
   isSaving?: boolean;
   formId: string;
   formJson: object | null;
+  revision?: DefinitionRevision;
   formName: string;
   options?: ICreatorOptions;
   themeId?: string;
@@ -43,6 +45,7 @@ export interface FormEditorWithChatProps {
 }
 
 export default function FormEditorWithChat({
+  revision,
   isSaving,
   formId,
   formJson,
@@ -69,22 +72,12 @@ export default function FormEditorWithChat({
   const hasNonEmptyFormJson = formJson && Object.keys(formJson).length > 0;
   const shouldRenderEditor = hasNonEmptyFormJson || conversationLoaded;
 
-  useEffect(() => {
-    const initializeConversation = () => {
-      if (chatContext?.error) {
-        setConversationLoaded(true);
-        return;
-      }
-
-      // If form definition is empty but conversation has resultJson, load it
-      if (chatContext?.resultDefinition) {
-        setProposal(chatContext.resultDefinition);
-        setHasUnsavedChanges(true);
-      }
-      setConversationLoaded(true);
-    };
-
-    initializeConversation();
+  useEffect(function initializeConversation() {
+    if (!chatContext?.error && chatContext?.resultDefinition) {
+      setProposal(chatContext.resultDefinition);
+      setHasUnsavedChanges(true);
+    }
+    setConversationLoaded(true);
   }, [
     chatContext?.error,
     chatContext?.formId,
@@ -135,6 +128,7 @@ export default function FormEditorWithChat({
         <ResizablePanel defaultSize={70}>
           {shouldRenderEditor ? (
             <FormEditorContainer
+              revision={revision}
               isSaving={isSaving}
               formId={formId}
               formJson={formJson}

@@ -12,10 +12,12 @@ import { useState, useCallback, useRef } from "react";
 import { useFormAssistant } from "@/features/forms/use-cases/design-form/form-assistant.context";
 import type { FormDesignReturn } from "../../form-workspace";
 import type { DesignerAudience } from "../editor/form-editor";
+import type { DefinitionRevision } from "@/lib/survey-features/survey-design/definition-revision";
 
 export interface FormDesignerWrapperProps {
   formId: string;
   formJson: object | null;
+  revision?: DefinitionRevision;
   formName: string;
   options?: ICreatorOptions;
   themeId?: string;
@@ -35,6 +37,7 @@ interface FormDesignerContentProps extends FormDesignerWrapperProps {
 function FormDesignerContent({
   formId,
   formJson,
+  revision,
   formName,
   options,
   themeId,
@@ -85,6 +88,7 @@ function FormDesignerContent({
         backLabel={`Back to ${designReturn?.label ?? "Overview"}`}
       />
       <Editor
+        revision={revision}
         isSaving={headerState.isSaving}
         formId={formId}
         formJson={formJson}
@@ -101,32 +105,14 @@ function FormDesignerContent({
   );
 }
 
-export default function FormDesignerWrapper({
-  formId,
-  formJson,
-  formName,
-  options,
-  themeId,
-  isPublic,
-  formIsEnabled,
-  designReturn,
-  audience,
-}: FormDesignerWrapperProps) {
+export default function FormDesignerWrapper(props: FormDesignerWrapperProps) {
   const [isCurrentThemeModified, setIsCurrentThemeModified] = useState(false);
   const formSaveHandlerRef = useRef<(() => Promise<void>) | null>(null);
 
   return (
     <DesignSurveyProvider>
       <FormDesignerContent
-        formId={formId}
-        formJson={formJson}
-        formName={formName}
-        options={options}
-        themeId={themeId}
-        isPublic={isPublic}
-        formIsEnabled={formIsEnabled}
-        designReturn={designReturn}
-        audience={audience}
+        {...props}
         isCurrentThemeModified={isCurrentThemeModified}
         setIsCurrentThemeModified={setIsCurrentThemeModified}
         formSaveHandlerRef={formSaveHandlerRef}

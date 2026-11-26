@@ -12,6 +12,7 @@ import { DesignerRuntimeProvider } from "@/lib/designer-runtime";
 import { getSurveyLicenseKey } from "@/features/config/server";
 import { SurveyLicenseProvider } from "@/features/config/survey-license-provider";
 import { Suspense } from "react";
+import { definitionRevision } from "@/lib/survey-features/survey-design/definition-revision";
 import FormEditorLoader from "@/features/forms/ui/editor/form-editor-loader";
 
 type Params = {
@@ -56,6 +57,7 @@ export default async function FormTemplateEditPage({ params }: Params) {
   const props = {
     templateId: template.id,
     templateJson,
+    revision: definitionRevision(template),
     templateName: template.name,
     description: template.description,
   };
@@ -64,11 +66,7 @@ export default async function FormTemplateEditPage({ params }: Params) {
     <div data-full-bleed className="h-dvh max-w-[100vw] overflow-hidden">
       <Suspense fallback={<FormEditorLoader />}>
         <SurveyLicenseProvider value={getSurveyLicenseKey()}>
-          <DesignerRuntimeProvider
-            initialState={{
-              templateId,
-            }}
-          >
+          <DesignerRuntimeProvider initialState={{ templateId }}>
             <AssetStorageProvider>
               <FormTemplateEditorContainer {...props} />
             </AssetStorageProvider>
