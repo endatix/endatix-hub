@@ -12,23 +12,28 @@ type GuideProps = {
   links: { title: string; url: string }[];
 };
 
+async function persistPreference(scope: string, next: boolean): Promise<Result<boolean>> {
+  try {
+    return await saveGuide(scope, next);
+  } catch {
+    return Result.error("Could not save your preference. Try again.");
+  }
+}
+
 function useGuidePreference({ scope, preference }: GuideProps) {
-  const [saved, setSaved] = useState<{ read: GuidePreference; result: Result<boolean> }>();
+  const [saved, setSaved] = useState<{ read: GuidePreference; dismissed: boolean; error?: string }>();
   const [pending, startTransition] = useTransition();
   // Each server read supersedes results (including late writes) from an earlier snapshot.
-  const result = saved?.read === preference ? saved.result : undefined;
-  const hidden = result && Result.isSuccess(result) ? result.value : preference.dismissed;
-  const error = result && Result.isError(result) ? result.message : "";
+  const current = saved?.read === preference ? saved : undefined;
+  const hidden = current?.dismissed ?? preference.dismissed;
   function update(next: boolean) {
     startTransition(async () => {
-      try {
-        setSaved({ read: preference, result: await saveGuide(scope, next) });
-      } catch {
-        setSaved({ read: preference, result: Result.error("Could not save your preference. Try again.") });
-      }
+      const result = await persistPreference(scope, next);
+      if (Result.isError(result)) setSaved({ read: preference, dismissed: hidden, error: result.message });
+      else setSaved({ read: preference, dismissed: result.value });
     });
   }
-  return { hidden, pending, error, update };
+  return { hidden, pending, error: current?.error, update };
 }
 
 export function PersonalGuide(props: Readonly<GuideProps>) {

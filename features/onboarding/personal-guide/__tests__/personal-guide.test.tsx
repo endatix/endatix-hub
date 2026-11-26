@@ -71,6 +71,23 @@ it("accepts a fresh read even when its value matches the snapshot before a local
   expect(screen.getByRole("heading", { name: "Getting started" })).toBeTruthy();
 });
 
+it("keeps the last confirmed dismissal when reopening fails", async () => {
+  // Arrange
+  vi.mocked(saveGuide).mockResolvedValueOnce(Result.success(true))
+    .mockResolvedValueOnce(Result.error("Try reopening again."));
+  render(<PersonalGuide preference={{ dismissed: false }} scope="member" links={[]} />);
+  fireEvent.click(screen.getByRole("button", { name: "Dismiss guide" }));
+  fireEvent.click(await screen.findByText("Help"));
+  const reopen = screen.getByRole<HTMLButtonElement>("button", { name: "Getting started" });
+  await waitFor(() => expect(reopen.disabled).toBe(false));
+  // Act
+  fireEvent.click(reopen);
+  // Assert
+  expect((await screen.findByRole("alert")).textContent).toBe("Try reopening again.");
+  expect(screen.queryByRole("heading")).toBeNull();
+  expect(screen.getByText("Help")).toBeTruthy();
+});
+
 it("keeps a pending write from replacing a newer read with its old response", async () => {
   // Arrange
   const write = Promise.withResolvers<Result<boolean>>();
