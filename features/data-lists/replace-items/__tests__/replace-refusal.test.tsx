@@ -11,11 +11,7 @@ vi.mock("@/components/ui/toast", () => ({
   toast: { warning: vi.fn(), error: vi.fn() },
 }));
 
-it("offers recovery when the confirmed replacement is refused after its preparatory read", async () => {
-  // Arrange
-  const path = "/data-lists/42";
-  history.replaceState(null, "", path);
-  vi.stubEnv("ENDATIX_BASE_URL", "https://api.example");
+function refusedImport(path: string) {
   const action = {
     key: "profile.review",
     scope: "user",
@@ -39,16 +35,10 @@ it("offers recovery when the confirmed replacement is refused after its preparat
       ),
     );
   vi.stubGlobal("fetch", fetch);
-  const onReplaced = vi.fn();
-  render(
-    <ReplaceItemsDialog
-      open
-      onOpenChange={vi.fn()}
-      title="Countries"
-      dataListId="42"
-      onReplaced={onReplaced}
-    />,
-  );
+  return fetch;
+}
+
+async function reviewItems() {
   const content = '[{"value":"a","labels":{"default":"Alpha"}}]';
   const file = Object.assign(
     new File([content], "items.json", { type: "application/json" }),
@@ -64,6 +54,25 @@ it("offers recovery when the confirmed replacement is refused after its preparat
   fireEvent.click(
     await screen.findByRole("button", { name: "Review locales" }),
   );
+}
+
+it("offers recovery when the confirmed replacement is refused after its preparatory read", async () => {
+  // Arrange
+  const path = "/data-lists/42";
+  history.replaceState(null, "", path);
+  vi.stubEnv("ENDATIX_BASE_URL", "https://api.example");
+  const fetch = refusedImport(path);
+  const onReplaced = vi.fn();
+  render(
+    <ReplaceItemsDialog
+      open
+      onOpenChange={vi.fn()}
+      title="Countries"
+      dataListId="42"
+      onReplaced={onReplaced}
+    />,
+  );
+  await reviewItems();
 
   // Act
   fireEvent.click(

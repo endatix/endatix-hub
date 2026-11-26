@@ -94,7 +94,7 @@ export function CreateFormSheet({
   const isGeneratingResponse =
     (chatContext?.isResponsePending ?? false) || isCreatingForm;
   const canRenderWizard =
-    picker.folders !== undefined || Boolean(effectiveFolderId);
+    picker.folders !== undefined || Boolean(effectiveFolderId) || Boolean(picker.failure && !requireFolderAssignment);
 
   const resetSheetState = useCallback(() => {
     setSelectedOption(undefined);
@@ -191,60 +191,60 @@ export function CreateFormSheet({
         </ResponsivePanelDescription>
       </ResponsivePanelHeader>
 
-      <FolderReadBoundary {...picker}>
-        <ResponsivePanelBody>
-          {isFromScratch ? (
-            <CreateFormFromScratchPanel
-              canRenderWizard={canRenderWizard}
-              requireFolderAssignment={requireFolderAssignment}
-              folders={foldersWithFetched}
-              effectiveFolderId={effectiveFolderId}
-              effectiveFolderName={effectiveFolderName}
-              onCancel={handleCancel}
-            />
-          ) : (
-            <CreateFormOptionsGrid
-              selectedOption={selectedOption}
-              onSelectOption={setSelectedOption}
-              isPending={isPending}
-            />
-          )}
-          {isGeneratingResponse ? (
-            <DotLoader className="m-auto flex-1 text-center" />
-          ) : null}
-        </ResponsivePanelBody>
-
+      <ResponsivePanelBody>
+        <FolderReadBoundary {...picker}>{null}</FolderReadBoundary>
         {isFromScratch ? (
-          <ResponsivePanelFooter>
-            <div
-              id={CREATE_FORM_WIZARD_ACTIONS_ELEMENT_ID}
-              className="flex w-full justify-end"
-            />
-          </ResponsivePanelFooter>
+          <CreateFormFromScratchPanel
+            canRenderWizard={canRenderWizard}
+            requireFolderAssignment={requireFolderAssignment}
+            folders={foldersWithFetched}
+            effectiveFolderId={effectiveFolderId}
+            effectiveFolderName={effectiveFolderName}
+            onCancel={handleCancel}
+          />
+        ) : (
+          <CreateFormOptionsGrid
+            selectedOption={selectedOption}
+            onSelectOption={setSelectedOption}
+            isPending={isPending}
+          />
+        )}
+        {isGeneratingResponse ? (
+          <DotLoader className="m-auto flex-1 text-center" />
         ) : null}
+      </ResponsivePanelBody>
 
-        {!isFromScratch && (isFromTemplate || isAssistantEnabled) ? (
-          <ResponsivePanelFooter className="sm:justify-stretch">
-            <div className="flex w-full flex-col gap-4">
-              {isFromTemplate ? (
-                <CreateFormTemplatePanel
-                  folders={foldersWithFetched}
-                  requireFolderAssignment={requireFolderAssignment}
-                  selectedFolderId={selectedFolderId}
-                  selectedTemplate={selectedTemplate}
-                  isPending={isPending}
-                  isCreatingForm={isCreatingForm}
-                  onTemplateSelect={handleTemplateSelect}
-                  onPreviewTemplate={handlePreviewTemplate}
-                  onSelectedFolderIdChange={setSelectedFolderId}
-                  onCreateFromTemplate={handleCreateFromTemplate}
-                />
-              ) : null}
-              {isAssistantEnabled ? <CreateFormAssistantPanel /> : null}
-            </div>
-          </ResponsivePanelFooter>
-        ) : null}
-      </FolderReadBoundary>
+      {isFromScratch ? (
+        <ResponsivePanelFooter>
+          <div
+            id={CREATE_FORM_WIZARD_ACTIONS_ELEMENT_ID}
+            className="flex w-full justify-end"
+          />
+        </ResponsivePanelFooter>
+      ) : null}
+
+      {!isFromScratch && (isFromTemplate || isAssistantEnabled) ? (
+        <ResponsivePanelFooter className="sm:justify-stretch">
+          <div className="flex w-full flex-col gap-4">
+            {isFromTemplate ? (
+              <CreateFormTemplatePanel
+                folders={foldersWithFetched}
+                requireFolderAssignment={requireFolderAssignment}
+                selectedFolderId={selectedFolderId}
+                selectedTemplate={selectedTemplate}
+                isPending={isPending}
+                isCreatingForm={isCreatingForm}
+                onTemplateSelect={handleTemplateSelect}
+                onPreviewTemplate={handlePreviewTemplate}
+                onSelectedFolderIdChange={setSelectedFolderId}
+                onCreateFromTemplate={handleCreateFromTemplate}
+              />
+            ) : null}
+            {isAssistantEnabled ? <CreateFormAssistantPanel /> : null}
+          </div>
+        </ResponsivePanelFooter>
+      ) : null}
+
       {previewTemplateId ? (
         <FormTemplatePreview
           open={isPreviewOpen}

@@ -13,18 +13,22 @@ export function usePickerFolders(load: boolean, initial?: Folder[]) {
       setResult(undefined);
       return;
     }
-    let current = true;
-    void listFoldersAction()
-      .catch(toActionFailure<Folder[]>("Could not load folders."))
-      .then((value) => {
-        if (current) setResult(value);
-      });
-    return () => {
-      current = false;
-    };
+    return readChoices(setResult);
   }, [load, attempt]);
   const read = load ? result : undefined;
   const folders = read && Result.isSuccess(read) ? read.value : initial;
   const failure = read && Result.isError(read) ? read : undefined;
   return { folders, failure, retry };
+}
+
+function readChoices(apply: (value: Result<Folder[]>) => void) {
+  let current = true;
+  void listFoldersAction()
+    .catch(toActionFailure<Folder[]>("Could not load folders."))
+    .then((value) => {
+      if (current) apply(value);
+    });
+  return () => {
+    current = false;
+  };
 }

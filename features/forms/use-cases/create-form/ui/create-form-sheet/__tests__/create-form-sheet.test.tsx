@@ -1,5 +1,11 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { createNextNavigationMock } from "@/__tests__/utils/mock-next";
 import { listFoldersAction } from "@/features/folders/server";
 import { getTenantSettingsAction } from "@/features/forms/application/actions/get-tenant-settings.action";
@@ -158,6 +164,27 @@ beforeEach(() => {
 });
 
 describe("CreateFormSheet", () => {
+  it("keeps an optional-folder draft mounted when refresh fails and is retried", async () => {
+    const { promise, resolve } = Promise.withResolvers<Result<Folder[]>>();
+    listFoldersActionMock.mockReturnValueOnce(promise);
+    render(<CreateFormSheet initialFolders={[]} />);
+    await openSheet();
+    fireEvent.click(screen.getByText("Start from Scratch"));
+    const name = await screen.findByLabelText("Name");
+    fireEvent.change(name, { target: { value: "Unsaved draft" } });
+
+    await act(async () =>
+      resolve(
+        Result.error("Unavailable", undefined, undefined, { statusCode: 503 }),
+      ),
+    );
+    expect(screen.getByDisplayValue("Unsaved draft")).toBe(name);
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "Try again" })).toBeNull(),
+    );
+    expect(screen.getByDisplayValue("Unsaved draft")).toBe(name);
+  });
   it("opens when the empty-state button is clicked before the sheet registers", async () => {
     // Arrange
     const view = render(<OpenCreateFormButton />);
