@@ -62,6 +62,7 @@ const ROUTES: Route[] = [
     ["required actions", () => import("@/app/(auth)/required-actions/page"), "Account actions"],
     ["accept terms", () => import("@/app/(auth)/accept-terms/page"), "Review the Terms"],
     ["privacy notice", () => import("@/app/(auth)/accept-terms/privacy/page"), "Privacy notice"],
+    ["published Terms", () => import("@/app/(auth)/legal/terms/page"), "Terms"],
     ["signup", () => import("@/app/(auth)/signup/page"), "Sign up"],
     [
       "create account",

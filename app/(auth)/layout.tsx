@@ -1,5 +1,6 @@
 import "@/app/globals.css";
 import { auth } from "@/auth";
+import { AuthFooter } from "@/features/legal/auth-footer";
 import { AppProvider } from "@/components/providers";
 import { getClientEndatixConfig } from "@/features/config/server";
 import { brandLayoutMetadata, getBrand } from "@/lib/branding/server";
@@ -61,18 +62,8 @@ export default async function AuthLayout({ children }: AuthLayoutProps) {
           endatixConfig={endatixConfig}
           brand={brand}
         >
-          <div className="h-screen w-full overflow-hidden bg-muted/40">
-            {brand.links.website?.startsWith("http") ? (
-              <a
-                href={brand.links.website}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="fixed right-8 bottom-8 z-50 text-sm text-primary/70 transition-colors duration-200 hover:text-primary"
-              >
-                {new URL(brand.links.website).host}
-              </a>
-            ) : null}
-            <main className="grid h-full gap-8 p-6 lg:grid-cols-2">
+          <div className="flex min-h-dvh w-full flex-col bg-muted/40">
+            <main className="grid flex-1 gap-8 p-6 lg:grid-cols-2">
               {/* Left — sign-in form */}
               <div className="flex items-center justify-center">
                 <div className="w-full min-w-0 max-w-[400px] space-y-6">{children}</div>
@@ -122,6 +113,7 @@ export default async function AuthLayout({ children }: AuthLayoutProps) {
                 </div>
               </div>
             </main>
+            <AuthFooter website={brand.links.website} />
           </div>
         </AppProvider>
       </body>

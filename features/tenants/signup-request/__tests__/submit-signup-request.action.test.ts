@@ -1,12 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
-import { saasManagementFlag } from "@/lib/feature-flags/flags";
+import {
+  saasManagementFlag,
+  termsAcceptanceEnabled,
+} from "@/lib/feature-flags/flags";
+import { refresh } from "next/cache";
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
 import { submitSignupRequestAction } from "../submit-signup-request.action";
 
 vi.mock("@/lib/feature-flags/flags", () => ({
   saasManagementFlag: vi.fn(),
+  termsAcceptanceEnabled: vi.fn(() => true),
 }));
+vi.mock("next/cache", () => ({ refresh: vi.fn() }));
 
 vi.mock("@/lib/endatix-api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/endatix-api")>();
@@ -62,7 +68,25 @@ describe("submitSignupRequestAction", () => {
     expect(state.message).toBe("Signup is not enabled for this environment.");
   });
 
-  it("sends the trimmed request and returns the API message", async () => {
+  it("sends the selected version in the same request as the email", async () => {
+    // Arrange
+    const form = signupFormData({
+      email: "user@example.com",
+      acceptedTermsVersionId: "9007199254740993",
+    });
+
+    // Act
+    await submitSignupRequestAction(emptyState, form);
+
+    // Assert
+    expect(createSignup).toHaveBeenCalledWith({
+      email: "user@example.com",
+      companyName: null,
+      acceptedTermsVersionId: "9007199254740993",
+    });
+  });
+
+  it("sends the trimmed request and returns a generic message", async () => {
     // Arrange
     const formData = signupFormData({
       email: " jane@example.com ",
@@ -77,7 +101,46 @@ describe("submitSignupRequestAction", () => {
       email: "jane@example.com",
       companyName: "Acme",
     });
-    expect(state).toEqual({ isSuccess: true, message: "Request received." });
+    expect(state).toEqual({
+      isSuccess: true,
+      message:
+        "If your request is accepted, we will contact you at the email address provided.",
+    });
+  });
+
+  it("refreshes changed Terms without resubmitting or retaining consent", async () => {
+    // Arrange
+    createSignup.mockResolvedValue(ApiResult.httpStatusError(409));
+    const form = signupFormData({
+      email: "user@example.com",
+      acceptedTermsVersionId: "42",
+    });
+    // Act
+    const state = await submitSignupRequestAction(emptyState, form);
+    // Assert
+    expect(refresh).toHaveBeenCalledOnce();
+    expect(createSignup).toHaveBeenCalledTimes(1);
+    expect(state).toMatchObject({
+      isSuccess: false,
+      data: { email: "user@example.com" },
+    });
+    expect(state.data).not.toHaveProperty("acceptedTermsVersionId");
+  });
+
+  it("omits a checked version if the feature was disabled since display", async () => {
+    // Arrange
+    vi.mocked(termsAcceptanceEnabled).mockResolvedValueOnce(false);
+    const form = signupFormData({
+      email: "user@example.com",
+      acceptedTermsVersionId: "42",
+    });
+    // Act
+    await submitSignupRequestAction(emptyState, form);
+    // Assert
+    expect(createSignup).toHaveBeenCalledWith({
+      email: "user@example.com",
+      companyName: null,
+    });
   });
 
   it("sends a null company name when the field is blank", async () => {

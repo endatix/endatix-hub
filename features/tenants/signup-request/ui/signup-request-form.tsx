@@ -28,7 +28,7 @@ import { BrandLogo } from "@/lib/branding/client";
 const initialState: SignupRequestActionState = ServerActionState.emptyState();
 
 /** `intro`: the page's one-line intro (`signupIntro`), worked out on the server. */
-export function SignupRequestForm({ intro }: Readonly<{ intro: string }>) {
+export function SignupRequestForm({ intro, children }: Readonly<{ intro: string; children?: React.ReactNode }>) {
   const [state, formAction, isPending] = useActionState(
     submitSignupRequestAction,
     initialState,
@@ -140,10 +140,9 @@ export function SignupRequestForm({ intro }: Readonly<{ intro: string }>) {
             name="companyName"
             defaultValue={state.data?.companyName}
           />
-          <ErrorMessage
-            message={firstFieldError(state.errors, "companyName")}
-          />
+          <ErrorMessage message={firstFieldError(state.errors, "companyName")} />
         </div>
+        {children}
         {state.isSuccess === false ? (
           <ErrorMessage message={state.message ?? state.formErrors} />
         ) : null}

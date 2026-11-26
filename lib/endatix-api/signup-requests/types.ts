@@ -2,6 +2,7 @@ import type { PagedResponse } from "../shared/types";
 
 export interface CreateSignupRequestBody {
   email: string;
+  acceptedTermsVersionId?: string;
   companyName?: string | null;
   jobTitle?: string | null;
   postHogDistinctId?: string;
