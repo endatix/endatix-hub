@@ -166,12 +166,19 @@ beforeEach(() => {
 describe("CreateFormSheet", () => {
   it("keeps an optional-folder draft mounted when refresh fails and is retried", async () => {
     const { promise, resolve } = Promise.withResolvers<Result<Folder[]>>();
-    listFoldersActionMock.mockReturnValueOnce(promise);
-    render(<CreateFormSheet initialFolders={[]} />);
+    listFoldersActionMock
+      .mockReturnValueOnce(promise)
+      .mockResolvedValueOnce(Result.success(folders));
+    render(
+      <CreateFormSheet initialFolders={[]} defaultFolderSlug="marketing" />,
+    );
     await openSheet();
     fireEvent.click(screen.getByText("Start from Scratch"));
     const name = await screen.findByLabelText("Name");
     fireEvent.change(name, { target: { value: "Unsaved draft" } });
+    fireEvent.change(screen.getByLabelText(/description/i), {
+      target: { value: "Draft description" },
+    });
 
     await act(async () =>
       resolve(
@@ -184,6 +191,8 @@ describe("CreateFormSheet", () => {
       expect(screen.queryByRole("button", { name: "Try again" })).toBeNull(),
     );
     expect(screen.getByDisplayValue("Unsaved draft")).toBe(name);
+    expect(screen.getByDisplayValue("Draft description")).toBeTruthy();
+    expect(screen.getByDisplayValue("Marketing")).toBeTruthy();
   });
   it("opens when the empty-state button is clicked before the sheet registers", async () => {
     // Arrange
