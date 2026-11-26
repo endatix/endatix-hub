@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { renderHook } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { useCreatorJson } from "../ui/use-creator-json";
 import { Result } from "@/lib/result/result";
 import { definitionRevision, type DefinitionRevision } from "../definition-revision";
@@ -10,13 +10,34 @@ type CreatorJsonProps = { creator: FakeCreator; json: object | null; proposal?: 
 
 const createCreator = (): FakeCreator => ({ JSON: null });
 
-const renderCreatorJson = (initialProps: CreatorJsonProps) =>
+const renderCreatorJson = (initialProps: CreatorJsonProps, onExternalRead?: () => void) =>
   renderHook(
-    ({ creator, json, proposal, revision }) => useCreatorJson(creator as never, json, { proposal, revision, captureJsonSave: () => () => true }),
+    ({ creator, json, proposal, revision }) => useCreatorJson(creator as never, json, { proposal, revision, onExternalRead, captureJsonSave: () => () => true }),
     { initialProps },
   );
 
 describe("useCreatorJson", () => {
+  it("retires a delayed stale save without hiding a later external restore of its value", async () => {
+    // Arrange
+    const creator = createCreator();
+    const snapshot = (title: string, updatedAt: string) => ({
+      creator, json: { title }, revision: { id: "1", updatedAt },
+    });
+    const { result, rerender } = renderCreatorJson(snapshot("A", "0"));
+    const response = Promise.withResolvers<Result<string>>();
+    const older = snapshot("B", "1");
+    const saving = result.current(older.json, () => response.promise);
+
+    // Act & Assert
+    rerender(snapshot("C", "2"));
+    response.resolve(Result.success("saved"));
+    await saving;
+    rerender(older);
+    expect(creator.JSON).toEqual({ title: "C" });
+    rerender(snapshot("B", "3"));
+    expect(creator.JSON).toEqual({ title: "B" });
+  });
+
   it("ignores a late read from an older completed save but applies a newer external revert", async () => {
     // Arrange
     const creator = createCreator();
@@ -73,11 +94,12 @@ describe("useCreatorJson", () => {
     expect(creator.JSON).toBe(unsavedJson);
   });
 
-  it("does not reset the canvas when a save revalidates the edits back", () => {
+  it("acknowledges an external save matching the unsaved canvas without replacing it", () => {
     // Arrange
     const creator = createCreator();
     const savedJson = { pages: [{ name: "page1", elements: [] }] };
-    const { rerender } = renderCreatorJson({ creator, json: savedJson });
+    const onExternalRead = vi.fn();
+    const { rerender } = renderCreatorJson({ creator, json: savedJson }, onExternalRead);
 
     // Act — the user's edit is saved, then revalidatePath refetches that same content.
     const edited = {
@@ -93,6 +115,7 @@ describe("useCreatorJson", () => {
 
     // Assert
     expect(creator.JSON).toBe(edited);
+    expect(onExternalRead).toHaveBeenCalledOnce();
   });
 
   it("applies a later distinct snapshot on the same Creator", () => {

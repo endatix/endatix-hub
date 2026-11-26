@@ -50,7 +50,7 @@ function captureSavedDefinition(creator: SurveyCreatorModel | null, submitted: o
     Result.isSuccess(current) && isSameDefinition(current.value, submitted);
 }
 
-type Submission = { definition: object; confirmed: boolean };
+type Submission = { definition: object; confirmed: boolean; startedAt?: DefinitionRevision };
 
 async function writeSubmission<T extends Result<unknown> | undefined>(
   pending: Set<Submission>, attempt: Submission, write: (definition: object) => Promise<T>,
@@ -77,20 +77,20 @@ function takeReadback(pending: Set<Submission>, json: object, previous: object |
   return match !== undefined && pending.delete(match);
 }
 
-function useCanvasSubmission(creator: SurveyCreatorModel | null, captureJsonSave: CaptureJsonSave) {
+function useCanvasSubmission(creator: SurveyCreatorModel | null, { captureJsonSave, revision }: SavedDefinitionOptions) {
   const session = useMemo(() => ({ creator, pending: new Set<Submission>() }), [creator]);
   const latest = useRef<Submission | null>(null);
   const saveCanvas = useCallback(async <T extends Result<unknown> | undefined>(
     submitted: object, write: (definition: object) => Promise<T>,
   ) => {
-    const attempt = { definition: submitted, confirmed: false };
+    const attempt = { definition: submitted, confirmed: false, startedAt: revision };
     const matches = captureSavedDefinition(session.creator, submitted, captureJsonSave);
     latest.current = attempt;
     // Reading creator.JSON here would apply the pending Ace buffer to the canvas.
     const result = await writeSubmission(session.pending, attempt, write);
     const stillSaved = (current: Result<object>) => latest.current === attempt && matches(current);
     return { result, stillSaved };
-  }, [session, captureJsonSave]);
+  }, [session, captureJsonSave, revision]);
   return { pending: session.pending, saveCanvas };
 }
 
@@ -100,17 +100,28 @@ interface ReadSnapshot {
   revision?: DefinitionRevision;
 }
 
-function isOlderRead(previous?: DefinitionRevision, next?: DefinitionRevision) {
-  return previous && next && previous.id === next.id && next.updatedAt < previous.updatedAt;
+function precedes(earlier?: DefinitionRevision, later?: DefinitionRevision) {
+  return earlier && later && earlier.id === later.id && earlier.updatedAt < later.updatedAt;
 }
 
-function needsHydration(snapshot: ReadSnapshot, previous: ReadSnapshot | null, pending: Set<Submission>) {
+function retireStaleRead(snapshot: ReadSnapshot, pending: Set<Submission>) {
+  const match = [...pending].find(attempt =>
+    (!attempt.startedAt || precedes(attempt.startedAt, snapshot.revision)) &&
+    isSameDefinition(attempt.definition, snapshot.json),
+  );
+  if (match) pending.delete(match);
+}
+
+function isDistinctExternalRead(snapshot: ReadSnapshot, previous: ReadSnapshot | null, pending: Set<Submission>) {
   const previousJson = previous?.json ?? null;
   const submitted = takeReadback(pending, snapshot.json, previousJson);
-  if (submitted || isSameDefinition(previousJson, snapshot.json)) return false;
-  // Reading creator.JSON would apply or reject Ace's local buffer before the external read.
-  if (snapshot.creator.activeTab === SURVEY_CREATOR_BUILT_IN_TAB.json) return true;
-  return !previous || !isSameDefinition(snapshot.creator.JSON, snapshot.json);
+  return !submitted && !isSameDefinition(previousJson, snapshot.json);
+}
+
+function needsAssignment(snapshot: ReadSnapshot, previous: ReadSnapshot | null) {
+  const { creator, json } = snapshot;
+  // Reading creator.JSON on the JSON tab would apply or reject Ace's draft.
+  return !previous || creator.activeTab === SURVEY_CREATOR_BUILT_IN_TAB.json || !isSameDefinition(creator.JSON, json);
 }
 
 function useSavedSnapshot(
@@ -124,11 +135,11 @@ function useSavedSnapshot(
   useEffect(() => {
     if (!creator || !json) return;
     const previous = lastRead.current?.creator === creator ? lastRead.current : null;
-    if (isOlderRead(previous?.revision, revision)) return;
     const snapshot = { creator, json, revision };
+    if (precedes(revision, previous?.revision)) return retireStaleRead(snapshot, pending);
     lastRead.current = snapshot;
-    if (!needsHydration(snapshot, previous, pending)) return;
-    loadDefinition(creator, json, captureJsonSave);
+    if (!isDistinctExternalRead(snapshot, previous, pending)) return;
+    if (needsAssignment(snapshot, previous)) loadDefinition(creator, json, captureJsonSave);
     if (previous) notifyExternalRead();
   }, [creator, json, pending, captureJsonSave, revision]);
 }
@@ -140,7 +151,7 @@ export function useCreatorJson(
   options: SavedDefinitionOptions,
 ) {
   const { captureJsonSave, proposal } = options;
-  const { pending, saveCanvas } = useCanvasSubmission(creator, captureJsonSave);
+  const { pending, saveCanvas } = useCanvasSubmission(creator, options);
   useSavedSnapshot(creator, json, { ...options, pending });
   useEffect(() => {
     if (creator && proposal) loadDefinition(creator, proposal, captureJsonSave);
