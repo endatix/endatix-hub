@@ -64,11 +64,13 @@ it("accepts a fresh read even when its value matches the snapshot before a local
   const openGuide = () => <PersonalGuide preference={{ dismissed: false }} scope="member" links={[]} />;
   const { rerender } = render(openGuide());
   fireEvent.click(screen.getByRole("button", { name: "Dismiss guide" }));
-  await screen.findByText("Help");
+  fireEvent.click(await screen.findByText("Help"));
+  const reopen = screen.getByRole<HTMLButtonElement>("button", { name: "Getting started" });
+  await waitFor(() => expect(reopen.disabled).toBe(false));
   // Act
   rerender(openGuide());
   // Assert
-  expect(screen.getByRole("heading", { name: "Getting started" })).toBeTruthy();
+  expect(await screen.findByRole("heading", { name: "Getting started" })).toBeTruthy();
 });
 
 it("keeps the last confirmed dismissal when reopening fails", async () => {
