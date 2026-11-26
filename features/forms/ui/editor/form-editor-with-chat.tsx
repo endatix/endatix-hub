@@ -44,6 +44,23 @@ export interface FormEditorWithChatProps {
   onSaveHandlerReady?: (saveHandler: () => Promise<void>) => void;
 }
 
+function useConversationDefinition() {
+  const { chatContext } = useFormAssistant();
+  const { setHasUnsavedChanges } = useSurveyDesigner();
+  const [proposal, setProposal] = useState<object | null>(null);
+  const [conversationLoaded, setConversationLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!chatContext?.error && chatContext?.resultDefinition) {
+      setProposal(chatContext.resultDefinition);
+      setHasUnsavedChanges(true);
+    }
+    setConversationLoaded(true);
+  }, [chatContext?.error, chatContext?.formId, chatContext?.resultDefinition, setHasUnsavedChanges]);
+
+  return { chatContext, proposal, conversationLoaded };
+}
+
 export default function FormEditorWithChat({
   revision,
   isSaving,
@@ -58,32 +75,16 @@ export default function FormEditorWithChat({
   onThemeModificationChange,
   onSaveHandlerReady,
 }: FormEditorWithChatProps) {
-  const { setHasUnsavedChanges } = useSurveyDesigner();
+  const { chatContext, proposal, conversationLoaded } = useConversationDefinition();
   const chatPanelRef = useRef<PanelImperativeHandle>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [proposal, setProposal] = useState<object | null>(null);
-  const [conversationLoaded, setConversationLoaded] = useState(false);
   const propertyGridControllerRef = useRef<((visible: boolean) => void) | null>(
     null,
   );
-  const { chatContext } = useFormAssistant();
   const isGeneratingResponse = chatContext?.isResponsePending ?? false;
   const hasNonEmptyFormJson = formJson && Object.keys(formJson).length > 0;
   const shouldRenderEditor = hasNonEmptyFormJson || conversationLoaded;
-
-  useEffect(function initializeConversation() {
-    if (!chatContext?.error && chatContext?.resultDefinition) {
-      setProposal(chatContext.resultDefinition);
-      setHasUnsavedChanges(true);
-    }
-    setConversationLoaded(true);
-  }, [
-    chatContext?.error,
-    chatContext?.formId,
-    chatContext?.resultDefinition,
-    setHasUnsavedChanges,
-  ]);
 
   useEffect(() => {
     const checkWidth = () => {
