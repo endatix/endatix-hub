@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, expect, it, vi } from "vitest";
 import FolderPage from "@/app/(main)/forms/folders/[folderSlug]/page";
+import TemplateFoldersPage from "@/app/(main)/forms/templates/folders/page";
 
 const { pathname, refresh } = vi.hoisted(() => ({
   pathname: vi.fn(),
@@ -113,4 +114,18 @@ it("shows an ordinary API failure without offering account resolution", async ()
   // Assert
   expect(screen.getByText("Could not load the folder.")).toBeTruthy();
   expect(screen.queryByRole("link")).toBeNull();
+});
+
+it("does not render an empty template-folder list when its read is unavailable", async () => {
+  vi.stubGlobal("fetch", async () =>
+    Response.json(
+      { status: 503, detail: "Retry the folder read." },
+      { status: 503 },
+    ),
+  );
+  render(await TemplateFoldersPage());
+  expect(screen.getByRole("status").textContent).toContain(
+    "Retry the folder read.",
+  );
+  expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
 });

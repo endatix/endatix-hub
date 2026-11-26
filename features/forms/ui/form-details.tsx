@@ -5,7 +5,7 @@ import { useTransition, useState, useEffect, useMemo } from "react";
 import { updateFormStatusAction } from "../application/actions/update-form-status.action";
 import { updateFormVisibilityAction } from "../application/actions/update-form-visibility.action";
 import { toast } from "@/components/ui/toast";
-import { applyFolderChoices } from "@/features/folders/list-folders";
+import { usePickerFolders } from "@/features/folders/list-folders";
 import { Result } from "@/lib/result";
 import { useRouter } from "next/navigation";
 import { updateFormSettingsAction } from "../application/actions/update-form-settings.action";
@@ -17,7 +17,6 @@ import {
   sessionExpiryHoursToInput,
   type SessionExpiryHours,
 } from "@/features/forms/manage-session-expiry";
-import { listFoldersAction } from "@/features/folders/server";
 import type { Folder } from "@/lib/endatix-api/folders/types";
 import { FormDetailsView } from "./form-details-view";
 
@@ -80,7 +79,7 @@ const FormDetails = ({ form, enableEditing = false }: FormDetailsProps) => {
   const [organizationDefaultHours, setOrganizationDefaultHours] =
     useState<SessionExpiryHours>(null);
   const [metadata, setMetadata] = useState(form?.metadata ?? "");
-  const [folders, setFolders] = useState<Folder[]>([]);
+  const picker = usePickerFolders(enableEditing);
   const [selectedFolderId, setSelectedFolderId] = useState<string>(
     () => form.folderId ?? "__none__",
   );
@@ -137,21 +136,8 @@ const FormDetails = ({ form, enableEditing = false }: FormDetailsProps) => {
     };
   }, []);
 
-  useEffect(() => {
-    if (!enableEditing) {
-      return;
-    }
-    let cancelled = false;
-    void listFoldersAction().then((result) => {
-      if (cancelled) return;
-      applyFolderChoices(result, setFolders);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [enableEditing]);
-
   const folderSelectItems = useMemo(() => {
+    const folders = picker.folders ?? [];
     if (form.folderId && !folders.some((f) => f.id === form.folderId)) {
       return [
         ...folders,
@@ -165,7 +151,7 @@ const FormDetails = ({ form, enableEditing = false }: FormDetailsProps) => {
       ];
     }
     return folders;
-  }, [folders, form.folderId]);
+  }, [picker.folders, form.folderId]);
 
   const enabledLabel = form?.isEnabled ? "Enabled" : "Disabled";
   const visibilityLabel = isPublic ? "Public" : "Private";
@@ -241,8 +227,7 @@ const FormDetails = ({ form, enableEditing = false }: FormDetailsProps) => {
       if (result === undefined || Result.isError(result)) {
         setTokenExpiryHoursInput(previous);
         toast.error(
-          "Failed to update session expiry. Error: " +
-            errorMessage(result, ""),
+          "Failed to update session expiry. Error: " + errorMessage(result, ""),
         );
         return;
       }
@@ -384,6 +369,7 @@ const FormDetails = ({ form, enableEditing = false }: FormDetailsProps) => {
       organizationDefaultHours={organizationDefaultHours}
       metadata={metadata}
       selectedFolderId={selectedFolderId}
+      folderRead={picker}
       folderSelectItems={folderSelectItems}
       isEnableLimitWarningOpen={isEnableLimitWarningOpen}
       isEnableLimitErrorOpen={isEnableLimitErrorOpen}

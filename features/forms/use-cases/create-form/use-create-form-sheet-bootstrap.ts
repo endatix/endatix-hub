@@ -1,75 +1,46 @@
 "use client";
 
-import { listFoldersAction } from "@/features/folders/server";
+import { usePickerFolders } from "@/features/folders/list-folders";
 import { getTenantSettingsAction } from "@/features/forms/application/actions/get-tenant-settings.action";
 import type { Folder } from "@/lib/endatix-api/folders/types";
 import { Result } from "@/lib/result";
-import { applyFolderChoices } from "@/features/folders/list-folders";
 import { useEffect, useState } from "react";
 
-interface UseCreateFormSheetBootstrapOptions {
-  /** `undefined` — header did not load folders. `[]` — loaded and empty. */
+interface BootstrapOptions {
   initialFolders: Folder[] | undefined;
   initialRequireFolderAssignment: boolean;
+  open: boolean;
 }
 
 export function useCreateFormSheetBootstrap({
   initialFolders,
   initialRequireFolderAssignment,
-}: UseCreateFormSheetBootstrapOptions) {
+  open,
+}: BootstrapOptions) {
+  const picker = usePickerFolders(
+    open && !initialFolders?.length,
+    initialFolders,
+  );
   const [requireFolderAssignment, setRequireFolderAssignment] = useState(
     initialRequireFolderAssignment,
   );
-  const [folders, setFolders] = useState<Folder[]>(initialFolders ?? []);
-  const [foldersReady, setFoldersReady] = useState(
-    initialFolders !== undefined,
-  );
-
   useEffect(() => {
     setRequireFolderAssignment(initialRequireFolderAssignment);
-    if (initialFolders === undefined) {
-      return;
-    }
-
-    setFolders(initialFolders);
-    setFoldersReady(true);
-  }, [initialFolders, initialRequireFolderAssignment]);
-
-  const headerFoldersKnown = initialFolders !== undefined;
-  const headerFolderCount = initialFolders?.length ?? 0;
-
-  useEffect(() => {
-    let cancelled = false;
-
-    void (async () => {
-      const tenantSettingsResult = await getTenantSettingsAction();
-      if (!cancelled && Result.isSuccess(tenantSettingsResult)) {
+    if (!open) return;
+    let current = true;
+    void getTenantSettingsAction().then((result) => {
+      if (current && Result.isSuccess(result))
         setRequireFolderAssignment(
-          tenantSettingsResult.value.requireFolderAssignment === true,
+          result.value.requireFolderAssignment === true,
         );
-      }
-
-      if (headerFoldersKnown && headerFolderCount > 0) {
-        return;
-      }
-
-      const foldersResult = await listFoldersAction();
-      if (cancelled) {
-        return;
-      }
-
-      applyFolderChoices(foldersResult, choices => setFolders(choices.filter(folder => folder.isActive)));
-      setFoldersReady(true);
-    })();
-
+    });
     return () => {
-      cancelled = true;
+      current = false;
     };
-  }, [headerFolderCount, headerFoldersKnown]);
-
+  }, [open, initialRequireFolderAssignment]);
   return {
-    folders,
-    foldersReady,
+    picker,
+    folders: picker.folders?.filter((f) => f.isActive) ?? [],
     requireFolderAssignment,
   };
 }

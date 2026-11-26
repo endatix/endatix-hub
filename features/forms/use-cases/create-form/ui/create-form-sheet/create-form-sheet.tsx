@@ -15,6 +15,7 @@ import { runCreateFormFromTemplate } from "@/features/form-templates/application
 import { FormTemplatePreview } from "@/features/form-templates/ui/form-template-preview";
 import { useCreateFormFolderContext } from "../../use-create-form-folder-context";
 import { useCreateFormSheetBootstrap } from "../../use-create-form-sheet-bootstrap";
+import { FolderReadBoundary } from "@/features/folders/list-folders";
 import type { Folder } from "@/lib/endatix-api/folders/types";
 import type { FormTemplate } from "@/types";
 import { ArrowLeft, FilePlus2 } from "lucide-react";
@@ -61,9 +62,10 @@ export function CreateFormSheet({
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const { folders, foldersReady, requireFolderAssignment } =
+  const { folders, picker, requireFolderAssignment } =
     useCreateFormSheetBootstrap({
       initialFolders,
+      open,
       initialRequireFolderAssignment,
     });
 
@@ -91,7 +93,8 @@ export function CreateFormSheet({
   const isFromTemplate = selectedOption === "from_template";
   const isGeneratingResponse =
     (chatContext?.isResponsePending ?? false) || isCreatingForm;
-  const canRenderWizard = foldersReady || Boolean(effectiveFolderId);
+  const canRenderWizard =
+    picker.folders !== undefined || Boolean(effectiveFolderId);
 
   const resetSheetState = useCallback(() => {
     setSelectedOption(undefined);
@@ -154,13 +157,7 @@ export function CreateFormSheet({
     });
   }, [isPending, router, selectedFolderId, selectedTemplate]);
 
-  let sheetDescription =
-    "Choose one of the following options to create a form.";
-  if (isFromScratch) {
-    sheetDescription = "Name the form. Add a description if you want one.";
-  } else if (effectiveFolderName) {
-    sheetDescription = `Create a form in "${effectiveFolderName}". Choose an option below.`;
-  }
+  const sheetDescription = describeCreateForm(selectedOption,effectiveFolderName);
 
   return (
     <ResponsivePanel
@@ -194,59 +191,60 @@ export function CreateFormSheet({
         </ResponsivePanelDescription>
       </ResponsivePanelHeader>
 
-      <ResponsivePanelBody>
+      <FolderReadBoundary {...picker}>
+        <ResponsivePanelBody>
+          {isFromScratch ? (
+            <CreateFormFromScratchPanel
+              canRenderWizard={canRenderWizard}
+              requireFolderAssignment={requireFolderAssignment}
+              folders={foldersWithFetched}
+              effectiveFolderId={effectiveFolderId}
+              effectiveFolderName={effectiveFolderName}
+              onCancel={handleCancel}
+            />
+          ) : (
+            <CreateFormOptionsGrid
+              selectedOption={selectedOption}
+              onSelectOption={setSelectedOption}
+              isPending={isPending}
+            />
+          )}
+          {isGeneratingResponse ? (
+            <DotLoader className="m-auto flex-1 text-center" />
+          ) : null}
+        </ResponsivePanelBody>
+
         {isFromScratch ? (
-          <CreateFormFromScratchPanel
-            canRenderWizard={canRenderWizard}
-            requireFolderAssignment={requireFolderAssignment}
-            folders={foldersWithFetched}
-            effectiveFolderId={effectiveFolderId}
-            effectiveFolderName={effectiveFolderName}
-            onCancel={handleCancel}
-          />
-        ) : (
-          <CreateFormOptionsGrid
-            selectedOption={selectedOption}
-            onSelectOption={setSelectedOption}
-            isPending={isPending}
-          />
-        )}
-        {isGeneratingResponse ? (
-          <DotLoader className="m-auto flex-1 text-center" />
+          <ResponsivePanelFooter>
+            <div
+              id={CREATE_FORM_WIZARD_ACTIONS_ELEMENT_ID}
+              className="flex w-full justify-end"
+            />
+          </ResponsivePanelFooter>
         ) : null}
-      </ResponsivePanelBody>
 
-      {isFromScratch ? (
-        <ResponsivePanelFooter>
-          <div
-            id={CREATE_FORM_WIZARD_ACTIONS_ELEMENT_ID}
-            className="flex w-full justify-end"
-          />
-        </ResponsivePanelFooter>
-      ) : null}
-
-      {!isFromScratch && (isFromTemplate || isAssistantEnabled) ? (
-        <ResponsivePanelFooter className="sm:justify-stretch">
-          <div className="flex w-full flex-col gap-4">
-            {isFromTemplate ? (
-              <CreateFormTemplatePanel
-                folders={foldersWithFetched}
-                requireFolderAssignment={requireFolderAssignment}
-                selectedFolderId={selectedFolderId}
-                selectedTemplate={selectedTemplate}
-                isPending={isPending}
-                isCreatingForm={isCreatingForm}
-                onTemplateSelect={handleTemplateSelect}
-                onPreviewTemplate={handlePreviewTemplate}
-                onSelectedFolderIdChange={setSelectedFolderId}
-                onCreateFromTemplate={handleCreateFromTemplate}
-              />
-            ) : null}
-            {isAssistantEnabled ? <CreateFormAssistantPanel /> : null}
-          </div>
-        </ResponsivePanelFooter>
-      ) : null}
-
+        {!isFromScratch && (isFromTemplate || isAssistantEnabled) ? (
+          <ResponsivePanelFooter className="sm:justify-stretch">
+            <div className="flex w-full flex-col gap-4">
+              {isFromTemplate ? (
+                <CreateFormTemplatePanel
+                  folders={foldersWithFetched}
+                  requireFolderAssignment={requireFolderAssignment}
+                  selectedFolderId={selectedFolderId}
+                  selectedTemplate={selectedTemplate}
+                  isPending={isPending}
+                  isCreatingForm={isCreatingForm}
+                  onTemplateSelect={handleTemplateSelect}
+                  onPreviewTemplate={handlePreviewTemplate}
+                  onSelectedFolderIdChange={setSelectedFolderId}
+                  onCreateFromTemplate={handleCreateFromTemplate}
+                />
+              ) : null}
+              {isAssistantEnabled ? <CreateFormAssistantPanel /> : null}
+            </div>
+          </ResponsivePanelFooter>
+        ) : null}
+      </FolderReadBoundary>
       {previewTemplateId ? (
         <FormTemplatePreview
           open={isPreviewOpen}
@@ -258,4 +256,9 @@ export function CreateFormSheet({
       ) : null}
     </ResponsivePanel>
   );
+}
+
+function describeCreateForm(option: CreateFormOption | undefined, folder: string | undefined) {
+  if (option === "from_scratch") return "Name the form. Add a description if you want one.";
+  return folder ? `Create a form in "${folder}". Choose an option below.` : "Choose one of the following options to create a form.";
 }
