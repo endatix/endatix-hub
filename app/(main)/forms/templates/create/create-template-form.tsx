@@ -10,12 +10,20 @@ import {
 } from "@/features/form-templates/application/create-template.action";
 import Link from "next/link";
 import PageTitle from "@/components/headings/page-title";
-import { useActionState, useEffect, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { Result } from "@/lib/result";
+import {
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type FormEvent,
+} from "react";
+import { unstable_rethrow, useRouter } from "next/navigation";
 import { toast } from "@/components/ui/toast";
 import { Loader2 } from "lucide-react";
-import { getTemplateCreateContextAction } from "@/features/form-templates/application/get-template-create-context.action";
+import type { TemplateCreateContext } from "@/features/form-templates/application/get-template-create-context.action";
+import { HubPageLoadError } from "@/components/error-handling/error-page/hub-page-load-error";
+import { Result } from "@/lib/result";
 import {
   Select,
   SelectContent,
@@ -30,28 +38,67 @@ import { ServerActionState } from "@/lib/utils/zod-error-utils";
 const NO_FOLDER_ID = "__none__";
 const INITIAL_STATE: CreateTemplateActionState = ServerActionState.emptyState();
 
-export default function CreateTemplateForm() {
-  const [isPending, startTransition] = useTransition();
-  const [state, formAction] = useActionState(
-    createTemplateAction,
-    INITIAL_STATE,
-  );
-  const [folders, setFolders] = useState<{ id: string; name: string }[]>([]);
-  const [requireFolderAssignment, setRequireFolderAssignment] = useState(false);
+// Submissions before hydration can be replayed without the form's submit guard.
+const subscribeToHydration = () => () => {};
+const hydrated = () => true;
+const prerendered = () => false;
+
+function unconfirmedCreation(
+  error: unknown,
+  data: FormData,
+): CreateTemplateActionState {
+  unstable_rethrow(error);
+  return {
+    isSuccess: false,
+    data: {
+      name: data.get("name")?.toString(),
+      description: data.get("description")?.toString(),
+      folderId: data.get("folderId")?.toString(),
+    },
+    formErrors: [
+      "Could not confirm creation. Check your templates before trying again.",
+    ],
+  };
+}
+
+function useOpenCreatedTemplate(templateId?: string) {
+  const router = useRouter();
+  useEffect(() => {
+    if (!templateId) return;
+    toast.success({
+      title: "Form template created successfully",
+      description: "Opening template editor...",
+    });
+    router.push(`/forms/templates/${templateId}`);
+  }, [router, templateId]);
+}
+
+function useCreateTemplate() {
+  const submitting = useRef(false);
+  const ready = useSyncExternalStore(subscribeToHydration, hydrated, prerendered);
+  async function submit(previous: CreateTemplateActionState, data: FormData) {
+    const result = await createTemplateAction(previous, data).catch((error) =>
+      unconfirmedCreation(error, data),
+    );
+    submitting.current = Boolean(result.isSuccess && result.templateId);
+    return result;
+  }
+  const [state, action, pending] = useActionState(submit, INITIAL_STATE);
+  const createdId = state.isSuccess ? state.templateId : undefined;
+  useOpenCreatedTemplate(createdId);
+  function onSubmit(event: FormEvent<HTMLFormElement>) {
+    if (submitting.current) event.preventDefault();
+    else submitting.current = true;
+  }
+  return { state, action, ready, isPending: pending || Boolean(createdId), onSubmit };
+}
+
+export default function CreateTemplateForm({
+  context,
+}: Readonly<{ context: Result<TemplateCreateContext> }>) {
+  const { state, action, ready, isPending, onSubmit } = useCreateTemplate();
   const [selectedFolderId, setSelectedFolderId] =
     useState<string>(NO_FOLDER_ID);
-  const router = useRouter();
-  const isTemplateCreated = state?.isSuccess && state?.templateId;
-
-  useEffect(() => {
-    void (async () => {
-      const result = await getTemplateCreateContextAction();
-      if (Result.isSuccess(result)) {
-        setRequireFolderAssignment(result.value.requireFolderAssignment);
-        setFolders(result.value.folders);
-      }
-    })();
-  }, []);
 
   useEffect(() => {
     if (state?.data?.folderId) {
@@ -61,29 +108,24 @@ export default function CreateTemplateForm() {
     }
   }, [state?.data?.folderId]);
 
-  useEffect(() => {
-    if (isTemplateCreated && state.templateId) {
-      startTransition(() => {
-        toast.success({
-          title: "Form template created successfully",
-          description: "Opening template editor...",
-        });
-        router.push(`/forms/templates/${state.templateId}`);
-      });
-    }
-  }, [isTemplateCreated, router, startTransition, state?.templateId]);
+  if (Result.isError(context)) return <HubPageLoadError result={context} />;
+  const { folders, requireFolderAssignment } = context.value;
 
   return (
     <>
       <PageTitle title="Create Form Template" />
       <div className="container max-w-2xl py-6">
         <div className="mb-6">
-          <Link
-            href="/forms/templates"
-            className="text-primary hover:underline"
-          >
-            ← Back to templates
-          </Link>
+          {isPending ? (
+            <span aria-disabled="true">← Back to templates</span>
+          ) : (
+            <Link
+              href="/forms/templates"
+              className="text-primary hover:underline"
+            >
+              ← Back to templates
+            </Link>
+          )}
         </div>
 
         <div className="rounded-lg border bg-card p-6 shadow-sm">
@@ -95,7 +137,7 @@ export default function CreateTemplateForm() {
             multiple times.
           </p>
 
-          <form action={formAction} className="space-y-6">
+          <form action={action} onSubmit={onSubmit} className="space-y-6">
             {state?.formErrors && state.formErrors.length > 0 && (
               <div className="rounded-md bg-destructive/15 p-4">
                 <ErrorMessage message={state.formErrors} />
@@ -193,10 +235,19 @@ export default function CreateTemplateForm() {
             </div>
 
             <div className="flex justify-end space-x-2">
-              <Button variant="outline" asChild disabled={isPending}>
-                <Link href="/forms/templates">Cancel</Link>
+              <Button
+                type="button"
+                variant="outline"
+                asChild={!isPending}
+                disabled={isPending}
+              >
+                {isPending ? (
+                  "Cancel"
+                ) : (
+                  <Link href="/forms/templates">Cancel</Link>
+                )}
               </Button>
-              <Button type="submit" disabled={isPending}>
+              <Button type="submit" disabled={!ready || isPending}>
                 {isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
