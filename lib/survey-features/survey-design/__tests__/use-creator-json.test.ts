@@ -17,6 +17,27 @@ const renderCreatorJson = (initialProps: CreatorJsonProps, onExternalRead?: () =
   );
 
 describe("useCreatorJson", () => {
+  it("does not retire a write started after the last accepted revision when stale props arrive", async () => {
+    // Arrange
+    const creator = createCreator();
+    const read = (title: string, updatedAt: string) => ({ creator, json: { title }, revision: { id: "1", updatedAt } });
+    const { result, rerender } = renderCreatorJson(read("C", "4"));
+    rerender(read("A", "1"));
+    const response = Promise.withResolvers<Result<string>>();
+    const save = result.current({ title: "B" }, () => response.promise);
+    const draft = { title: "D" };
+    creator.JSON = draft;
+
+    // Act
+    rerender(read("B", "3"));
+    response.resolve(Result.success("saved"));
+    await save;
+    rerender(read("B", "5"));
+
+    // Assert
+    expect(creator.JSON).toBe(draft);
+  });
+
   it("retires a delayed stale save without hiding a later external restore of its value", async () => {
     // Arrange
     const creator = createCreator();

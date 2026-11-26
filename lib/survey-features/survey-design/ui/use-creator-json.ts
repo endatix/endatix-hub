@@ -77,21 +77,24 @@ function takeReadback(pending: Set<Submission>, json: object, previous: object |
   return match !== undefined && pending.delete(match);
 }
 
-function useCanvasSubmission(creator: SurveyCreatorModel | null, { captureJsonSave, revision }: SavedDefinitionOptions) {
+function useCanvasSubmission(creator: SurveyCreatorModel | null, captureJsonSave: CaptureJsonSave) {
   const session = useMemo(() => ({ creator, pending: new Set<Submission>() }), [creator]);
+  const lastRead = useRef<ReadSnapshot | null>(null);
   const latest = useRef<Submission | null>(null);
   const saveCanvas = useCallback(async <T extends Result<unknown> | undefined>(
     submitted: object, write: (definition: object) => Promise<T>,
   ) => {
-    const attempt = { definition: submitted, confirmed: false, startedAt: revision };
+    const accepted = lastRead.current;
+    const startedAt = accepted?.creator === session.creator ? accepted?.revision : undefined;
+    const attempt = { definition: submitted, confirmed: false, startedAt };
     const matches = captureSavedDefinition(session.creator, submitted, captureJsonSave);
     latest.current = attempt;
     // Reading creator.JSON here would apply the pending Ace buffer to the canvas.
     const result = await writeSubmission(session.pending, attempt, write);
     const stillSaved = (current: Result<object>) => latest.current === attempt && matches(current);
     return { result, stillSaved };
-  }, [session, captureJsonSave, revision]);
-  return { pending: session.pending, saveCanvas };
+  }, [session, captureJsonSave]);
+  return { pending: session.pending, saveCanvas, lastRead };
 }
 
 interface ReadSnapshot {
@@ -127,9 +130,8 @@ function needsAssignment(snapshot: ReadSnapshot, previous: ReadSnapshot | null) 
 function useSavedSnapshot(
   creator: SurveyCreatorModel | null,
   json: object | null,
-  { pending, captureJsonSave, onExternalRead, revision }: SavedDefinitionOptions & { pending: Set<Submission> },
+  { pending, lastRead, captureJsonSave, onExternalRead, revision }: SavedDefinitionOptions & ReturnType<typeof useCanvasSubmission>,
 ) {
-  const lastRead = useRef<ReadSnapshot | null>(null);
   const notifyExternalRead = useEffectEvent(() => onExternalRead?.());
 
   useEffect(() => {
@@ -141,7 +143,7 @@ function useSavedSnapshot(
     if (!isDistinctExternalRead(snapshot, previous, pending)) return;
     if (needsAssignment(snapshot, previous)) loadDefinition(creator, json, captureJsonSave);
     if (previous) notifyExternalRead();
-  }, [creator, json, pending, captureJsonSave, revision]);
+  }, [creator, json, lastRead, pending, captureJsonSave, revision]);
 }
 
 /** Saved readbacks preserve live edits; assistant proposals explicitly change the canvas. */
@@ -151,11 +153,11 @@ export function useCreatorJson(
   options: SavedDefinitionOptions,
 ) {
   const { captureJsonSave, proposal } = options;
-  const { pending, saveCanvas } = useCanvasSubmission(creator, options);
-  useSavedSnapshot(creator, json, { ...options, pending });
+  const submissions = useCanvasSubmission(creator, captureJsonSave);
+  useSavedSnapshot(creator, json, { ...options, ...submissions });
   useEffect(() => {
     if (creator && proposal) loadDefinition(creator, proposal, captureJsonSave);
   }, [creator, proposal, captureJsonSave]);
 
-  return saveCanvas;
+  return submissions.saveCanvas;
 }
