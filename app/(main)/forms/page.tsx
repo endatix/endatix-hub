@@ -29,6 +29,7 @@ import {
 import { FileText, SearchX } from "lucide-react";
 import { OpenCreateFormButton } from "@/features/forms/use-cases/create-form/ui/open-create-form-button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { WorkspaceStartSection } from "@/features/onboarding/start-workspace/workspace-start-section";
 
 interface FormsPageProps {
   searchParams?: Promise<{
@@ -62,12 +63,7 @@ export default async function FormsPage({
 
   return (
     <PagedListUrlProvider>
-      <FormsListToolbar variant="root" />
-      {!hideFolders && (
-        <Suspense fallback={<FolderCardsSkeleton />}>
-          <FormsFoldersSection headerDataPromise={headerDataPromise} />
-        </Suspense>
-      )}
+      <FormsPageIntro hideFolders={hideFolders} headerDataPromise={headerDataPromise} />
       <AssetStorageProvider>
         <PagedListFrame
           listKey={listQueryKey(listRequest)}
@@ -82,6 +78,21 @@ export default async function FormsPage({
       </AssetStorageProvider>
     </PagedListUrlProvider>
   );
+}
+
+function FormsPageIntro({ hideFolders, headerDataPromise }: Readonly<{
+  hideFolders: boolean;
+  headerDataPromise: ReturnType<typeof getFormsHeaderDataCached>;
+}>) {
+  return <>
+    <Suspense fallback={null}><WorkspaceStartSection /></Suspense>
+    <FormsListToolbar variant="root" />
+    {!hideFolders && (
+      <Suspense fallback={<FolderCardsSkeleton />}>
+        <FormsFoldersSection headerDataPromise={headerDataPromise} />
+      </Suspense>
+    )}
+  </>;
 }
 
 async function FormsListSectionWithFolders({

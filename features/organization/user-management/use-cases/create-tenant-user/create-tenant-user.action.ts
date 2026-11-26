@@ -15,6 +15,7 @@ import {
   stateFromUnexpectedError,
 } from "../server-action-state";
 import { getUnassignableRoleError } from "../role-assignment-rules";
+import { inviteFeedback } from "./invite-feedback";
 
 const createTenantUserSchema = z.object({
   email: z.email({ error: "Enter a valid email address" }).trim(),
@@ -24,7 +25,7 @@ const createTenantUserSchema = z.object({
 export type CreateTenantUserActionState = ServerActionState<{
   email?: string;
   roles?: string[];
-}>;
+}> & { feedback?: ReturnType<typeof inviteFeedback> };
 
 type CreateTenantUserPayload =
   | FormData
@@ -67,7 +68,7 @@ export async function createTenantUserAction(
       return { isSuccess: true, message: "Invite sent." };
     }
 
-    return stateFromApiError(result, rawData);
+    return { ...stateFromApiError(result, rawData), feedback: inviteFeedback(result) };
   } catch (error) {
     return stateFromUnexpectedError(error, rawData, "createTenantUserAction");
   }

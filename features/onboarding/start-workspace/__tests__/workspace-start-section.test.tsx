@@ -1,0 +1,86 @@
+import { render, screen } from "@testing-library/react";
+import { beforeEach, expect, it, vi } from "vitest";
+import { ApiResult } from "@/lib/endatix-api/shared/api-result";
+import { workspaceScope } from "@/lib/routes/workspace-scope.server";
+import { WorkspaceStartSection } from "../workspace-start-section";
+import { startBlank } from "../start-blank.action";
+
+const { get, post, grant, enabled, onboarding, revalidate } = vi.hoisted(() => ({
+  get: vi.fn(),
+  post: vi.fn(),
+  grant: vi.fn(),
+  enabled: vi.fn(),
+  onboarding: vi.fn(),
+  revalidate: vi.fn(),
+}));
+vi.mock("@/auth", () => ({ auth: async () => ({ accessToken: "current" }) }));
+vi.mock("@/features/auth/authorization", async (original) => ({
+  ...(await original<object>()),
+  authorization: async () => ({ checkAllPermissions: grant }),
+}));
+vi.mock("@/lib/endatix-api", async (original) => ({
+  ...(await original<object>()),
+  EndatixApi: class {
+    get = get;
+    post = post;
+  },
+}));
+vi.mock("@/lib/feature-flags/flags", () => ({
+  saasManagementFlag: enabled,
+  onboardingFlag: onboarding,
+}));
+vi.mock("next/cache", () => ({ revalidatePath: revalidate }));
+
+beforeEach(() => {
+  enabled.mockResolvedValue(true);
+  onboarding.mockResolvedValue(true);
+  grant.mockResolvedValue({ success: true });
+  get.mockResolvedValue(ApiResult.success({ state: "offered", choices: ["blank"], formId: null }));
+});
+
+it("leaves a non-enrolled member in their normal workspace", async () => {
+  // Arrange
+  get.mockResolvedValueOnce(ApiResult.notFoundError("missing", { statusCode: 404 }));
+  // Act & Assert
+  expect(await WorkspaceStartSection()).toBeNull();
+  expect(post).not.toHaveBeenCalled();
+});
+
+it("keeps the enrolled owner's blank choice reachable after rollout is paused", async () => {
+  // Arrange
+  onboarding.mockResolvedValue(false);
+  // Act
+  render(await WorkspaceStartSection());
+  // Assert
+  expect(screen.getByText("Start blank").closest("details")).not.toBeNull();
+  expect(post).not.toHaveBeenCalled();
+});
+
+it("leaves ordinary hosts and callers without editor grants out of setup", async () => {
+  // Arrange
+  enabled.mockResolvedValueOnce(false);
+  grant.mockResolvedValueOnce({ success: false });
+  // Act & Assert
+  expect(await WorkspaceStartSection()).toBeNull();
+  expect(await WorkspaceStartSection()).toBeNull();
+  expect(get).not.toHaveBeenCalled();
+});
+
+it("does not create a survey from another session's displayed offer", async () => {
+  // Act
+  const result = await startBlank("old workspace");
+  // Assert
+  expect(result).toMatchObject({ message: expect.stringContaining("Refresh") });
+  expect(post).not.toHaveBeenCalled();
+});
+
+it("sends the explicit choice to the owner endpoint and refreshes Forms after confirmation", async () => {
+  // Arrange
+  post.mockResolvedValueOnce(ApiResult.success({ state: "blank", choices: [], formId: "42" }));
+  // Act
+  const result = await startBlank(workspaceScope("current")!);
+  // Assert
+  expect(post).toHaveBeenCalledWith("/onboarding/workspace-start/blank");
+  expect(result).toMatchObject({ value: { kind: "complete", formId: "42" } });
+  expect(revalidate).toHaveBeenCalledWith("/forms");
+});

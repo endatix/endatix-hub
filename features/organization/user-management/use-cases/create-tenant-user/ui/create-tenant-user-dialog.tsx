@@ -65,13 +65,7 @@ export function CreateTenantUserDialog({
       return;
     }
 
-    if (
-      state.isSuccess === false &&
-      state.formErrors?.length &&
-      !state.errors?.email?.length
-    ) {
-      toast.error(state.formErrors[0]);
-    }
+    reportInviteFailure(state);
   }, [state, trackEvent]);
 
   const toggleSelectedRole = (roleName: string, checked: boolean) => {
@@ -136,6 +130,7 @@ export function CreateTenantUserDialog({
         </ResponsivePanelHeader>
 
         <ResponsivePanelBody>
+          <InviteFeedback state={state} />
           <div className="flex flex-col gap-2">
             <Label htmlFor="email">Email Address</Label>
             <Input
@@ -239,4 +234,23 @@ export function CreateTenantUserDialog({
 
 function isTenantAdminRole(roleName: string) {
   return roleName.toLowerCase() === SystemRoles.Admin.toLowerCase();
+}
+
+function InviteFeedback({ state }: Readonly<{ state: CreateTenantUserActionState }>) {
+  if (!state.feedback) return null;
+  return (
+    <Alert role="alert">
+      <AlertDescription>
+        {state.feedback === "declined"
+          ? "This workspace can’t invite teammates yet. You can keep working and try again later."
+          : "Invitations are temporarily unavailable. Try sending the invite again."}
+      </AlertDescription>
+    </Alert>
+  );
+}
+
+function reportInviteFailure(state: CreateTenantUserActionState) {
+  if (state.isSuccess === false && !state.feedback && state.formErrors?.length && !state.errors?.email?.length) {
+    toast.error(state.formErrors[0]);
+  }
 }
