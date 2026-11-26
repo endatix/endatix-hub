@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { workspaceRedirect } from "@/features/auth/required-actions/workspace-redirect.server";
 import { isMaintenanceMode } from "@/lib/maintenance/maintenance-config";
 import { rewriteToMaintenance } from "@/lib/maintenance/maintenance-response";
 import { toSafeRelativeUrl } from "@/lib/utils/url-utils";
@@ -47,7 +48,16 @@ export default async function proxy(request: NextRequest) {
     return redirectToLogin(request);
   }
 
-  return NextResponse.next();
+  const target =
+    request.method === "GET" && (await workspaceRedirect(session, pathname));
+  return target ? redirectToResolver(request, target) : NextResponse.next();
+}
+
+function redirectToResolver(request: NextRequest, target: string) {
+  const destination = request.nextUrl.clone();
+  destination.pathname = target;
+  destination.search = "";
+  return NextResponse.redirect(destination);
 }
 
 /*

@@ -73,6 +73,18 @@ it("does not turn an ordinary non-resolver into support based on role", async ()
   ).toBeNull();
 });
 
+it("keeps retry and sign-out available if the exit request is interrupted", async () => {
+  exitAction.mockRejectedValueOnce(new Error("Network unavailable"));
+  await openStatus(Response.json({ requiredActions: [blocker] }));
+  fireEvent.click(
+    screen.getByRole("button", { name: "Return to home tenant" }),
+  );
+  expect(await screen.findByRole("alert")).toBeTruthy();
+  expect(
+    screen.getByRole("link", { name: "Sign out of support session" }),
+  ).toBeTruthy();
+});
+
 it("keeps unavailable status retryable", async () => {
   await openStatus(new Response(null, { status: 503 }));
   expect(

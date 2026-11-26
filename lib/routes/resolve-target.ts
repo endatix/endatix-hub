@@ -43,7 +43,7 @@ export function resolveTarget(
   const blocking = actions.filter((a) => a.severity === "blocking");
   if (
     !blocking.length ||
-    blocking.some((a) => canonicalPath(a.resolvePath) === path)
+    blocking.some((a) => resolverPath(a) === path)
   )
     return null;
   return firstResolverPath(blocking) ?? REQUIRED_ACTIONS_PATH;
