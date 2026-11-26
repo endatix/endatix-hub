@@ -50,7 +50,7 @@ import {
 import "survey-creator-core/i18n";
 import "survey-creator-core/survey-creator-core.css";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
-import { updateTemplateJsonAction } from "../application/update-template-json.action";
+import { updateTemplateJsonAction, type UpdateTemplateJsonResult } from "../application/update-template-json.action";
 import { updateTemplateNameAction } from "../application/update-template-name.action";
 
 registerThemes();
@@ -83,8 +83,7 @@ const TEMPLATE_EXTENSION_IDS = ALL_EXTENSIONS.filter(
   (extension) => !TEMPLATE_EXCLUDED_EXTENSION_IDS.has(extension.id),
 ).map((extension) => extension.id);
 
-async function saveTemplateDefinition(templateId: string, definition: object) {
-  const result = await updateTemplateJsonAction(templateId, definition);
+function templateSaveSucceeded(result: UpdateTemplateJsonResult | undefined) {
   if (!result) {
     toast.error("Could not proceed with updating template JSON");
     return false;
@@ -167,7 +166,7 @@ function FormTemplateEditorContent({
     return () => creator.onModified.remove(setAsModified);
   }, [creator, setHasUnsavedChanges]);
 
-  const rememberCanvasSave = useCreatorJson(creator, templateJson);
+  const saveCanvas = useCreatorJson(creator, templateJson);
 
   const handleNameSave = useCallback(async () => {
     if (name === originalName) return;
@@ -357,11 +356,11 @@ function FormTemplateEditorContent({
       return;
     }
 
-    const creatorJson = jsonResult.value;
-    const stillSaved = rememberCanvasSave(creatorJson);
     setIsSaving(true);
     try {
-      if (!(await saveTemplateDefinition(templateId, creatorJson))) return;
+      const { result, stillSaved } = await saveCanvas(jsonResult.value, definition =>
+        updateTemplateJsonAction(templateId, definition));
+      if (!templateSaveSucceeded(result)) return;
 
       if (stillSaved(getJsonModel(creator))) {
         setHasUnsavedChanges(false);

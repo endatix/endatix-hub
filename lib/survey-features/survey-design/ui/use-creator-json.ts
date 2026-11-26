@@ -18,13 +18,24 @@ function isSameDefinition(left: object | null, right: object): boolean {
 }
 
 function useCanvasSubmission(creator: SurveyCreatorModel | null) {
-  const submittedJson = useRef<object | null>(null);
-  const rememberCanvasSave = useCallback((submitted: object) => {
+  const pending = useRef<{ definition: object } | null>(null);
+  const saveCanvas = useCallback(async <T extends Result<unknown> | undefined>(
+    submitted: object, write: (definition: object) => Promise<T>,
+  ) => {
+    const attempt = { definition: submitted };
     // A JSON-tab submission not yet on the canvas still needs its normal hydration.
-    submittedJson.current = creator && isSameDefinition(creator.JSON, submitted) ? submitted : null;
-    return (current: Result<object>) => Result.isSuccess(current) && isSameDefinition(current.value, submitted);
+    pending.current = creator && isSameDefinition(creator.JSON, submitted) ? attempt : null;
+    let confirmed = false;
+    try {
+      const result = await write(submitted);
+      confirmed = !!result && Result.isSuccess(result);
+      const stillSaved = (current: Result<object>) => Result.isSuccess(current) && isSameDefinition(current.value, submitted);
+      return { result, stillSaved };
+    } finally {
+      if (!confirmed && pending.current === attempt) pending.current = null;
+    }
   }, [creator]);
-  return { submittedJson, rememberCanvasSave };
+  return { pending, saveCanvas };
 }
 
 /** Loads a saved canvas snapshot into the Creator without clobbering live edits. */
@@ -33,7 +44,7 @@ export function useCreatorJson(
   json: object | null,
 ) {
   const lastRead = useRef<{ creator: SurveyCreatorModel; json: object } | null>(null);
-  const { submittedJson, rememberCanvasSave } = useCanvasSubmission(creator);
+  const { pending, saveCanvas } = useCanvasSubmission(creator);
 
   useEffect(() => {
     if (!creator || !json) return;
@@ -41,13 +52,13 @@ export function useCreatorJson(
     const sameCreator = previous?.creator === creator;
     if (sameCreator && isSameDefinition(previous.json, json)) return;
 
-    const submitted = isSameDefinition(submittedJson.current, json);
+    const submitted = isSameDefinition(pending.current?.definition ?? null, json);
     if (!sameCreator || (!submitted && !isSameDefinition(creator.JSON, json))) {
       creator.JSON = json;
     }
     lastRead.current = { creator, json };
-    submittedJson.current = null;
-  }, [creator, json, submittedJson]);
+    pending.current = null;
+  }, [creator, json, pending]);
 
-  return rememberCanvasSave;
+  return saveCanvas;
 }

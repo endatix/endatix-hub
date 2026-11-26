@@ -311,7 +311,7 @@ function FormEditor({
     [creator],
   );
 
-  const rememberCanvasSave = useCreatorJson(creator, formJson);
+  const saveCanvas = useCreatorJson(creator, formJson);
   const saveForm = useCallback(async () => {
     const jsonResult = getJsonModel(creator);
     if (Result.isError(jsonResult)) {
@@ -319,15 +319,12 @@ function FormEditor({
       return;
     }
 
-    const updatedFormJson = jsonResult.value;
-    const stillSaved = rememberCanvasSave(updatedFormJson);
     const theme = creator?.theme as StoredTheme;
     let isThemeUpdated = false;
 
-    const updateDefinitionResult = await updateFormDefinitionJsonAction(
-      formId,
-      false,
-      updatedFormJson,
+    const { result: updateDefinitionResult, stillSaved } = await saveCanvas(
+      jsonResult.value,
+      definition => updateFormDefinitionJsonAction(formId, false, definition),
     );
 
     if (updateDefinitionResult === undefined) {
@@ -383,7 +380,7 @@ function FormEditor({
     );
   }, [
     getJsonModel,
-    rememberCanvasSave,
+    saveCanvas,
     creator,
     formId,
     themeId,
