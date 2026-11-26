@@ -1,3 +1,4 @@
+import { withWorkspaceSetupEntry } from "@/features/onboarding/server";
 import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { CreateUpdateAgentRequestSchema } from "@/lib/endatix-api/agents/types";
 import EditAgent from "@/features/agents/ui/edit-agent";
@@ -49,7 +50,7 @@ export default async function EditAgentPage({
     systemPrompt: agent.systemPrompt,
   };
 
-  return (
+  return withWorkspaceSetupEntry(
     <div className="container max-w-2xl py-6">
       <h1 className="mb-6 text-2xl font-semibold">Edit Agent</h1>
       <EditAgent agentId={agentId} initialValues={initialValues} />

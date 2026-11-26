@@ -1,3 +1,4 @@
+import { withWorkspaceSetupAfter } from "@/features/onboarding/server";
 import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
@@ -52,7 +53,7 @@ export default async function DataListsRoutePage({
   const dataListsPromise = getDataListsPage(listRequest);
   const openCreateOnLoad = hasValue(raw.action, "create");
 
-  return (
+  return withWorkspaceSetupAfter(dataListsPromise.then(() => true),
     <>
       <DataListsPageHeader />
       <DataListsBrowser

@@ -1,3 +1,4 @@
+import { withWorkspaceSetupEntry } from "@/features/onboarding/server";
 import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { getSession } from "@/features/auth";
 import { EndatixApi } from "@/lib/endatix-api";
@@ -69,7 +70,7 @@ async function ConversationDetailsPageContent({
     formModelError = `Cannot parse form model: ${error}`;
   }
 
-  return (
+  return withWorkspaceSetupEntry(
     <Suspense fallback={<div>Loading...</div>}>
       {/*
        * Scoped to this route, not the `(main)` layout: the licence is a commercial

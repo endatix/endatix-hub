@@ -1,3 +1,4 @@
+import { withWorkspaceSetupEntry } from "@/features/onboarding/server";
 import { redirectDisabledPage, resolveWorkspaceAction } from "@/features/auth/required-actions/workspace-redirect.server";
 import type { Metadata } from "next";
 import { Permissions } from "@/features/auth/authorization";
@@ -52,5 +53,5 @@ export default async function FormParticipantPage({
   if (Result.isError(form)) return <FormLoadError result={form} />;
   if (Result.isError(page)) return <FormLoadError result={page} />;
   if (page.value.status === "gone") return <ParticipantGone formId={formId} />;
-  return <ParticipantPage formId={formId} {...page.value.data} />;
+  return withWorkspaceSetupEntry(<ParticipantPage formId={formId} {...page.value.data} />);
 }

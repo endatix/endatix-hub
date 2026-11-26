@@ -2,13 +2,14 @@ import { RetryRequest } from "@/components/error-handling/retry-request";
 import { StandingRefusal } from "@/components/error-handling/standing-refusal";
 import { Result } from "@/lib/result";
 import { onboardingFlag } from "@/lib/feature-flags/flags";
-import { workspaceApi, workspaceResult, workspaceStartPath } from "./workspace-api.server";
+import { currentWorkspaceStart } from "./workspace-api.server";
 import { WorkspaceStartCard } from "./workspace-start-card";
 
-export async function WorkspaceStartSection() {
-  const workspace = await workspaceApi();
-  if (!workspace) return null;
-  const result = workspaceResult(await workspace.api.get<unknown>(workspaceStartPath));
+export async function WorkspaceStartSection({ admission }: Readonly<{ admission: Promise<boolean> }>) {
+  if (!(await admission)) return null;
+  const current = await currentWorkspaceStart();
+  if (!current) return null;
+  const { workspace, result } = current;
   if (Result.isError(result)) return <SetupReadFailure failure={result} />;
   const card = (
     <WorkspaceStartCard choice={result.value} scope={workspace.scope} key={workspace.scope}

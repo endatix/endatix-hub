@@ -1,3 +1,4 @@
+import { withWorkspaceSetupAfter } from "@/features/onboarding/server";
 import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { notFound } from "next/navigation";
 import { auth } from "@/auth";
@@ -87,7 +88,7 @@ export default async function DataListDetailsRoutePage({
   const openReplaceOnLoad = hasValue(raw.action, "replace");
   const openEditOnLoad = hasValue(raw.action, "edit");
 
-  return (
+  return withWorkspaceSetupAfter(itemsPromise.then(() => true),
     <DataListDetailsPage
       initialDetails={dataList}
       itemsPromise={itemsPromise}

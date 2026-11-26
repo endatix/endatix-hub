@@ -1,3 +1,4 @@
+import { withWorkspaceSetupEntry } from "@/features/onboarding/server";
 import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import {
   getStorageSettings,
@@ -15,7 +16,7 @@ export default async function StorageSettingsPage() {
   const session = await admitWorkspacePage(requirePlatformAdmin());
   const summary = await getStorageSettings(session);
 
-  return (
+  return withWorkspaceSetupEntry(
     <PlatformAdminShell
       title="Storage Settings"
       description="Review allowlisted storage provider status without exposing connection strings or secrets."

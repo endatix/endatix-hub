@@ -23,7 +23,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toast";
 import { useTrackEvent } from "@/features/analytics/posthog/client";
 import { SystemRoles } from "@/features/auth/authorization/domain/system-roles";
-import { StandingRefusal } from "@/components/error-handling/standing-refusal";
+import { InviteFeedback } from "./invite-feedback";
 import type { RoleListItem } from "@/lib/endatix-api";
 import {
   createTenantUserAction,
@@ -230,20 +230,6 @@ export function CreateTenantUserDialog({
 
 function isTenantAdminRole(roleName: string) {
   return roleName.toLowerCase() === SystemRoles.Admin.toLowerCase();
-}
-
-function InviteFeedback({ state }: Readonly<{ state: CreateTenantUserActionState }>) {
-  if (!state.feedback) return null;
-  if (state.feedback.kind === "standing") return <StandingRefusal refusal={state.feedback.refusal} />;
-  return (
-    <Alert role="alert">
-      <AlertDescription>
-        {state.feedback.kind === "declined"
-          ? "This workspace can’t invite teammates yet. You can keep working and try again later."
-          : "Invitations are temporarily unavailable. Try sending the invite again."}
-      </AlertDescription>
-    </Alert>
-  );
 }
 
 function reportInviteFailure(state: CreateTenantUserActionState) {

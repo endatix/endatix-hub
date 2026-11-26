@@ -3,6 +3,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { workspaceScope } from "@/lib/routes/workspace-scope.server";
 import { WorkspaceStartSection } from "../workspace-start-section";
+import { canResumeWorkspaceSetup } from "../workspace-api.server";
 import { retryPreparation, startBlank } from "../start-blank.action";
 import { readPreparation } from "../preparation-status.action";
 
@@ -32,11 +33,30 @@ vi.mock("@/lib/feature-flags/flags", () => ({
 }));
 vi.mock("next/cache", () => ({ revalidatePath: revalidate }));
 
+const admittedForms = { admission: Promise.resolve(true) };
+
 beforeEach(() => {
   enabled.mockResolvedValue(true);
   onboarding.mockResolvedValue(true);
   grant.mockResolvedValue({ success: true });
   get.mockResolvedValue(ApiResult.success({ state: "offered", choices: ["blank"], formId: null }));
+});
+
+it.each([
+  ["offered", true], ["working", true], ["retryable", true], ["ready", false],
+] as const)("offers navigation for incomplete saved setup (%s)", async (state, expected) => {
+  onboarding.mockResolvedValue(false);
+  get.mockResolvedValueOnce(ApiResult.success({ state, choices: ["blank"], formId: null }));
+  expect(await canResumeWorkspaceSetup()).toBe(expected);
+  expect(post).not.toHaveBeenCalled();
+});
+
+it("hides setup navigation without a readable owner receipt", async () => {
+  grant.mockResolvedValueOnce({ success: false });
+  expect(await canResumeWorkspaceSetup()).toBe(false);
+  expect(get).not.toHaveBeenCalled();
+  get.mockResolvedValueOnce(ApiResult.notFoundError("missing", { statusCode: 404 }));
+  expect(await canResumeWorkspaceSetup()).toBe(false);
 });
 
 it.each(["themes.create", "themes.view"])("keeps finish blank available without %s", async (missing) => {
@@ -45,7 +65,7 @@ it.each(["themes.create", "themes.view"])("keeps finish blank available without 
   grant.mockImplementation((permissions: string[]) => ({ success: !permissions.includes(missing) }));
   get.mockResolvedValueOnce(ApiResult.success({ state: "retryable", choices: [], formId: null }));
   // Act
-  render(await WorkspaceStartSection());
+  render(await WorkspaceStartSection(admittedForms));
   // Assert
   expect(screen.getByText("Finish blank").closest("details")).not.toBeNull();
   expect(screen.queryByRole("button", { name: "Retry preparation", hidden: true })).toBeNull();
@@ -80,7 +100,7 @@ it("leaves a non-enrolled member in their normal workspace", async () => {
   // Arrange
   get.mockResolvedValueOnce(ApiResult.notFoundError("missing", { statusCode: 404 }));
   // Act & Assert
-  const { container } = render(await WorkspaceStartSection());
+  const { container } = render(await WorkspaceStartSection(admittedForms));
   expect(container.textContent).toBe("");
   expect(post).not.toHaveBeenCalled();
 });
@@ -91,7 +111,7 @@ it.each(["forms.create", "forms.edit", "forms.view", "access.apps.hub"])(
     // Arrange
     grant.mockImplementation((permissions: string[]) => ({ success: !permissions.includes(missing) }));
     // Act
-    expect(await WorkspaceStartSection()).toBeNull();
+    expect(await WorkspaceStartSection(admittedForms)).toBeNull();
     const result = await startBlank(workspaceScope("current")!);
     // Assert
     expect(result).toMatchObject({ message: expect.stringContaining("not available") });
@@ -104,7 +124,7 @@ it("keeps the enrolled owner's blank choice reachable after rollout is paused", 
   // Arrange
   onboarding.mockResolvedValue(false);
   // Act
-  render(await WorkspaceStartSection());
+  render(await WorkspaceStartSection(admittedForms));
   // Assert
   expect(screen.getByText("Start blank").closest("details")).not.toBeNull();
   expect(post).not.toHaveBeenCalled();
@@ -115,8 +135,8 @@ it("leaves ordinary hosts and callers without editor grants out of setup", async
   enabled.mockResolvedValueOnce(false);
   grant.mockResolvedValueOnce({ success: false });
   // Act & Assert
-  expect(await WorkspaceStartSection()).toBeNull();
-  expect(await WorkspaceStartSection()).toBeNull();
+  expect(await WorkspaceStartSection(admittedForms)).toBeNull();
+  expect(await WorkspaceStartSection(admittedForms)).toBeNull();
   expect(get).not.toHaveBeenCalled();
 });
 
@@ -152,4 +172,14 @@ it("leaves Forms unchanged when blank setup is busy and refreshes only after a c
   const resumed = await startBlank(scope);
   expect(resumed).toMatchObject({ value: { kind: "complete", formId: "42" } });
   expect(revalidate.mock.calls).toEqual([["/forms"]]);
+});
+
+it("does not read setup when Forms renders its list denial", async () => {
+  expect(await WorkspaceStartSection({ admission: Promise.resolve(false) })).toBeNull();
+  expect(get).not.toHaveBeenCalled();
+});
+
+it("leaves admitted Forms usable when the optional read unexpectedly fails", async () => {
+  get.mockRejectedValueOnce(new Error("Receipt unavailable"));
+  expect(await WorkspaceStartSection(admittedForms)).toBeNull();
 });

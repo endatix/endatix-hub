@@ -2,6 +2,8 @@ const workspacePath =
   /^\/(?:forms|admin|folders|data-lists|settings|my-account)(?:\/[\w-]+)*\/?$/;
 const filePage = /^\/forms\/([^/]+)\/submissions\/([^/]+)\/files\/(.+)$/;
 const decimalId = /^[1-9]\d*$/;
+export const workspaceSetupId = "workspace-setup";
+export const workspaceSetupHref = `/forms#${workspaceSetupId}` as const;
 
 export function submissionFilePath(
   formId: string,

@@ -1,5 +1,7 @@
 "use server";
 
+import { withWorkspaceSetupEntry } from "@/features/onboarding/server";
+
 import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import Link from "next/link";
 import PageTitle from "@/components/headings/page-title";
@@ -9,7 +11,7 @@ import CreateAgent from "@/features/agents/ui/create-agent";
 export default async function CreateAgentPage() {
   await admitWorkspacePage(requireAdmin());
 
-  return (
+  return withWorkspaceSetupEntry(
     <>
       <PageTitle title="Create Agent" />
       <div className="container max-w-2xl py-6">

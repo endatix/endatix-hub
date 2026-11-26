@@ -1,3 +1,5 @@
+import { Result } from "@/lib/result";
+import { withWorkspaceSetupAfter } from "@/features/onboarding/server";
 import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
@@ -60,7 +62,7 @@ export default async function FolderSlugFormsPage({
   });
   const formsPromise = getFormsListPromise(listRequest, session);
 
-  return (
+  return withWorkspaceSetupAfter(formsPromise.then(Result.isSuccess),
     <AssetStorageProvider>
       {folder.description ? (
         <p className="mb-3 text-sm text-muted-foreground">

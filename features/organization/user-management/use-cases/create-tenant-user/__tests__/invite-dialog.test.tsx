@@ -33,7 +33,18 @@ it("keeps an invite eligibility refusal on the current draft", async () => {
   sendInvite();
   // Assert
   expect(await screen.findByText(/can’t invite teammates yet/)).toBeDefined();
+  expect(screen.queryByRole("link", { name: "Continue workspace setup" })).toBeNull();
   expect((screen.getByLabelText("Email Address") as HTMLInputElement).value).toBe("member@example.com");
+});
+
+it("offers the owner an explicit setup link without resending the declined invite", async () => {
+  vi.mocked(createTenantUserAction).mockResolvedValueOnce({ isSuccess: false, feedback: { kind: "setup" } });
+  render(<CreateTenantUserDialog roles={[]} />);
+  openInvite();
+  sendInvite();
+  const setup = await screen.findByRole("link", { name: "Continue workspace setup" });
+  expect(setup.getAttribute("href")).toBe("/forms#workspace-setup");
+  expect(createTenantUserAction).toHaveBeenCalledTimes(1);
 });
 
 it.each([true, false])("keeps a reopened draft intact after a late invite result (success: %s)", async (success) => {

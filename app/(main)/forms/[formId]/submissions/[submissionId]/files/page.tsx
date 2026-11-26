@@ -1,3 +1,4 @@
+import { withWorkspaceSetupEntry } from "@/features/onboarding/server";
 import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import {
   listUserFiles,
@@ -46,7 +47,7 @@ async function SubmissionFilesContent({
     return <SubmissionFilesError message={filesResult.message} />;
   }
 
-  return (
+  return withWorkspaceSetupEntry(
     <SubmissionFilesTable
       files={filesResult.value}
       formId={formId}

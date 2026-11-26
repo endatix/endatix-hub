@@ -1,3 +1,4 @@
+import { withWorkspaceSetupEntry } from "@/features/onboarding/server";
 import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import {
   getAuthSettings,
@@ -14,7 +15,7 @@ export default async function AuthSettingsPage() {
     getBrand(),
   ]);
 
-  return (
+  return withWorkspaceSetupEntry(
     <PlatformAdminShell
       title="Auth Settings"
       description="Review authentication provider status and platform admin approval rules."

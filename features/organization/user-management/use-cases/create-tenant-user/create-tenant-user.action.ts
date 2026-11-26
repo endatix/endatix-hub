@@ -13,6 +13,7 @@ import { ServerActionState } from "@/lib/utils/zod-error-utils";
 import { stateFromUnexpectedError } from "../server-action-state";
 import { getUnassignableRoleError } from "../role-assignment-rules";
 import { inviteFailure, type inviteFeedback } from "./invite-feedback";
+import { canResumeWorkspaceSetup } from "@/features/onboarding/server";
 
 const createTenantUserSchema = z.object({
   email: z.email({ error: "Enter a valid email address" }).trim(),
@@ -22,7 +23,7 @@ const createTenantUserSchema = z.object({
 export type CreateTenantUserActionState = ServerActionState<{
   email?: string;
   roles?: string[];
-}> & { feedback?: ReturnType<typeof inviteFeedback> };
+}> & { feedback?: Awaited<ReturnType<typeof inviteFeedback>> };
 
 type CreateTenantUserPayload =
   | FormData
@@ -52,19 +53,24 @@ export async function createTenantUserAction(
     };
   }
 
+  let response;
   try {
-    const session = await auth();
-    const { requirePermission } = await authorization(session);
-    await requirePermission(Permissions.Tenant.InviteUsers);
-
-    const api = new EndatixApi(session?.accessToken);
-    const failure = inviteFailure(await api.users.create(validatedData.data));
-    if (failure) return { ...failure, data: rawData };
-    revalidatePath("/settings/organization/users");
-    return { isSuccess: true, message: "Invite sent." };
+    response = await sendAuthorizedInvite(validatedData.data);
+    if (response.success) revalidatePath("/settings/organization/users");
   } catch (error) {
     return stateFromUnexpectedError(error, rawData, "createTenantUserAction");
   }
+  const failure = await inviteFailure(response, canResumeWorkspaceSetup);
+  if (failure) return { ...failure, data: rawData };
+  return { isSuccess: true, message: "Invite sent." };
+}
+
+async function sendAuthorizedInvite(payload: z.infer<typeof createTenantUserSchema>) {
+  const session = await auth();
+  const { requirePermission } = await authorization(session);
+  await requirePermission(Permissions.Tenant.InviteUsers);
+  const api = new EndatixApi(session?.accessToken);
+  return api.users.create(payload);
 }
 
 function getCreateTenantUserData(payload: CreateTenantUserPayload): {

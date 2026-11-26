@@ -9,6 +9,9 @@ const mockGetDataListDetails = vi.fn();
 const mockGetDataListItemsPage = vi.fn();
 const mockRequireHubAccess = vi.fn().mockResolvedValue(undefined);
 
+vi.mock("@/features/onboarding/server", () => ({
+  withWorkspaceSetupAfter: (_admission: unknown, content: React.ReactNode) => content,
+}));
 vi.mock("next/navigation", () => ({
   notFound: () => mockNotFound(),
 }));

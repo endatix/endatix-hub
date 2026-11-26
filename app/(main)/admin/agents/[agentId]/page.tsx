@@ -1,3 +1,4 @@
+import { withWorkspaceSetupEntry } from "@/features/onboarding/server";
 import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import Link from "next/link";
 import PageTitle from "@/components/headings/page-title";
@@ -62,7 +63,7 @@ export default async function AgentDetailsPage({ params }: Params) {
 
   const conversations = conversationsResult.value;
 
-  return (
+  return withWorkspaceSetupEntry(
     <div className="container max-w-3xl py-8">
       <div className="mb-6 flex items-center justify-between">
         <PageTitle title={agent.name || "Agent Details"} />

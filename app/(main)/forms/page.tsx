@@ -31,6 +31,8 @@ import { FileText, SearchX } from "lucide-react";
 import { OpenCreateFormButton } from "@/features/forms/use-cases/create-form/ui/open-create-form-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { WorkspaceStartSection } from "@/features/onboarding/start-workspace/workspace-start-section";
+import { workspaceSetupId } from "@/lib/routes/workspace-path";
+import { Result } from "@/lib/result";
 
 interface FormsPageProps {
   searchParams?: Promise<{
@@ -64,7 +66,7 @@ export default async function FormsPage({
 
   return (
     <PagedListUrlProvider>
-      <FormsPageIntro hideFolders={hideFolders} headerDataPromise={headerDataPromise} />
+      <FormsPageIntro hideFolders={hideFolders} headerDataPromise={headerDataPromise} formsPromise={formsPromise} />
       <AssetStorageProvider>
         <PagedListFrame
           listKey={listQueryKey(listRequest)}
@@ -81,12 +83,15 @@ export default async function FormsPage({
   );
 }
 
-function FormsPageIntro({ hideFolders, headerDataPromise }: Readonly<{
+function FormsPageIntro({ hideFolders, headerDataPromise, formsPromise }: Readonly<{
   hideFolders: boolean;
   headerDataPromise: ReturnType<typeof getFormsHeaderDataCached>;
+  formsPromise: ReturnType<typeof getFormsListPromise>;
 }>) {
   return <>
-    <Suspense fallback={null}><WorkspaceStartSection /></Suspense>
+    <div id={workspaceSetupId} className="scroll-mt-16">
+      <Suspense fallback={null}><WorkspaceStartSection admission={formsPromise.then(Result.isSuccess, () => false)} /></Suspense>
+    </div>
     <FormsListToolbar variant="root" />
     {!hideFolders && (
       <Suspense fallback={<FolderCardsSkeleton />}>

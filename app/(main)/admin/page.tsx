@@ -1,3 +1,4 @@
+import { withWorkspaceSetupEntry } from "@/features/onboarding/server";
 import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { PlatformAdminShell } from "@/features/platform-admin/ui/platform-admin-shell";
 import { getPlatformDashboard, requirePlatformAdmin } from "@/features/platform-admin/server";
@@ -9,7 +10,7 @@ export default async function AdminPage() {
   const session = await admitWorkspacePage(requirePlatformAdmin());
   const [dashboard, legalEnabled] = await Promise.all([getPlatformDashboard(session), termsAcceptanceEnabled()]);
 
-  return (
+  return withWorkspaceSetupEntry(
     <PlatformAdminShell
       title="Platform Admin"
       actions={legalEnabled && <Link className="text-primary underline" href="/admin/legal">Manage legal documents</Link>}

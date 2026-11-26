@@ -1,3 +1,4 @@
+import { withWorkspaceSetupAfter } from "@/features/onboarding/server";
 import { resolveWorkspaceAction } from "@/features/auth/required-actions/workspace-redirect.server";
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
@@ -99,7 +100,7 @@ export default async function SettingsOrganizationUsersPage(
     : Promise.resolve([]);
   const currentUserId = session?.user?.id;
 
-  return (
+  return withWorkspaceSetupAfter(usersPromise.then(Result.isSuccess),
     <div className="space-y-8">
       <div>
         <div>

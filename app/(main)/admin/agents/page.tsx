@@ -1,3 +1,4 @@
+import { withWorkspaceSetupEntry } from "@/features/onboarding/server";
 import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import PageTitle from "@/components/headings/page-title";
 import AgentsList from "@/features/agents/ui/agents-list";
@@ -53,7 +54,7 @@ async function AgentsTabsContent() {
     return <HubPageLoadError result={agentsResult} />;
   }
 
-  return (
+  return withWorkspaceSetupEntry(
     <TabsContent value="all">
       <AgentsList agents={agentsResult.value} />
     </TabsContent>

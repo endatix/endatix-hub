@@ -7,6 +7,9 @@ import { Result } from "@/lib/result";
 import { act, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("@/features/onboarding/server", () => ({
+  withWorkspaceSetupEntry: (content: React.ReactNode) => content,
+}));
 vi.mock("next/navigation", () => ({
   useRouter: vi.fn(),
 }));

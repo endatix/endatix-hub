@@ -1,3 +1,5 @@
+import { Result } from "@/lib/result";
+import { withWorkspaceSetupAfter } from "@/features/onboarding/server";
 import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { SignupRequestsList } from "@/features/platform-admin/list-signup-requests/ui/signup-requests-list";
 import { listSignupRequests } from "@/features/platform-admin/list-signup-requests/list-signup-requests.server";
@@ -32,7 +34,7 @@ export default async function SignupRequestsPage({
   });
   const reviewersPromise = listSignupReviewers(session);
 
-  return (
+  return withWorkspaceSetupAfter(requestsPromise.then(Result.isSuccess),
     <PlatformAdminShell
       title="Signup Requests"
       description="Review each workspace request, then approve or reject it. Every decision records who made it."

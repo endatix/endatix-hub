@@ -1,3 +1,4 @@
+import { withWorkspaceSetupEntry } from "@/features/onboarding/server";
 import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import {
   getEmailSettings,
@@ -10,7 +11,7 @@ export default async function EmailSettingsPage() {
   const session = await admitWorkspacePage(requirePlatformAdmin());
   const settings = await getEmailSettings(session);
 
-  return (
+  return withWorkspaceSetupEntry(
     <PlatformAdminShell
       title="Email Settings"
       description="Review platform email provider status and template availability."

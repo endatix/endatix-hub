@@ -7,6 +7,9 @@ import { storageStatsFlag } from "@/lib/feature-flags/flags";
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("@/features/onboarding/server", () => ({
+  withWorkspaceSetupAfter: (_admission: unknown, content: React.ReactNode) => content,
+}));
 vi.mock("@/auth", () => ({ auth: vi.fn() }));
 
 vi.mock("@/features/auth/authorization", () => ({

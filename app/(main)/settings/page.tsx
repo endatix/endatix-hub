@@ -1,3 +1,4 @@
+import { withWorkspaceSetupEntry } from "@/features/onboarding/server";
 import { resolveWorkspaceAction } from "@/features/auth/required-actions/workspace-redirect.server";
 import Link from "next/link";
 import type { Route } from "next";
@@ -90,7 +91,7 @@ export default async function SettingsPage() {
     ),
   }));
 
-  return (
+  return withWorkspaceSetupEntry(
     <div className="space-y-8">
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>

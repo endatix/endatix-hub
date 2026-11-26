@@ -1,3 +1,4 @@
+import { withWorkspaceSetupEntry } from "@/features/onboarding/server";
 import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { NotFoundComponent } from "@/components/error-handling/not-found";
 import { getUserFile } from "@/features/asset-storage/server";
@@ -45,7 +46,7 @@ export default async function FilePage({ params }: Readonly<Params>) {
     );
   }
 
-  return (
+  return withWorkspaceSetupEntry(
     <SubmissionFileView
       file={fileResult.value}
       formId={formId}

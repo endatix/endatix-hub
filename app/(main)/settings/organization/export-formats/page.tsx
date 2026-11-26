@@ -1,3 +1,4 @@
+import { withWorkspaceSetupAfter } from "@/features/onboarding/server";
 import { redirectDisabledPage, resolveWorkspaceAction } from "@/features/auth/required-actions/workspace-redirect.server";
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
@@ -121,11 +122,11 @@ export default async function SettingsOrganizationExportFormatsPage() {
   const formatsPromise = getExportFormats(session?.accessToken);
   const mappingsPromise = getExportMappings(session?.accessToken);
   const capabilitiesPromise = getExportCapabilities(session?.accessToken);
-  const namingConventionsPromise = getExportNamingConventions(
-    session?.accessToken,
-  );
+  const namingConventionsPromise = getExportNamingConventions(session?.accessToken);
+  const pageData = Promise.all([formatsPromise, mappingsPromise, capabilitiesPromise, namingConventionsPromise]);
 
-  return (
+  return withWorkspaceSetupAfter(
+    pageData.then(() => true),
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">

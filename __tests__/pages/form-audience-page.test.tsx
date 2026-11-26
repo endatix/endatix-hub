@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Result } from "@/lib/result";
 
+vi.mock("@/features/onboarding/server", () => ({
+  withWorkspaceSetupEntry: (content: React.ReactNode) => content,
+}));
 vi.mock("next/server", () => ({}));
 
 vi.mock("@/auth", () => ({
