@@ -1,6 +1,6 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { ApiResult } from "@/lib/endatix-api";
-import { publicLegalLinks } from "../public-links.server";
+import { footerLegalLinks, invalidateLegalFooter, publicLegalLinks } from "../public-links.server";
 
 const { get, brand, enabled } = vi.hoisted(() => ({
   get: vi.fn(),
@@ -41,6 +41,20 @@ it("uses each published document and the displayed Terms version", async () => {
     required: published,
     unavailable: false,
   });
+});
+
+it("shares footer reads across auth screens but always reads fresh Terms for signup", async () => {
+  // Arrange
+  get.mockResolvedValue(ApiResult.notFoundError());
+  // Act
+  await Promise.all([footerLegalLinks(), footerLegalLinks()]);
+  await footerLegalLinks();
+  // Assert
+  expect(get).toHaveBeenCalledTimes(2);
+  get.mockResolvedValue(ApiResult.success(published));
+  expect((await publicLegalLinks()).required?.versionId).toBe("42");
+  invalidateLegalFooter();
+  expect((await footerLegalLinks()).terms).toBe("/legal/terms");
 });
 
 it("uses the brand then deployment links with the flag off and makes no publication read", async () => {
