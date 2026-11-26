@@ -1,4 +1,5 @@
 import type { SurveyCreatorModel } from "survey-creator-core";
+import { SURVEY_CREATOR_BUILT_IN_TAB } from "@/lib/survey-js";
 import { registerCreatorLogicTrigger } from "@/lib/survey-features/infrastructure/creator-logic-trigger";
 import {
   SCREEN_OUT_TRIGGER_CLASS,
@@ -18,7 +19,7 @@ export function registerScreenOutCreatorUi(): void {
 
 export function bindScreenOutToCreator(creator: SurveyCreatorModel): void {
   registerScreenOutCreatorUi();
-  // onCreatorReady resolves after new SurveyCreator. Rebuild the property grid
-  // and the active tab so the label reaches choices Creator already rendered.
-  creator.updateLocalizedStrings();
+  // The JSON tab has no trigger picker. Rebuilding it replaces the plugin's
+  // model while its mounted Ace editor is still bound to the previous one.
+  creator.updateLocalizedStrings(creator.activeTab !== SURVEY_CREATOR_BUILT_IN_TAB.json);
 }
