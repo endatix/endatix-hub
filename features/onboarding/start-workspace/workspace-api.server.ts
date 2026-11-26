@@ -42,18 +42,18 @@ export function workspaceResult(response: ApiResult<unknown>): Result<WorkspaceC
 }
 
 export const currentWorkspaceStart = cache(async () => {
-  const workspace = await workspaceApi();
-  if (!workspace) return null;
-  const result = workspaceResult(await workspace.api.get<unknown>(workspaceStartPath));
-  return { workspace, result };
+  try {
+    const workspace = await workspaceApi();
+    if (!workspace) return null;
+    const result = workspaceResult(await workspace.api.get<unknown>(workspaceStartPath));
+    return { workspace, result };
+  } catch (error) {
+    unstable_rethrow(error);
+    return null;
+  }
 });
 
 export async function canResumeWorkspaceSetup() {
-  try {
-    const current = await currentWorkspaceStart();
-    return !!current && Result.isSuccess(current.result) && current.result.value.kind !== "complete";
-  } catch (error) {
-    unstable_rethrow(error);
-    return false;
-  }
+  const current = await currentWorkspaceStart();
+  return !!current && Result.isSuccess(current.result) && current.result.value.kind !== "complete";
 }

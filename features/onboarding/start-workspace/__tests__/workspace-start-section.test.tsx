@@ -178,3 +178,8 @@ it("does not read setup when Forms renders its list denial", async () => {
   expect(await WorkspaceStartSection({ admission: Promise.resolve(false) })).toBeNull();
   expect(get).not.toHaveBeenCalled();
 });
+
+it("leaves admitted Forms usable when the optional read unexpectedly fails", async () => {
+  get.mockRejectedValueOnce(new Error("Receipt unavailable"));
+  expect(await WorkspaceStartSection(admittedForms)).toBeNull();
+});
