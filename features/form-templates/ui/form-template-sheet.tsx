@@ -28,6 +28,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { toast } from "@/components/ui/toast";
+import { showActionFailure } from "@/components/error-handling/show-action-failure";
 import { Result, toActionFailure } from "@/lib/result";
 import { getFormattedDate } from "@/lib/utils";
 import { FormTemplate } from "@/types";
@@ -126,7 +127,7 @@ const FormTemplateSheet = ({
       }
 
       if (Result.isError(result)) {
-        toast.error(result.message || "Failed to delete form template");
+        showActionFailure(result, "Failed to delete form template");
         return;
       }
 

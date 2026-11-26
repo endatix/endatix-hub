@@ -168,3 +168,4 @@ export type {
   RoleTypeFilter,
   UpdateRoleRequestBody,
 } from "./roles/types";
+export type { RequiredAction, RequiredActionError } from "./auth/required-action";

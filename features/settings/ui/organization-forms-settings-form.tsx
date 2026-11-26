@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toast";
+import { showActionFailure } from "@/components/error-handling/show-action-failure";
 import {
   parseSessionExpiryHoursInput,
   SessionExpiryHoursControl,
@@ -54,7 +55,7 @@ export function OrganizationFormsSettingsForm({
           : { submissionTokenExpiryHours: parsed.hours }),
       });
       if (Result.isError(result)) {
-        toast.error(result.message);
+        showActionFailure(result);
         return;
       }
       toast.success("Organization form settings updated");

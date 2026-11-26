@@ -14,6 +14,7 @@ import {
 import type { Error as ResultError } from "@/lib/result";
 import { Check, Copy, RotateCcw } from "lucide-react";
 import { useState } from "react";
+import { StandingRefusal } from "../standing-refusal";
 
 export interface LoadErrorViewProps {
   ui: UnexpectedErrorUi;
@@ -187,6 +188,8 @@ export function ResultLoadErrorView({
   result,
   onRetry,
 }: Readonly<ResultLoadErrorViewProps>) {
+  if (result.requiredAction)
+    return <StandingRefusal refusal={result.requiredAction} />;
   const ui = unexpectedErrorUiFromResult(result);
   const diagnostics = diagnosticsFromResult(result);
 

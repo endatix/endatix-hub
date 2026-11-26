@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
 import { EndatixApi } from "@/lib/endatix-api";
 import type { Folder } from "@/lib/endatix-api/folders/types";
-import { Result } from "@/lib/result";
+import { toResult, type Result } from "@/lib/result";
 
 export type ListFoldersResult = Result<Folder[]>;
 
@@ -24,11 +24,9 @@ export async function listFoldersAction(options?: {
     includeInactive: options?.includeInactive,
   });
 
-  if (!foldersResult.success) {
-    return Result.error(
-      foldersResult.error.message || "Failed to list folders",
-    );
-  }
-
-  return Result.success(foldersResult.data);
+  return toResult(foldersResult, {
+    fallbackMessage: "Failed to list folders",
+    logMessage: "Failed to load folder choices",
+    loggerName: "folders.list",
+  });
 }

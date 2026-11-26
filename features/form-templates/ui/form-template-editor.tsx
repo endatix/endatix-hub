@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
+import { showActionFailure } from "@/components/error-handling/show-action-failure";
 import { useStorageWithCreator } from "@/features/asset-storage/client";
 import { TelemetryLogger } from "@/features/telemetry";
 import { useSurveyLicenseKey } from "@/features/config/survey-license-provider";
@@ -172,9 +173,7 @@ function FormTemplateEditorContent({
       }
 
       if (Result.isError(updateTemplateNameResult)) {
-        toast.error(
-          updateTemplateNameResult.message || "Failed to update template name",
-        );
+        showActionFailure(updateTemplateNameResult, "Failed to update template name");
         setName(originalName);
         return;
       }
@@ -357,7 +356,7 @@ function FormTemplateEditorContent({
       }
 
       if (Result.isError(result)) {
-        toast.error(result.message || "Failed to update template JSON");
+        showActionFailure(result, "Failed to update template JSON");
         return;
       }
 

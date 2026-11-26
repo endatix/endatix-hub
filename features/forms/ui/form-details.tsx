@@ -2,10 +2,17 @@
 
 import { Form } from "@/types";
 import { useTransition, useState, useEffect, useMemo } from "react";
+import { flushSync } from "react-dom";
+import { showStandingRefusal } from "@/components/error-handling/show-action-failure";
 import { updateFormStatusAction } from "../application/actions/update-form-status.action";
 import { updateFormVisibilityAction } from "../application/actions/update-form-visibility.action";
 import { toast } from "@/components/ui/toast";
-import { Result } from "@/lib/result";
+import { usePickerFolders } from "@/features/folders/list-folders";
+import {
+  Result,
+  toActionFailure,
+  type Error as ResultError,
+} from "@/lib/result";
 import { useRouter } from "next/navigation";
 import { updateFormSettingsAction } from "../application/actions/update-form-settings.action";
 import { getTenantSettingsAction } from "../application/actions/get-tenant-settings.action";
@@ -16,7 +23,6 @@ import {
   sessionExpiryHoursToInput,
   type SessionExpiryHours,
 } from "@/features/forms/manage-session-expiry";
-import { listFoldersAction } from "@/features/folders/server";
 import type { Folder } from "@/lib/endatix-api/folders/types";
 import { FormDetailsView } from "./form-details-view";
 
@@ -59,6 +65,15 @@ function errorMessage(result: Result<unknown> | undefined, fallback: string) {
   return result && Result.isError(result) ? result.message : fallback;
 }
 
+function showFolderChangeFailure(result: ResultError | undefined) {
+  if (result?.requiredAction) return showStandingRefusal(result.requiredAction);
+  const [title, ...rest] = (result?.message ?? "").split(". ");
+  toast.error({
+    title: title || "Failed to update folder",
+    description: rest.join(". ").trim() || undefined,
+  });
+}
+
 const FormDetails = ({ form, enableEditing = false }: FormDetailsProps) => {
   const [pending, startTransition] = useTransition();
   const [isEnabled, setIsEnabled] = useState(form?.isEnabled);
@@ -79,7 +94,7 @@ const FormDetails = ({ form, enableEditing = false }: FormDetailsProps) => {
   const [organizationDefaultHours, setOrganizationDefaultHours] =
     useState<SessionExpiryHours>(null);
   const [metadata, setMetadata] = useState(form?.metadata ?? "");
-  const [folders, setFolders] = useState<Folder[]>([]);
+  const picker = usePickerFolders(enableEditing);
   const [selectedFolderId, setSelectedFolderId] = useState<string>(
     () => form.folderId ?? "__none__",
   );
@@ -136,23 +151,8 @@ const FormDetails = ({ form, enableEditing = false }: FormDetailsProps) => {
     };
   }, []);
 
-  useEffect(() => {
-    if (!enableEditing) {
-      return;
-    }
-    let cancelled = false;
-    void listFoldersAction().then((result) => {
-      if (cancelled || !Result.isSuccess(result)) {
-        return;
-      }
-      setFolders(result.value);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [enableEditing]);
-
   const folderSelectItems = useMemo(() => {
+    const folders = picker.folders ?? [];
     if (form.folderId && !folders.some((f) => f.id === form.folderId)) {
       return [
         ...folders,
@@ -166,7 +166,7 @@ const FormDetails = ({ form, enableEditing = false }: FormDetailsProps) => {
       ];
     }
     return folders;
-  }, [folders, form.folderId]);
+  }, [picker.folders, form.folderId]);
 
   const enabledLabel = form?.isEnabled ? "Enabled" : "Disabled";
   const visibilityLabel = isPublic ? "Public" : "Private";
@@ -242,8 +242,7 @@ const FormDetails = ({ form, enableEditing = false }: FormDetailsProps) => {
       if (result === undefined || Result.isError(result)) {
         setTokenExpiryHoursInput(previous);
         toast.error(
-          "Failed to update session expiry. Error: " +
-            errorMessage(result, ""),
+          "Failed to update session expiry. Error: " + errorMessage(result, ""),
         );
         return;
       }
@@ -336,17 +335,14 @@ const FormDetails = ({ form, enableEditing = false }: FormDetailsProps) => {
     startTransition(async () => {
       const payload =
         value === "__none__" ? { clearFolderId: true } : { folderId: value };
-      const result = await updateFormSettingsAction(form.id, payload);
+      const result = await updateFormSettingsAction(form.id, payload).catch(
+        toActionFailure<string>("Failed to update folder. Try again."),
+      );
 
       if (result === undefined || Result.isError(result)) {
-        setSelectedFolderId(previous);
-        const message = errorMessage(result, "Failed to update folder");
-        const [title, ...rest] = message.split(". ");
-        const details = rest.join(". ").trim();
-        toast.error({
-          title: title || "Failed to update folder",
-          description: details || undefined,
-        });
+        // A standing refusal can navigate immediately; commit the rollback before presenting it.
+        flushSync(() => setSelectedFolderId(previous));
+        showFolderChangeFailure(result);
         return;
       }
 
@@ -385,6 +381,7 @@ const FormDetails = ({ form, enableEditing = false }: FormDetailsProps) => {
       organizationDefaultHours={organizationDefaultHours}
       metadata={metadata}
       selectedFolderId={selectedFolderId}
+      folderRead={picker}
       folderSelectItems={folderSelectItems}
       isEnableLimitWarningOpen={isEnableLimitWarningOpen}
       isEnableLimitErrorOpen={isEnableLimitErrorOpen}

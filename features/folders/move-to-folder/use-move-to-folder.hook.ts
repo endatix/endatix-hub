@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { Result } from "@/lib/result";
+import { showActionFailure } from "@/components/error-handling/show-action-failure";
 import {
   canMove,
   folderHref,
@@ -16,7 +17,6 @@ import { loadFolderChoices, moveItemToFolder } from "./move-item-to-folder";
 import type { MoveToFolderDialogProps } from "./ui/move-to-folder-dialog";
 import {
   moveDialogLabels,
-  toastFoldersUnavailable,
   toastMoved,
   toastMoveFailed,
 } from "./ui/move-to-folder-copy";
@@ -68,7 +68,7 @@ function useMoveWrite(item: MovableItem, choice: FolderChoiceState): Moving {
     const folderId = targetFolderId(choice.picked);
     const result = await moveItemToFolder(item, folderId);
     setIsMovePending(false);
-    if (Result.isError(result)) return toastMoveFailed(item, result.message);
+    if (Result.isError(result)) return toastMoveFailed(item.kind, result);
     const target = choice.options.find((folder) => folder.id === folderId);
     toastMoved(item, target, (folder) =>
       router.push(folderHref(item.kind, folder.slug) as Route),
@@ -104,8 +104,10 @@ export function useMoveToFolder(item: MovableItem) {
   const moving = useMoveWrite(item, choice);
   const openMoveDialog = async () => {
     const choices = await loadFolderChoices();
-    if (Result.isError(choices))
-      return toastFoldersUnavailable(choices.message);
+    if (Result.isError(choices)) {
+      showActionFailure(choices);
+      return;
+    }
     choice.open(choices.value);
   };
   return { openMoveDialog, dialogProps: dialogPropsFor(item, choice, moving) };

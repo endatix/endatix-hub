@@ -15,6 +15,7 @@ import { runCreateFormFromTemplate } from "@/features/form-templates/application
 import { FormTemplatePreview } from "@/features/form-templates/ui/form-template-preview";
 import { useCreateFormFolderContext } from "../../use-create-form-folder-context";
 import { useCreateFormSheetBootstrap } from "../../use-create-form-sheet-bootstrap";
+import { FolderReadBoundary } from "@/features/folders/list-folders";
 import type { Folder } from "@/lib/endatix-api/folders/types";
 import type { FormTemplate } from "@/types";
 import { ArrowLeft, FilePlus2 } from "lucide-react";
@@ -61,9 +62,10 @@ export function CreateFormSheet({
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const { folders, foldersReady, requireFolderAssignment } =
+  const { folders, picker, requireFolderAssignment } =
     useCreateFormSheetBootstrap({
       initialFolders,
+      open,
       initialRequireFolderAssignment,
     });
 
@@ -91,7 +93,8 @@ export function CreateFormSheet({
   const isFromTemplate = selectedOption === "from_template";
   const isGeneratingResponse =
     (chatContext?.isResponsePending ?? false) || isCreatingForm;
-  const canRenderWizard = foldersReady || Boolean(effectiveFolderId);
+  const canRenderWizard =
+    picker.folders !== undefined || Boolean(effectiveFolderId) || Boolean(picker.failure && !requireFolderAssignment);
 
   const resetSheetState = useCallback(() => {
     setSelectedOption(undefined);
@@ -154,13 +157,7 @@ export function CreateFormSheet({
     });
   }, [isPending, router, selectedFolderId, selectedTemplate]);
 
-  let sheetDescription =
-    "Choose one of the following options to create a form.";
-  if (isFromScratch) {
-    sheetDescription = "Name the form. Add a description if you want one.";
-  } else if (effectiveFolderName) {
-    sheetDescription = `Create a form in "${effectiveFolderName}". Choose an option below.`;
-  }
+  const sheetDescription = describeCreateForm(selectedOption,effectiveFolderName);
 
   return (
     <ResponsivePanel
@@ -195,6 +192,7 @@ export function CreateFormSheet({
       </ResponsivePanelHeader>
 
       <ResponsivePanelBody>
+        <FolderReadBoundary {...picker}>{null}</FolderReadBoundary>
         {isFromScratch ? (
           <CreateFormFromScratchPanel
             canRenderWizard={canRenderWizard}
@@ -258,4 +256,9 @@ export function CreateFormSheet({
       ) : null}
     </ResponsivePanel>
   );
+}
+
+function describeCreateForm(option: CreateFormOption | undefined, folder: string | undefined) {
+  if (option === "from_scratch") return "Name the form. Add a description if you want one.";
+  return folder ? `Create a form in "${folder}". Choose an option below.` : "Choose one of the following options to create a form.";
 }

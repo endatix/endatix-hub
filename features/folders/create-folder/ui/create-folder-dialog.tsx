@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
+import { showActionFailure } from "@/components/error-handling/show-action-failure";
 import {
   createFolderAction,
   updateFolderAction,
@@ -87,7 +88,7 @@ export function CreateFolderDialog({
         description: description.trim() || null,
       });
       if (Result.isError(result)) {
-        toast.error(result.message);
+        showActionFailure(result);
         return;
       }
 
@@ -96,7 +97,7 @@ export function CreateFolderDialog({
           isActive: false,
         });
         if (Result.isError(updateResult)) {
-          toast.error(updateResult.message);
+          showActionFailure(updateResult);
           return;
         }
       }

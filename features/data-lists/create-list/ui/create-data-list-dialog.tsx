@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
+import { showActionFailure } from "@/components/error-handling/show-action-failure";
 import type { DataListDetails } from "@/lib/endatix-api/data-lists/types";
 import { Result } from "@/lib/result";
 import { Upload } from "lucide-react";
@@ -65,7 +66,7 @@ function reportCreateImportResult(
   onOpenChange: (open: boolean) => void,
 ): void {
   if (Result.isError(importResult)) {
-    toast.error(importResult.message || "Failed to create data list");
+    showActionFailure(importResult, "Failed to create data list");
     return;
   }
 

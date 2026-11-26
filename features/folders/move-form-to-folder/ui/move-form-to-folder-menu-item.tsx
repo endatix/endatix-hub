@@ -4,6 +4,8 @@ import { useState } from "react";
 import { FolderInput } from "lucide-react";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { toast } from "@/components/ui/toast";
+import { showActionFailure } from "@/components/error-handling/show-action-failure";
+import { toastMoveFailed } from "../../move-to-folder/ui/move-to-folder-copy";
 import { Result } from "@/lib/result";
 import { listFoldersAction } from "@/features/folders/server";
 import { moveFormToFolderAction } from "../move-form-to-folder.action";
@@ -31,7 +33,7 @@ export function MoveFormToFolderMenuItem({
   const handleOpenMoveDialog = async () => {
     const listResult = await listFoldersAction();
     if (Result.isError(listResult)) {
-      toast.error(listResult.message);
+      showActionFailure(listResult);
       return;
     }
 
@@ -53,10 +55,7 @@ export function MoveFormToFolderMenuItem({
     setIsMovePending(false);
 
     if (Result.isError(moveResult)) {
-      toast.error({
-        title: "Cannot move form to folder",
-        description: moveResult.message,
-      });
+      toastMoveFailed("form", moveResult);
       return;
     }
 

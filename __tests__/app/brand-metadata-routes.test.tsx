@@ -59,6 +59,7 @@ const ROUTES: Route[] = [
   ...[
     ["sign in", () => import("@/app/(auth)/signin/page"), "Sign in"],
     ["sign out", () => import("@/app/(auth)/signout/page"), "Sign out"],
+    ["required actions", () => import("@/app/(auth)/required-actions/page"), "Account actions"],
     ["signup", () => import("@/app/(auth)/signup/page"), "Sign up"],
     [
       "create account",

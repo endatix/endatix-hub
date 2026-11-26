@@ -33,6 +33,7 @@ function pickFieldMessage(
 
 function supportFromApiError(apiError: ApiError): ErrorSupport {
   return {
+    requiredAction: apiError.error.details?.requiredAction,
     traceId: apiError.error.details?.traceId,
     statusCode: apiError.error.details?.statusCode,
     problemTitle: apiError.error.details?.problemTitle,

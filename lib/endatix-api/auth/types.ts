@@ -87,6 +87,9 @@ export interface SendVerificationEmailRequest {
 }
 
 export interface AuthorizationData {
+  /** Missing on hosts that do not project their enforcement mode. */
+  requiredActionsEnforced?: boolean;
+  requiredActions?: import("./required-action").RequiredAction[];
   userId: string;
   tenantId: string;
   roles: string[];

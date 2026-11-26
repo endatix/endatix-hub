@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/toast';
+import { showActionFailure } from "@/components/error-handling/show-action-failure";
 import { FolderDeleteButton } from '@/features/folders/delete-folder';
 import { FolderEditDialog, updateFolderAction } from '@/features/folders/update-folder';
 import type { Folder } from '@/lib/endatix-api/folders/types';
@@ -27,7 +28,7 @@ export function FolderDetailHeaderActions({
         immutable: !isLocked,
       });
       if (Result.isError(result)) {
-        toast.error(result.message);
+        showActionFailure(result);
         return;
       }
       toast.success(isLocked ? 'Folder unlocked' : 'Folder locked');

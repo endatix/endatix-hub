@@ -1,13 +1,13 @@
 import PageTitle from "@/components/headings/page-title";
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
-import { ApiErrorType, ApiResult, EndatixApi } from "@/lib/endatix-api";
-import { SIGNIN_PATH, UNAUTHORIZED_PATH } from "@/features/auth";
+import { ApiResult, EndatixApi } from "@/lib/endatix-api";
+import { toDetailPageError } from "@/lib/errors/page-error";
+import { resolvePageError } from "@/lib/errors/resolve-page-error";
 import { AssetStorageProvider } from "@/features/asset-storage/server";
 import FormTemplatesList from "@/features/form-templates/ui/form-templates-list";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
 import { toResult } from "@/lib/result";
 
 type PageProps = {
@@ -28,13 +28,7 @@ export default async function TemplateFolderSlugPage({ params }: PageProps) {
   const canCreateForms = createPermission.success;
 
   if (ApiResult.isError(folderResult)) {
-    if (folderResult.error.type === ApiErrorType.AuthError) {
-      redirect(SIGNIN_PATH);
-    }
-    if (folderResult.error.type === ApiErrorType.ForbiddenError) {
-      redirect(UNAUTHORIZED_PATH);
-    }
-    notFound();
+    return resolvePageError(toDetailPageError(folderResult));
   }
 
   const folder = folderResult.data;

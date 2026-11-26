@@ -27,7 +27,6 @@ export function CreateFormFromScratchPanel({
     <div className="flex w-full flex-col gap-4">
       {canRenderWizard ? (
         <CreateFormWizard
-          key={`${effectiveFolderId ?? "create-form-sheet"}-${effectiveFolderName ?? "no-folder"}`}
           requireFolderAssignment={requireFolderAssignment}
           folders={folders}
           defaultFolderId={effectiveFolderId}

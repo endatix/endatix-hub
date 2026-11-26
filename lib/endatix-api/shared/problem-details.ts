@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { requiredActionsSchema } from "../auth/required-action";
 import { isDecimalDigitString } from "@/lib/utils/type-validators";
 
 /**
@@ -20,6 +21,7 @@ export const ProblemDetailsSchema = z.object({
   detail: z.string().optional(),
   instance: z.string().optional(),
   errorCode: z.string().optional(),
+  requiredActions: requiredActionsSchema.optional().catch(undefined),
   traceId: z.string().optional(),
   previousSchemaRetained: z.boolean().optional().catch(undefined),
   fields: z.record(z.string(), z.array(z.string())).optional(),

@@ -1,6 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import type { usePickerFolders } from "@/features/folders/list-folders";
+import { FormFolderPicker } from "./form-folder-picker";
 import { Globe, Lock } from "lucide-react";
 import { Form } from "@/types";
 import { SectionTitle } from "@/components/headings/section-title";
@@ -28,13 +30,6 @@ import {
 } from "@/features/forms/manage-session-expiry";
 import type { Folder } from "@/lib/endatix-api/folders/types";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -54,6 +49,7 @@ export type FormDetailsViewProps = {
   metadata: string;
   selectedFolderId: string;
   folderSelectItems: Folder[];
+  folderRead: ReturnType<typeof usePickerFolders>;
   isEnableLimitWarningOpen: boolean;
   isEnableLimitErrorOpen: boolean;
   enableLimitErrorMessage: string;
@@ -92,6 +88,7 @@ export function FormDetailsView({
   metadata,
   selectedFolderId,
   folderSelectItems,
+  folderRead,
   isEnableLimitWarningOpen,
   isEnableLimitErrorOpen,
   enableLimitErrorMessage,
@@ -192,23 +189,7 @@ export function FormDetailsView({
           <div className="grid grid-cols-4 items-center gap-4 py-2">
             <span className="self-start pt-2 text-right">Folder</span>
             <div className="col-span-3">
-              <Select
-                value={selectedFolderId}
-                onValueChange={onFolderChange}
-                disabled={pending}
-              >
-                <SelectTrigger className="w-full max-w-md">
-                  <SelectValue placeholder="Select folder" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">No folder</SelectItem>
-                  {folderSelectItems.map((f) => (
-                    <SelectItem key={f.id} value={f.id}>
-                      {f.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <FormFolderPicker {...{selectedFolderId,folderSelectItems,onFolderChange,pending,folderRead}} />
             </div>
           </div>
         ) : null}

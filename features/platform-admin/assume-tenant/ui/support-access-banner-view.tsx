@@ -9,7 +9,7 @@ import {
   AlertTitle,
 } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/toast";
+import { showActionFailure } from "@/components/error-handling/show-action-failure";
 import { Result, type ResultType } from "@/lib/result";
 
 interface SupportAccessBannerViewProps {
@@ -34,7 +34,7 @@ export function SupportAccessBannerView({
     startExit(async () => {
       const result = await exitAction();
       if (Result.isError(result)) {
-        toast.error(result.message || "Failed to exit tenant");
+        showActionFailure(result, "Failed to exit tenant");
       }
     });
 

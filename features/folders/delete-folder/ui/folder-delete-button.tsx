@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
+import { showActionFailure } from "@/components/error-handling/show-action-failure";
 import { deleteFolderAction } from "@/features/folders/server";
 import { Result } from "@/lib/result";
 import type { Route } from "next";
@@ -50,7 +51,7 @@ export function FolderDeleteButton({
     startTransition(async () => {
       const result = await deleteFolderAction(folderId);
       if (Result.isError(result)) {
-        toast.error(result.message);
+        showActionFailure(result);
         return;
       }
       toast.success("Folder deleted");

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "@/components/ui/toast";
+import { showActionFailure } from "@/components/error-handling/show-action-failure";
 import { Button } from "@/components/ui/button";
 import { Result } from "@/lib/result";
 
@@ -38,7 +39,7 @@ export function PlatformAdminUserActionButton({
         return;
       }
 
-      toast.error(result.message || fallbackErrorMessage);
+      showActionFailure(result, fallbackErrorMessage);
     });
   };
 
