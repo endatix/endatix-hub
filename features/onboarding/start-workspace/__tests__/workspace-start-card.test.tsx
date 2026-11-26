@@ -77,7 +77,7 @@ it("retains both recovery choices after an unconfirmed retry", async () => {
   // Assert
   expect((await screen.findByRole("alert")).textContent).toContain("Could not confirm");
   expect(retryPreparation).toHaveBeenCalledWith("workspace");
-  expect(screen.getByRole("button", { name: "Finish blank" }).hasAttribute("disabled")).toBe(false);
+  await waitFor(() => expect(screen.getByRole("button", { name: "Finish blank" }).hasAttribute("disabled")).toBe(false));
   expect(screen.queryByRole("link")).toBeNull();
 });
 
@@ -99,7 +99,7 @@ it("offers a retry after an unavailable choice without opening a draft", async (
   fireEvent.click(screen.getByRole("button", { name: "Start blank" }));
   // Assert
   expect((await screen.findByRole("alert")).textContent).toContain("Workspace setup is busy");
-  expect(screen.getByRole("button", { name: "Start blank" }).hasAttribute("disabled")).toBe(false);
+  expect((await screen.findByRole("button", { name: "Start blank" })).hasAttribute("disabled")).toBe(false);
   expect(screen.queryByRole("link")).toBeNull();
 });
 
