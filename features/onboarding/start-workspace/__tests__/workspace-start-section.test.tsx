@@ -33,6 +33,8 @@ vi.mock("@/lib/feature-flags/flags", () => ({
 }));
 vi.mock("next/cache", () => ({ revalidatePath: revalidate }));
 
+const admittedForms = { admission: Promise.resolve(true) };
+
 beforeEach(() => {
   enabled.mockResolvedValue(true);
   onboarding.mockResolvedValue(true);
@@ -63,7 +65,7 @@ it.each(["themes.create", "themes.view"])("keeps finish blank available without 
   grant.mockImplementation((permissions: string[]) => ({ success: !permissions.includes(missing) }));
   get.mockResolvedValueOnce(ApiResult.success({ state: "retryable", choices: [], formId: null }));
   // Act
-  render(await WorkspaceStartSection());
+  render(await WorkspaceStartSection(admittedForms));
   // Assert
   expect(screen.getByText("Finish blank").closest("details")).not.toBeNull();
   expect(screen.queryByRole("button", { name: "Retry preparation", hidden: true })).toBeNull();
@@ -98,7 +100,7 @@ it("leaves a non-enrolled member in their normal workspace", async () => {
   // Arrange
   get.mockResolvedValueOnce(ApiResult.notFoundError("missing", { statusCode: 404 }));
   // Act & Assert
-  const { container } = render(await WorkspaceStartSection());
+  const { container } = render(await WorkspaceStartSection(admittedForms));
   expect(container.textContent).toBe("");
   expect(post).not.toHaveBeenCalled();
 });
@@ -109,7 +111,7 @@ it.each(["forms.create", "forms.edit", "forms.view", "access.apps.hub"])(
     // Arrange
     grant.mockImplementation((permissions: string[]) => ({ success: !permissions.includes(missing) }));
     // Act
-    expect(await WorkspaceStartSection()).toBeNull();
+    expect(await WorkspaceStartSection(admittedForms)).toBeNull();
     const result = await startBlank(workspaceScope("current")!);
     // Assert
     expect(result).toMatchObject({ message: expect.stringContaining("not available") });
@@ -122,7 +124,7 @@ it("keeps the enrolled owner's blank choice reachable after rollout is paused", 
   // Arrange
   onboarding.mockResolvedValue(false);
   // Act
-  render(await WorkspaceStartSection());
+  render(await WorkspaceStartSection(admittedForms));
   // Assert
   expect(screen.getByText("Start blank").closest("details")).not.toBeNull();
   expect(post).not.toHaveBeenCalled();
@@ -133,8 +135,8 @@ it("leaves ordinary hosts and callers without editor grants out of setup", async
   enabled.mockResolvedValueOnce(false);
   grant.mockResolvedValueOnce({ success: false });
   // Act & Assert
-  expect(await WorkspaceStartSection()).toBeNull();
-  expect(await WorkspaceStartSection()).toBeNull();
+  expect(await WorkspaceStartSection(admittedForms)).toBeNull();
+  expect(await WorkspaceStartSection(admittedForms)).toBeNull();
   expect(get).not.toHaveBeenCalled();
 });
 
@@ -170,4 +172,9 @@ it("leaves Forms unchanged when blank setup is busy and refreshes only after a c
   const resumed = await startBlank(scope);
   expect(resumed).toMatchObject({ value: { kind: "complete", formId: "42" } });
   expect(revalidate.mock.calls).toEqual([["/forms"]]);
+});
+
+it("does not read setup when Forms renders its list denial", async () => {
+  expect(await WorkspaceStartSection({ admission: Promise.resolve(false) })).toBeNull();
+  expect(get).not.toHaveBeenCalled();
 });

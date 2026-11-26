@@ -5,7 +5,8 @@ import { onboardingFlag } from "@/lib/feature-flags/flags";
 import { currentWorkspaceStart } from "./workspace-api.server";
 import { WorkspaceStartCard } from "./workspace-start-card";
 
-export async function WorkspaceStartSection() {
+export async function WorkspaceStartSection({ admission }: Readonly<{ admission: Promise<boolean> }>) {
+  if (!(await admission)) return null;
   const current = await currentWorkspaceStart();
   if (!current) return null;
   const { workspace, result } = current;
