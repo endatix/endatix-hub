@@ -1,4 +1,5 @@
 export { requirePlatformAdmin } from "./require-platform-admin/require-platform-admin.server";
+export { readAssumeSession } from "./assume-tenant/read-assume-session";
 export type { PlatformAdminSession } from "./types";
 export { getPlatformDashboard } from "./view-platform-dashboard/view-platform-dashboard.server";
 export { listPlatformAdminUsers } from "./list-platform-admins/list-platform-admins.server";

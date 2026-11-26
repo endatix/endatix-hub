@@ -80,5 +80,5 @@ export async function exitAssumeAction(): Promise<ResultType<boolean>> {
     return result;
   }
 
-  return swapSessionAndRedirect(result.value, "/admin/tenants");
+  return swapSessionAndRedirect(result.value, "/required-actions?home=1");
 }

@@ -4,6 +4,8 @@ import { isMaintenanceMode } from "@/lib/maintenance/maintenance-config";
 import { rewriteToMaintenance } from "@/lib/maintenance/maintenance-response";
 import { toSafeRelativeUrl } from "@/lib/utils/url-utils";
 import { withBasePath } from "@/lib/hosting/base-path";
+import { TERMS_PATH, termsVisit } from "@/lib/routes/terms-journey";
+import { workspaceScope } from "@/lib/routes/workspace-scope.server";
 import { NextRequest, NextResponse } from "next/server";
 import {
   AUTH_ROUTES,
@@ -51,13 +53,25 @@ export default async function proxy(request: NextRequest) {
   const target =
     request.method === "GET" &&
     (await workspaceRedirect(session, request.nextUrl));
-  return target ? redirectToResolver(request, target) : NextResponse.next();
+  return target
+    ? redirectToResolver(request, target, session?.accessToken)
+    : NextResponse.next();
 }
 
-function redirectToResolver(request: NextRequest, target: string) {
+function redirectToResolver(
+  request: NextRequest,
+  target: string,
+  token?: string,
+) {
   const destination = request.nextUrl.clone();
+  const source = destination.pathname + destination.search;
   destination.pathname = target;
   destination.search = "";
+  if (target === TERMS_PATH)
+    destination.search = new URL(
+      termsVisit(source, workspaceScope(token)),
+      destination.origin,
+    ).search;
   return NextResponse.redirect(destination);
 }
 

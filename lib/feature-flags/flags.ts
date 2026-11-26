@@ -41,6 +41,15 @@ export const saasManagementFlag = flag<boolean>({
   defaultValue: false,
 });
 
+const termsAcceptanceFlag = flag<boolean>({
+  key: "terms-acceptance",
+  defaultValue: false,
+});
+
+export async function termsAcceptanceEnabled() {
+  return (await saasManagementFlag()) && (await termsAcceptanceFlag());
+}
+
 /** Audience / personalization module (properties + people on a form). */
 export const personalizationFlag = flag<boolean>({
   key: "personalization",
