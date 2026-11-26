@@ -1,0 +1,44 @@
+import type Quill from "quill";
+import type { StoreImage } from "./image-upload-context";
+
+async function clipboardFile(source: string, attachment?: File) {
+  if (!/^data:image\//i.test(source)) {
+    if (attachment) return attachment;
+    throw new Error("Missing clipboard image");
+  }
+  const blob = await (await fetch(source)).blob();
+  return new File([blob], `paste.${blob.type.split("/")[1]}`, {
+    type: blob.type,
+  });
+}
+
+/** Keep the clipboard's formatting and external links; replace only local image sources. */
+export function pastedImageContent(
+  editor: Quill,
+  clipboard: DataTransfer,
+  store: StoreImage,
+) {
+  const html = clipboard.getData("text/html");
+  if (!html) return;
+  const template = document.createElement("template");
+  template.innerHTML = html;
+  const replacements = localImages(template, clipboard, store);
+  if (!replacements.length) return;
+  const formats = editor.getFormat();
+  return async () => {
+    for (const replace of replacements) await replace();
+    return editor.clipboard.convert({ html: template.innerHTML }, formats);
+  };
+}
+
+function localImages(template: HTMLTemplateElement, clipboard: DataTransfer, store: StoreImage) {
+  const attachments = Array.from(clipboard.files).filter(file => file.type.startsWith("image/"));
+  const images = Array.from(template.content.querySelectorAll<HTMLImageElement>("img[src]"));
+  return images.filter(image => /^(data:image\/|cid:|blob:|file:)/i.test(image.src))
+    .map((image, index) => {
+      const source = image.src;
+      return async () => {
+        if (image.src === source) image.src = await store(await clipboardFile(source, attachments[index]));
+      };
+    });
+}

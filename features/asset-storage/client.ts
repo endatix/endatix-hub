@@ -57,3 +57,4 @@ export {
   ORIGINAL_SRC_ATTRIBUTE,
 } from "./use-cases/view-protected-files/enrich-image-urls";
 export { RichTextImageDisplay } from "./ui/rich-text-image-display";
+export { CreatorImageStorage } from "./ui/creator-image-storage";
