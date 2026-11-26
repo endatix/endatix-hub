@@ -26,7 +26,7 @@ function readImages(runtime: () => StorageReadRuntime | null): ReadImage {
 }
 
 class DisplaySources {
-  private readonly originals = new WeakMap<HTMLImageElement, string>();
+  private readonly projections = new WeakMap<HTMLImageElement, { source: string; display?: string }>();
   private active = true;
 
   constructor(
@@ -41,24 +41,24 @@ class DisplaySources {
       image.getAttribute("src") ?? "",
       this.config,
     );
-    if (!src || this.originals.get(image) === src) return;
-    this.originals.set(image, src);
+    if (!src) return;
+    const previous = this.projections.get(image);
+    if (previous?.source === src && !previous.display) return;
+    const projection: { source: string; display?: string } = { source: src };
+    this.projections.set(image, projection);
     const signed = await this.read(src);
-    if (
-      !this.active ||
-      this.originals.get(image) !== src ||
-      image.getAttribute("src") !== src
-    )
-      return;
-    if (signed) image.src = signed;
+    if (!this.active || this.projections.get(image) !== projection || image.getAttribute("src") !== src) return;
+    if (!signed) { this.projections.delete(image); return; }
+    projection.display = signed;
+    image.src = signed;
   }
 
   /** Creator reads innerHTML on focus. Restore its canonical markup first. */
   restore(root: Element) {
     for (const image of root.querySelectorAll("img")) {
-      const original = this.originals.get(image);
-      if (original) image.setAttribute("src", original);
-      this.originals.delete(image);
+      const projected = this.projections.get(image);
+      if (projected?.display === image.getAttribute("src") && projected) image.src = projected.source;
+      this.projections.delete(image);
     }
   }
 

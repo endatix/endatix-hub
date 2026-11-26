@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  RichTextImageDisplay,
   useStorageView,
   useStorageReadRuntime,
 } from "@/features/asset-storage/client";
@@ -115,7 +116,9 @@ export default function SurveyPreviewComponent({
 
   return (
     <div className="survey-container mt-4">
-      <Survey model={model} />
+      <RichTextImageDisplay>
+        <Survey model={model} />
+      </RichTextImageDisplay>
     </div>
   );
 }

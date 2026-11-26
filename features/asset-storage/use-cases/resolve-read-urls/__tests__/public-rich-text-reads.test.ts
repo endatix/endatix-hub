@@ -93,3 +93,19 @@ it("keeps private images supplied by a native choice catalog on the normal read 
   );
   expect(getActiveFormDefinition).not.toHaveBeenCalled();
 });
+
+it("loads the active definition once per batch when the gate has no snapshot", async () => {
+  // Arrange
+  vi.mocked(authorizeFormStorageAccess).mockResolvedValue(Result.success(access));
+  vi.mocked(getActiveFormDefinition).mockResolvedValue({
+    id: "7", formId: access.formId, isActive: true, isDraft: false,
+    createdAt: new Date(0), modifiedAt: new Date(0), jsonData,
+  });
+
+  // Act
+  const result = await resolvePublicReadUrls({ ...batch, richTextImages: true });
+
+  // Assert
+  expect(getActiveFormDefinition).toHaveBeenCalledExactlyOnceWith(access.formId, true);
+  expect(Result.isSuccess(result) && result.value.resolved[inherited]).toEqual({ url: `${inherited}?signature` });
+});
