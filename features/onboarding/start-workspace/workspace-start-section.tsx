@@ -11,7 +11,8 @@ export async function WorkspaceStartSection() {
   const result = workspaceResult(await workspace.api.get<unknown>(workspaceStartPath));
   if (Result.isError(result)) return <SetupReadFailure failure={result} />;
   const card = (
-    <WorkspaceStartCard choice={result.value} scope={workspace.scope} key={workspace.scope} />
+    <WorkspaceStartCard choice={result.value} scope={workspace.scope} key={workspace.scope}
+      canRetry={result.value.kind === "retryable" && await workspace.canRetry()} />
   );
   if (await onboardingFlag()) return card;
   // Enrollment can be paused after a workspace has received its offer.

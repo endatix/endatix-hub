@@ -3,7 +3,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { workspaceScope } from "@/lib/routes/workspace-scope.server";
 import { WorkspaceStartSection } from "../workspace-start-section";
-import { startBlank } from "../start-blank.action";
+import { retryPreparation, startBlank } from "../start-blank.action";
 
 const { get, post, grant, enabled, onboarding, revalidate } = vi.hoisted(() => ({
   get: vi.fn(),
@@ -36,6 +36,27 @@ beforeEach(() => {
   onboarding.mockResolvedValue(true);
   grant.mockResolvedValue({ success: true });
   get.mockResolvedValue(ApiResult.success({ state: "offered", choices: ["blank"], formId: null }));
+});
+
+it.each(["themes.create", "themes.view"])("keeps finish blank available without %s", async (missing) => {
+  onboarding.mockResolvedValue(false);
+  grant.mockImplementation((permissions: string[]) => ({ success: !permissions.includes(missing) }));
+  get.mockResolvedValueOnce(ApiResult.success({ state: "retryable", choices: [], formId: null }));
+  render(await WorkspaceStartSection());
+  expect(screen.getByText("Finish blank").closest("details")).not.toBeNull();
+  expect(screen.queryByRole("button", { name: "Retry preparation", hidden: true })).toBeNull();
+  expect(await retryPreparation(workspaceScope("current")!)).toMatchObject({ message: expect.stringContaining("not available") });
+  expect(post).not.toHaveBeenCalled();
+});
+
+it("retries the saved choice only in the displayed workspace", async () => {
+  await retryPreparation("old workspace");
+  expect(post).not.toHaveBeenCalled();
+  post.mockResolvedValueOnce(ApiResult.success({ state: "working", choices: [], formId: null }));
+  const result = await retryPreparation(workspaceScope("current")!);
+  expect(post.mock.calls).toEqual([["/onboarding/workspace-start/retry"]]);
+  expect(result).toMatchObject({ value: { kind: "working" } });
+  expect(revalidate).toHaveBeenCalledWith("/forms");
 });
 
 it("leaves a non-enrolled member in their normal workspace", async () => {

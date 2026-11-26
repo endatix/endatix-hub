@@ -21,7 +21,9 @@ export async function workspaceApi() {
   if (!session?.accessToken || session.error) return null;
   const { checkAllPermissions } = await authorization(session);
   if (!(await checkAllPermissions(permissions)).success) return null;
-  return { api: new EndatixApi(session.accessToken), scope: workspaceScope(session.accessToken)! };
+  const canRetry = async () =>
+    (await checkAllPermissions([Permissions.Themes.Create, Permissions.Themes.View])).success;
+  return { api: new EndatixApi(session.accessToken), scope: workspaceScope(session.accessToken)!, canRetry };
 }
 
 export function workspaceResult(response: ApiResult<unknown>): Result<WorkspaceChoice> {

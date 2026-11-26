@@ -1,10 +1,31 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import { Result } from "@/lib/result/result";
-import { startBlank } from "../start-blank.action";
+import { retryPreparation, startBlank } from "../start-blank.action";
 import { WorkspaceStartCard } from "../workspace-start-card";
 
-vi.mock("../start-blank.action", () => ({ startBlank: vi.fn() }));
+vi.mock("../start-blank.action", () => ({ startBlank: vi.fn(), retryPreparation: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+
+it("can finish blank during preparation without retrying or opening the reserved draft", async () => {
+  vi.mocked(startBlank).mockResolvedValueOnce(Result.success({ kind: "complete", formId: "42" }));
+  render(<WorkspaceStartCard choice={{ kind: "working" }} scope="workspace" />);
+  expect(screen.getByRole("status").textContent).toContain("come back");
+  expect(screen.queryByRole("link")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Retry preparation" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Finish blank" }));
+  await waitFor(() => expect(startBlank).toHaveBeenCalledWith("workspace"));
+});
+
+it("retains both recovery choices after an unconfirmed retry", async () => {
+  vi.mocked(retryPreparation).mockRejectedValueOnce(new TypeError("disconnected"));
+  render(<WorkspaceStartCard choice={{ kind: "retryable" }} scope="workspace" canRetry />);
+  fireEvent.click(screen.getByRole("button", { name: "Retry preparation" }));
+  expect((await screen.findByRole("alert")).textContent).toContain("Could not confirm");
+  expect(retryPreparation).toHaveBeenCalledWith("workspace");
+  expect(screen.getByRole("button", { name: "Finish blank" }).hasAttribute("disabled")).toBe(false);
+  expect(screen.queryByRole("link")).toBeNull();
+});
 
 it("lets the owner open the committed survey without automatically navigating", () => {
   // Arrange & Act
