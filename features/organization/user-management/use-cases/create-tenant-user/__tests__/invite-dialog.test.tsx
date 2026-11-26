@@ -4,7 +4,8 @@ import { createTenantUserAction, type CreateTenantUserActionState } from "../cre
 import { CreateTenantUserDialog } from "../ui/create-tenant-user-dialog";
 
 vi.mock("../create-tenant-user.action", () => ({ createTenantUserAction: vi.fn() }));
-vi.mock("@/features/analytics/posthog/client", () => ({ useTrackEvent: () => ({ trackEvent: vi.fn() }) }));
+const trackEvent = vi.hoisted(() => vi.fn());
+vi.mock("@/features/analytics/posthog/client", () => ({ useTrackEvent: () => ({ trackEvent }) }));
 
 beforeEach(() => {
   vi.stubGlobal("matchMedia", (media: string) => ({
@@ -33,7 +34,7 @@ it("keeps an invite eligibility refusal on the current draft", async () => {
   expect((screen.getByLabelText("Email Address") as HTMLInputElement).value).toBe("member@example.com");
 });
 
-it("ignores a late failure from an invite the user closed", async () => {
+it.each([true, false])("keeps a reopened draft intact after a late invite result (success: %s)", async (success) => {
   // Arrange
   let finish!: (state: CreateTenantUserActionState) => void;
   vi.mocked(createTenantUserAction).mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
@@ -43,8 +44,11 @@ it("ignores a late failure from an invite the user closed", async () => {
   // Act
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   fireEvent.click(await screen.findByRole("button", { name: "Invite User" }));
-  await act(async () => finish({ isSuccess: false, feedback: { kind: "unavailable" } }));
+  await act(async () => finish(success
+    ? { isSuccess: true, message: "Invite sent." }
+    : { isSuccess: false, feedback: { kind: "unavailable" } }));
   // Assert
   expect(screen.queryByText(/Invitations are temporarily unavailable/)).toBeNull();
   expect((screen.getByLabelText("Email Address") as HTMLInputElement).value).toBe("");
+  expect(trackEvent.mock.calls).toEqual(success ? [["organization_user_invited", { success: true }]] : []);
 });

@@ -2,7 +2,6 @@
 
 import {
   type ComponentProps,
-  useEffect,
   useRef,
   useState,
   useTransition,
@@ -50,25 +49,6 @@ export function CreateTenantUserDialog({
   const [pending, startTransition] = useTransition();
   const draftVersion = useRef(0);
   const { trackEvent } = useTrackEvent();
-  const handledSuccessStateRef = useRef<CreateTenantUserActionState | null>(
-    null,
-  );
-
-  useEffect(() => {
-    if (state.isSuccess && handledSuccessStateRef.current !== state) {
-      handledSuccessStateRef.current = state;
-      toast.success("Invite sent");
-      trackEvent("organization_user_invited", {
-        success: true,
-      });
-      setOpen(false);
-      setSelectedRoles([]);
-      setState(initialState);
-      return;
-    }
-
-    reportInviteFailure(state);
-  }, [state, trackEvent]);
 
   const toggleSelectedRole = (roleName: string, checked: boolean) => {
     if (isTenantAdminRole(roleName)) {
@@ -95,6 +75,17 @@ export function CreateTenantUserDialog({
     }
   };
 
+  const finishInvite = (result: CreateTenantUserActionState, displayed: number) => {
+    if (result.isSuccess) {
+      toast.success("Invite sent");
+      trackEvent("organization_user_invited", { success: true });
+      if (displayed === draftVersion.current) handleOpenChange(false);
+    } else if (displayed === draftVersion.current) {
+      reportInviteFailure(result);
+      setState(result);
+    }
+  };
+
   const handleSubmit: NonNullable<ComponentProps<"form">["onSubmit"]> = (
     event,
   ) => {
@@ -109,7 +100,7 @@ export function CreateTenantUserDialog({
     const displayed = draftVersion.current;
     startTransition(async () => {
       const result = await createTenantUserAction(initialState, payload);
-      if (displayed === draftVersion.current) setState(result);
+      finishInvite(result, displayed);
     });
   };
 
