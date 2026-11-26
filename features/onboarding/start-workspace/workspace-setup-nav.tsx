@@ -10,7 +10,7 @@ async function OwnerSetupItem() {
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild size="sm" tooltip="Workspace setup">
-        <Link href={workspaceSetupHref}>
+        <Link href={workspaceSetupHref} aria-label="Workspace setup">
           <ListChecks aria-hidden="true" />
           <span>Workspace setup</span>
         </Link>
