@@ -19,7 +19,7 @@ vi.mock("next/navigation", () => ({
   }),
   useRouter: () => ({ refresh: vi.fn(), replace }),
   usePathname: () => "/admin/legal",
-  useSearchParams: () => new URLSearchParams("kind=terms&page=2"),
+  useSearchParams: () => new URLSearchParams(window.location.search),
 }));
 vi.mock("@/features/legal/manage-documents/edit-document.action", () => ({
   editDocument: vi.fn(),
@@ -78,12 +78,13 @@ const historyPage = {
   items: [publication],
 };
 
-async function renderHistory(data: unknown) {
+async function renderHistory(data: unknown, page = 2) {
   const { VersionHistory } = await vi.importActual<
     typeof import("@/features/legal/manage-documents/version-history")
   >("@/features/legal/manage-documents/version-history");
   get.mockResolvedValueOnce({ success: true, data });
-  render(<PagedListUrlProvider>{await VersionHistory({ api: new EndatixApi(), kind: "terms", paging: {page: 2} })}</PagedListUrlProvider>);
+  window.history.replaceState(null, "", `/admin/legal?kind=terms&page=${page}`);
+  render(<PagedListUrlProvider>{await VersionHistory({ api: new EndatixApi(), kind: "terms", paging: { page } })}</PagedListUrlProvider>);
 }
 
 it("shows the requested read-only history page with its publisher, date and navigation", async () => {
@@ -110,6 +111,20 @@ it("keeps a publication whose text is a byte order mark", async () => {
   expect(screen.getByText(/published by user 9007199254740993/)).toBeTruthy();
 });
 
+it("keeps Previous available when the counted last page returns no versions", async () => {
+  // Arrange
+  await renderHistory({ ...emptyPage, page: 3, totalPages: 3, totalRecords: 25 }, 3);
+  expect(screen.getByText("No versions on this page.")).toBeTruthy();
+  expect(screen.getByText("Page 3 of 3")).toBeTruthy();
+  expect(screen.getByText(/of 25 versions/)).toBeTruthy();
+
+  // Act
+  fireEvent.click(screen.getByRole("button", { name: "Go to previous page" }));
+
+  // Assert
+  expect(replace).toHaveBeenCalledWith("/admin/legal?kind=terms&page=2", { scroll: false });
+});
+
 it.each([
   ["null body", null],
   ["failed envelope with paging fields", { ...emptyPage, success: false, message: "Internal diagnostic" }],
@@ -117,7 +132,7 @@ it.each([
   ["invalid page", { ...emptyPage, page: 0 }],
   ["missing count", { ...emptyPage, totalRecords: undefined }],
   ["inconsistent totals", { ...emptyPage, totalPages: 1 }],
-  ["missing publication", { ...historyPage, items: [] }],
+  ["more publications than counted", { ...emptyPage, items: [publication] }],
   ["invalid row", { ...historyPage, items: [publication, null] }],
   ["blank text", { ...historyPage, items: [{ ...publication, markdown: " \u0085" }] }],
   ["null character", { ...historyPage, items: [{ ...publication, markdown: "bad\0text" }] }],

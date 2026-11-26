@@ -19,7 +19,6 @@ const historyPage = z.object({
   const remaining = totalRecords - (page - 1) * pageSize;
   return totalPages === Math.ceil(totalRecords / pageSize)
     && page <= Math.max(1, totalPages)
-    && (totalRecords === 0 || items.length > 0)
     && items.length <= Math.min(pageSize, remaining);
 });
 
