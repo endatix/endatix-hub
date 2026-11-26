@@ -2,6 +2,19 @@ import { describe, expect, it } from "vitest";
 import { readWorkspaceChoice } from "../workspace-choice";
 
 describe("workspace start", () => {
+  it.each(["working", "retryable"])("recognizes %s only without an editor destination", (state) => {
+    // Act & Assert
+    expect(readWorkspaceChoice({ state, choices: [], formId: null })).toEqual({ kind: state });
+    expect(readWorkspaceChoice({ state, choices: [], formId: "42" })).toBeNull();
+    expect(readWorkspaceChoice({ state, choices: [] })).toBeNull();
+  });
+
+  it.each(["42", null])("recognizes ready with explicit formId %s", (formId) => {
+    // Act & Assert
+    expect(readWorkspaceChoice({ state: "ready", choices: [], formId })).toEqual({ kind: "complete", formId });
+    expect(readWorkspaceChoice({ state: "ready", choices: [] })).toBeNull();
+  });
+
   it("offers blank only when the workspace actually offers it", () => {
     // Act & Assert
     expect(readWorkspaceChoice({ state: "offered", choices: ["blank"], formId: null })).toEqual({

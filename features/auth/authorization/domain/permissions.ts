@@ -46,6 +46,10 @@ export const Permissions = {
     Manage: "folders.manage",
     Unlock: "folders.unlock",
   },
+  Themes: {
+    View: "themes.view",
+    Create: "themes.create",
+  },
 } as const;
 
 /**

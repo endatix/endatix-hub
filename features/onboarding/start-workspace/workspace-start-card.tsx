@@ -2,32 +2,37 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
+import { PendingButton } from "@/components/common/pending-button";
 import { Button } from "@/components/ui/button";
 import { StandingRefusal } from "@/components/error-handling/standing-refusal";
-import { ErrorType, Kind, Result, type Error as ResultError } from "@/lib/result/result";
+import { Result, type Error as ResultError } from "@/lib/result/result";
 import { getFormDesignHref } from "@/features/forms/form-workspace";
-import { startBlank } from "./start-blank.action";
+import { retryPreparation, startBlank } from "./start-blank.action";
+import { PreparingStatus } from "./preparing-status";
 import type { WorkspaceChoice } from "./workspace-choice";
 
 interface Props {
   choice: WorkspaceChoice;
   scope: string;
+  canRetry?: boolean;
 }
 
-export function WorkspaceStartCard({ choice, scope }: Readonly<Props>) {
+export function WorkspaceStartCard(props: Readonly<Props>) {
   return (
     <section
       aria-label="Workspace setup"
       className="mb-6 grid gap-4 rounded-xl border bg-card p-5 text-card-foreground sm:grid-cols-[10rem_1fr] sm:p-6"
     >
-      <SetupSteps stage={choice.kind} />
-      {choice.kind === "offer" ? (
-        <BlankOffer scope={scope} />
-      ) : (
-        <CompletedChoice formId={choice.formId} />
-      )}
+      <SetupSteps stage={props.choice.kind} />
+      <ChoicePanel {...props} key={props.choice.kind} />
     </section>
   );
+}
+
+function ChoicePanel({ choice, scope, canRetry }: Readonly<Props>) {
+  if (choice.kind === "complete") return <CompletedChoice formId={choice.formId} />;
+  if (choice.kind === "offer") return <BlankOffer scope={scope} />;
+  return <RecoveryPanel working={choice.kind === "working"} scope={scope} canRetry={canRetry} />;
 }
 
 function SetupSteps({ stage }: Readonly<{ stage: WorkspaceChoice["kind"] }>) {
@@ -35,7 +40,7 @@ function SetupSteps({ stage }: Readonly<{ stage: WorkspaceChoice["kind"] }>) {
     <div className="border-b pb-3 sm:border-e sm:border-b-0 sm:pe-4">
       <p className="mb-2 text-sm font-semibold text-primary">Workspace setup</p>
       <ol className="flex list-inside list-decimal gap-4 text-sm text-muted-foreground sm:flex-col sm:gap-1">
-        <li aria-current={stage === "offer" ? "step" : undefined}>Choose a survey</li>
+        <li aria-current={stage !== "complete" ? "step" : undefined}>Choose a survey</li>
         <li aria-current={stage === "complete" ? "step" : undefined}>Open and edit</li>
       </ol>
     </div>
@@ -61,28 +66,31 @@ function CompletedChoice({ formId }: Readonly<{ formId: string | null }>) {
   );
 }
 
-function useBlankChoice(scope: string) {
+async function confirmChoice(scope: string, action: "blank" | "retry") {
+  try {
+    return await (action === "blank" ? startBlank(scope) : retryPreparation(scope));
+  } catch {
+    return Result.error("Could not confirm your draft. Try again or refresh to check its status.");
+  }
+}
+
+function useWorkspaceChoice(scope: string) {
+  const [activeAction, setActiveAction] = useState<"blank" | "retry">("blank");
   const [failure, setFailure] = useState<ResultError>();
   const [pending, startTransition] = useTransition();
-  const chooseBlank = () =>
+  const submit = (action: "blank" | "retry") => {
+    setFailure(undefined);
+    setActiveAction(action);
     startTransition(async () => {
-      setFailure(undefined);
-      try {
-        const result = await startBlank(scope);
-        if (Result.isError(result)) setFailure(result);
-      } catch {
-        setFailure({
-          kind: Kind.Error,
-          errorType: ErrorType.Error,
-          message: "Could not confirm your draft. Try Start blank again to resume.",
-        });
-      }
+      const result = await confirmChoice(scope, action);
+      if (Result.isError(result)) setFailure(result);
     });
-  return { failure, pending, chooseBlank };
+  };
+  return { failure, pending, activeAction, submit };
 }
 
 function BlankOffer({ scope }: Readonly<{ scope: string }>) {
-  const { failure, pending, chooseBlank } = useBlankChoice(scope);
+  const { failure, pending, submit } = useWorkspaceChoice(scope);
   return (
     <div className="space-y-3">
       <h2 className="text-xl font-semibold">Start your first survey</h2>
@@ -93,9 +101,27 @@ function BlankOffer({ scope }: Readonly<{ scope: string }>) {
         <span className="block text-xs text-muted-foreground">First question</span>
         Untitled question
       </blockquote>
-      <Button disabled={pending} onClick={chooseBlank}>
+      <Button disabled={pending} onClick={() => submit("blank")}>
         {pending ? "Starting…" : "Start blank"}
       </Button>
+      {failure && <ChoiceFailure failure={failure} />}
+    </div>
+  );
+}
+
+function RecoveryPanel({ scope, working, canRetry }: Readonly<{ scope: string; working: boolean; canRetry?: boolean }>) {
+  const { failure, pending, activeAction, submit } = useWorkspaceChoice(scope);
+  return (
+    <div className="space-y-3">
+      <h2 className="text-xl font-semibold">{working ? "Preparing your survey" : "Your survey couldn’t be prepared"}</h2>
+      {working && <PreparingStatus scope={scope} />}
+      <p className="text-muted-foreground">Finish blank to use a survey with one untitled question instead.</p>
+      <div className="flex flex-wrap gap-2 motion-reduce:[&_svg]:animate-none">
+        {canRetry && <PendingButton disabled={pending} pending={pending && activeAction === "retry"}
+          label="Retry preparation" pendingLabel="Retrying…" onClick={() => submit("retry")} />}
+        <PendingButton variant="outline" disabled={pending} pending={pending && activeAction === "blank"}
+          label="Finish blank" pendingLabel="Finishing…" onClick={() => submit("blank")} />
+      </div>
       {failure && <ChoiceFailure failure={failure} />}
     </div>
   );
