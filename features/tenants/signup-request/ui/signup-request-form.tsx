@@ -143,7 +143,7 @@ export function SignupRequestForm({ intro, children }: Readonly<{ intro: string;
           <ErrorMessage message={firstFieldError(state.errors, "companyName")} />
         </div>
         {children}
-        {state.isSuccess === false ? (
+        {!isPending && state.isSuccess === false ? (
           <ErrorMessage role="alert" message={state.message ?? state.formErrors} />
         ) : null}
         <Button type="submit" className="w-full" disabled={isPending}>
