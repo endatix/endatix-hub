@@ -26,44 +26,48 @@ function captureSavedDefinition(creator: SurveyCreatorModel | null, submitted: o
     Result.isSuccess(current) && isSameDefinition(current.value, submitted);
 }
 
-type Submission = { definition: object };
+type Submission = { definition: object; confirmed: boolean };
 
 async function writeSubmission<T extends Result<unknown> | undefined>(
   pending: Set<Submission>, attempt: Submission, write: (definition: object) => Promise<T>,
 ) {
   pending.add(attempt);
-  let confirmed = false;
   try {
     const result = await write(attempt.definition);
-    confirmed = !!result && Result.isSuccess(result);
+    attempt.confirmed = !!result && Result.isSuccess(result);
     return result;
   } finally {
-    if (!confirmed) pending.delete(attempt);
+    if (!attempt.confirmed) pending.delete(attempt);
   }
 }
 
 function takeReadback(pending: Set<Submission>, json: object) {
+  const match = [...pending].find(attempt => isSameDefinition(attempt.definition, json));
+  if (!match) return false;
+  // A newer read supersedes completed saves that React never rendered separately.
+  // In-flight writes may still supply a delayed response of their own.
   for (const attempt of pending) {
-    if (isSameDefinition(attempt.definition, json)) return pending.delete(attempt);
+    if (attempt === match) break;
+    if (attempt.confirmed) pending.delete(attempt);
   }
-  return false;
+  return pending.delete(match);
 }
 
 function useCanvasSubmission(creator: SurveyCreatorModel | null, captureJsonSave: CaptureJsonSave) {
-  const pending = useMemo(() => new Set<Submission>(), [creator]);
+  const session = useMemo(() => ({ creator, pending: new Set<Submission>() }), [creator]);
   const latest = useRef<Submission | null>(null);
   const saveCanvas = useCallback(async <T extends Result<unknown> | undefined>(
     submitted: object, write: (definition: object) => Promise<T>,
   ) => {
-    const attempt = { definition: submitted };
-    const matches = captureSavedDefinition(creator, submitted, captureJsonSave);
+    const attempt = { definition: submitted, confirmed: false };
+    const matches = captureSavedDefinition(session.creator, submitted, captureJsonSave);
     latest.current = attempt;
     // Reading creator.JSON here would apply the pending Ace buffer to the canvas.
-    const result = await writeSubmission(pending, attempt, write);
+    const result = await writeSubmission(session.pending, attempt, write);
     const stillSaved = (current: Result<object>) => latest.current === attempt && matches(current);
     return { result, stillSaved };
-  }, [creator, captureJsonSave, pending]);
-  return { pending, saveCanvas };
+  }, [session, captureJsonSave]);
+  return { pending: session.pending, saveCanvas };
 }
 
 function useSavedSnapshot(
@@ -78,7 +82,7 @@ function useSavedSnapshot(
     const previous = lastRead.current?.creator === creator ? lastRead.current.json : null;
     const submitted = takeReadback(pending, json);
     if (isSameDefinition(previous, json)) return;
-    if (!previous || (!submitted && !isSameDefinition(creator.JSON, json))) {
+    if (!submitted && (!previous || !isSameDefinition(creator.JSON, json))) {
       creator.JSON = json;
     }
     lastRead.current = { creator, json };

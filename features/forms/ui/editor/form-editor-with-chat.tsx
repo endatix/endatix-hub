@@ -265,9 +265,7 @@ export default function FormEditorWithChat({
                       <DotLoader className="m-auto flex flex-none items-center" />
                     )}
                     <ChatBox
-                      currentDefinition={JSON.stringify(
-                        updatedFormJson || formJson,
-                      )}
+                      currentDefinition={JSON.stringify(proposal ?? formJson)}
                       className="flex-end flex-none"
                       placeholder="Ask for modifications to your form..."
                     />

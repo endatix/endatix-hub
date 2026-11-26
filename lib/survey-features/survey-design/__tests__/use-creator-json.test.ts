@@ -155,6 +155,24 @@ describe("useCreatorJson", () => {
     expect(second.stillSaved(Result.success(draft))).toBe(false);
   });
 
+  it("applies an external revert after an intermediate successful save was never read back", async () => {
+    // Arrange
+    const creator = createCreator();
+    const { result, rerender } = renderCreatorJson({ creator, json: { title: "A" } });
+    const intermediate = { title: "B" };
+    const last = { title: "C" };
+    await result.current(intermediate, async () => Result.success("saved"));
+    await result.current(last, async () => Result.success("saved"));
+    creator.JSON = last;
+    rerender({ creator, json: last });
+
+    // Act
+    rerender({ creator, json: intermediate });
+
+    // Assert
+    expect(creator.JSON).toEqual(intermediate);
+  });
+
   it.each(["refused", "empty", "threw"])("applies an external definition after its local save %s", async outcome => {
     // Arrange
     const creator = createCreator();
