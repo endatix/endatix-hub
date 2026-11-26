@@ -2,8 +2,8 @@ const workspacePath =
   /^\/(?:forms|admin|folders|data-lists|settings|my-account)(?:\/[\w-]+)*\/?$/;
 const filePage = /^\/forms\/([^/]+)\/submissions\/([^/]+)\/files\/(.+)$/;
 const decimalId = /^[1-9]\d*$/;
-export const workspaceSetupId = "workspace-setup";
-export const workspaceSetupHref = `/forms#${workspaceSetupId}` as const;
+export const workspaceSetupHref = "/workspace/setup";
+export const workspaceStartHref = "/workspace/start";
 
 export function submissionFilePath(
   formId: string,
@@ -15,6 +15,7 @@ export function submissionFilePath(
 
 /** A file page can carry one encoded name. Other workspace routes keep their own path grammar. */
 export function isWorkspaceDestinationPath(path: string) {
+  if (path === workspaceSetupHref || path === workspaceStartHref) return true;
   const file = filePage.exec(path);
   if (!file) return workspacePath.test(path);
   const [, formId, submissionId, segment] = file;

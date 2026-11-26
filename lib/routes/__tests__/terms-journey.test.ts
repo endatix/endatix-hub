@@ -21,6 +21,11 @@ it.each([
 
 const files = "/forms/42/submissions/37/files";
 
+it.each(["/workspace/start", "/workspace/setup"])("returns to %s after Terms", (path) => {
+  expect(workspaceDestination(path)).toBe(path);
+  expect(workspaceDestination(`${path}/other`)).toBe("/forms");
+});
+
 it.each(["report (final).pdf", "résumé.pdf", "proof_1.txt"])(
   "retains a file table destination for %s",
   (name) => {

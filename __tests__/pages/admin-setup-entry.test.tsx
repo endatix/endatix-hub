@@ -65,7 +65,7 @@ it.each([
   const stream = await renderToReadableStream(await page({}));
   const document = await new Response(stream).text();
   expect(document).toContain(`<h1>${heading}</h1>`);
-  expect(document).toContain('href="/forms#workspace-setup"');
+  expect(document).toContain('href="/workspace/setup"');
   expect(canResumeWorkspaceSetup).toHaveBeenCalledOnce();
 });
 
@@ -74,5 +74,5 @@ it("keeps setup on Platform Admins when only its optional tenant filter is unava
   const stream = await renderToReadableStream(await PlatformAdmins({}));
   const document = await new Response(stream).text();
   expect(document).toContain("<h1>Platform Admins</h1>");
-  expect(document).toContain('href="/forms#workspace-setup"');
+  expect(document).toContain('href="/workspace/setup"');
 });

@@ -61,14 +61,14 @@ it.each([DefaultNav, FormsNav])("never starts an owner receipt read in parallel 
   const document = await html(<>{navigation}{page}</>);
   expect(document).toContain("You do not have permission to view this page.");
   expect(canResumeWorkspaceSetup).not.toHaveBeenCalled();
-  expect(document).not.toContain("/forms#workspace-setup");
+  expect(document).not.toContain("/workspace/setup");
 });
 
 it("offers the owner setup on the admitted settings destination", async () => {
   manageSettings.mockResolvedValue({ success: true });
   const document = await html(await OrganizationForms());
   expect(document).toContain("Admitted settings");
-  expect(document).toContain("/forms#workspace-setup");
+  expect(document).toContain("/workspace/setup");
   expect(canResumeWorkspaceSetup).toHaveBeenCalledOnce();
 });
 
@@ -81,7 +81,7 @@ it("does not start setup when the streamed page data refuses access", async () =
 it("keeps the streamed tenant-list denial without starting the owner read", async () => {
   const document = await html(await TenantsPage({}));
   expect(document).toContain("Tenant list denied");
-  expect(document).not.toContain("/forms#workspace-setup");
+  expect(document).not.toContain("/workspace/setup");
   expect(canResumeWorkspaceSetup).not.toHaveBeenCalled();
 });
 
@@ -95,5 +95,5 @@ it("leaves an admitted teammate on the original page without an owner link", asy
   vi.mocked(canResumeWorkspaceSetup).mockResolvedValueOnce(false);
   const document = await html(withWorkspaceSetupAfter(Promise.resolve(true), <p>Workspace content</p>));
   expect(document).toContain("Workspace content");
-  expect(document).not.toContain("/forms#workspace-setup");
+  expect(document).not.toContain("/workspace/setup");
 });

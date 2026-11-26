@@ -30,8 +30,7 @@ import {
 import { FileText, SearchX } from "lucide-react";
 import { OpenCreateFormButton } from "@/features/forms/use-cases/create-form/ui/open-create-form-button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { WorkspaceStartSection } from "@/features/onboarding/start-workspace/workspace-start-section";
-import { workspaceSetupId } from "@/lib/routes/workspace-path";
+import { WorkspaceSetupEntry } from "@/features/onboarding/start-workspace/workspace-setup-entry";
 import { Result } from "@/lib/result";
 
 interface FormsPageProps {
@@ -89,9 +88,7 @@ function FormsPageIntro({ hideFolders, headerDataPromise, formsPromise }: Readon
   formsPromise: ReturnType<typeof getFormsListPromise>;
 }>) {
   return <>
-    <div id={workspaceSetupId} className="scroll-mt-16">
-      <Suspense fallback={null}><WorkspaceStartSection admission={formsPromise.then(Result.isSuccess, () => false)} /></Suspense>
-    </div>
+    <Suspense fallback={null}><WorkspaceSetupEntry admission={formsPromise.then(Result.isSuccess, () => false)} /></Suspense>
     <FormsListToolbar variant="root" />
     {!hideFolders && (
       <Suspense fallback={<FolderCardsSkeleton />}>

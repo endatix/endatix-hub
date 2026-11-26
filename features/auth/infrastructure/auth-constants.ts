@@ -1,3 +1,5 @@
+import { workspaceSetupHref, workspaceStartHref } from "@/lib/routes/workspace-path";
+
 const DEFAULT_RETURN_URL = "/forms";
 const SIGNIN_PATH = "/signin";
 const RETURN_URL_PARAM = "returnUrl";
@@ -21,6 +23,8 @@ const AUTH_ROUTES = [
 ];
 
 const HUB_PATHS = [
+  workspaceSetupHref,
+  workspaceStartHref,
   "/required-actions",
   "/forms",
   "/settings",

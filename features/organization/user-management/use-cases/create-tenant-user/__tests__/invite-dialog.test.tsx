@@ -43,7 +43,7 @@ it("offers the owner an explicit setup link without resending the declined invit
   openInvite();
   sendInvite();
   const setup = await screen.findByRole("link", { name: "Continue workspace setup" });
-  expect(setup.getAttribute("href")).toBe("/forms#workspace-setup");
+  expect(setup.getAttribute("href")).toBe("/workspace/setup");
   expect(createTenantUserAction).toHaveBeenCalledTimes(1);
 });
 

@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 import { workspaceSetupHref } from "@/lib/routes/workspace-path";
 import { canResumeWorkspaceSetup } from "./workspace-api.server";
 
-async function WorkspaceSetupEntry({ admission }: Readonly<{ admission: Promise<boolean> }>) {
+export async function WorkspaceSetupEntry({ admission }: Readonly<{ admission: Promise<boolean> }>) {
   if (!(await admission) || !(await canResumeWorkspaceSetup())) return null;
   return (
     <Button asChild variant="outline" size="sm" className="mb-3 w-fit">
       <Link href={workspaceSetupHref}>
         <ListChecks aria-hidden="true" />
-        Workspace setup
+        Resume workspace setup
       </Link>
     </Button>
   );

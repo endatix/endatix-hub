@@ -2,6 +2,7 @@ import { FC } from "react";
 import { AuthPresentation } from "@/features/auth/infrastructure/types";
 import EndatixSignInForm from "./endatix-sign-in-form";
 import ExternalSignInOptions from "./external-sign-in-button";
+import { workspaceStartHref } from "@/lib/routes/workspace-path";
 
 interface SigninFormProps {
   endatixAuthProvider: AuthPresentation;
@@ -9,12 +10,10 @@ interface SigninFormProps {
   returnUrl?: string;
 }
 
-const DEFAULT_RETURN_URL = "/forms";
-
 const SigninForm: FC<SigninFormProps> = ({
   endatixAuthProvider,
   externalAuthProviders,
-  returnUrl: returnUrl = DEFAULT_RETURN_URL,
+  returnUrl = workspaceStartHref,
 }) => {
   return (
     <>
