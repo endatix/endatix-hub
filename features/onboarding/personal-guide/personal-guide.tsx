@@ -5,35 +5,38 @@ import { Button } from "@/components/ui/button";
 import { Result } from "@/lib/result/result";
 import { saveGuide } from "./save-guide.action";
 
+type GuidePreference = Readonly<{ dismissed: boolean }>;
 type GuideProps = {
-  dismissed: boolean;
+  preference: GuidePreference;
   scope: string;
   links: { title: string; url: string }[];
 };
 
-function useGuidePreference(scope: string) {
-  const [error, setError] = useState("");
+function useGuidePreference({ scope, preference }: GuideProps) {
+  const [saved, setSaved] = useState<{ read: GuidePreference; result: Result<boolean> }>();
   const [pending, startTransition] = useTransition();
+  // Each server read supersedes results (including late writes) from an earlier snapshot.
+  const result = saved?.read === preference ? saved.result : undefined;
+  const hidden = result && Result.isSuccess(result) ? result.value : preference.dismissed;
+  const error = result && Result.isError(result) ? result.message : "";
   function update(next: boolean) {
     startTransition(async () => {
-      setError("");
       try {
-        const result = await saveGuide(scope, next);
-        if (Result.isError(result)) setError(result.message);
+        setSaved({ read: preference, result: await saveGuide(scope, next) });
       } catch {
-        setError("Could not save your preference. Try again.");
+        setSaved({ read: preference, result: Result.error("Could not save your preference. Try again.") });
       }
     });
   }
-  return { pending, error, update };
+  return { hidden, pending, error, update };
 }
 
 export function PersonalGuide(props: Readonly<GuideProps>) {
-  const { pending, error, update } = useGuidePreference(props.scope);
-  const { panel, toggle } = useGuideFocus(props.dismissed, pending, update);
+  const { hidden, pending, error, update } = useGuidePreference(props);
+  const { panel, toggle } = useGuideFocus(hidden, pending, update);
   return (
     <aside ref={panel} aria-label="Personal help" className="fixed right-4 bottom-4 z-40 max-w-[calc(100vw-2rem)] rounded-lg border bg-popover p-2 text-popover-foreground shadow-md">
-      {props.dismissed ? (
+      {hidden ? (
         <GuideHelp links={props.links} pending={pending} reopen={toggle} />
       ) : (
         <div className="w-64 max-w-full space-y-2 p-2">

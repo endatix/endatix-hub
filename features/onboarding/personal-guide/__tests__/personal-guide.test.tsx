@@ -10,7 +10,7 @@ it("renders a refreshed preference without moving focus out of the editor", () =
   // Arrange
   const view = (dismissed: boolean) => <>
     <input aria-label="Preview answer" />
-    <PersonalGuide dismissed={dismissed} scope="member" links={[]} />
+    <PersonalGuide preference={{ dismissed }} scope="member" links={[]} />
   </>;
   const { rerender } = render(view(false));
   const answer = screen.getByRole<HTMLInputElement>("textbox");
@@ -29,12 +29,8 @@ it("renders a refreshed preference without moving focus out of the editor", () =
 
 it("dismisses the guide and reopens it from Help in place", async () => {
   // Arrange
-  const view = (dismissed: boolean) => <PersonalGuide dismissed={dismissed} scope="member" links={[]} />;
-  const { rerender } = render(view(false));
-  vi.mocked(saveGuide).mockImplementation(async (_, dismissed) => {
-    rerender(view(dismissed));
-    return Result.success(dismissed);
-  });
+  vi.mocked(saveGuide).mockResolvedValueOnce(Result.success(true)).mockResolvedValueOnce(Result.success(false));
+  render(<PersonalGuide preference={{ dismissed: false }} scope="member" links={[]} />);
 
   // Act
   fireEvent.click(screen.getByRole("button", { name: "Dismiss guide" }));
@@ -54,7 +50,7 @@ it("dismisses the guide and reopens it from Help in place", async () => {
 it("keeps the open guide when a saved preference is refused", async () => {
   // Arrange
   vi.mocked(saveGuide).mockResolvedValueOnce(Result.error("Refresh to try again."));
-  render(<PersonalGuide dismissed={false} scope="previous" links={[]} />);
+  render(<PersonalGuide preference={{ dismissed: false }} scope="previous" links={[]} />);
   // Act
   fireEvent.click(screen.getByRole("button", { name: "Dismiss guide" }));
   // Assert
@@ -62,11 +58,24 @@ it("keeps the open guide when a saved preference is refused", async () => {
   expect(screen.getByRole("heading", { name: "Getting started" })).toBeTruthy();
 });
 
+it("accepts a fresh read even when its value matches the snapshot before a local save", async () => {
+  // Arrange
+  vi.mocked(saveGuide).mockResolvedValueOnce(Result.success(true));
+  const openGuide = () => <PersonalGuide preference={{ dismissed: false }} scope="member" links={[]} />;
+  const { rerender } = render(openGuide());
+  fireEvent.click(screen.getByRole("button", { name: "Dismiss guide" }));
+  await screen.findByText("Help");
+  // Act
+  rerender(openGuide());
+  // Assert
+  expect(screen.getByRole("heading", { name: "Getting started" })).toBeTruthy();
+});
+
 it("keeps a pending write from replacing a newer read with its old response", async () => {
   // Arrange
   const write = Promise.withResolvers<Result<boolean>>();
   vi.mocked(saveGuide).mockReturnValueOnce(write.promise);
-  const view = (dismissed: boolean) => <PersonalGuide dismissed={dismissed} scope="member" links={[]} />;
+  const view = (dismissed: boolean) => <PersonalGuide preference={{ dismissed }} scope="member" links={[]} />;
   const { rerender } = render(view(false));
   // Act
   fireEvent.click(screen.getByRole("button", { name: "Dismiss guide" }));
@@ -75,7 +84,10 @@ it("keeps a pending write from replacing a newer read with its old response", as
   // Assert
   const dismiss = screen.getByRole<HTMLButtonElement>("button", { name: "Dismiss guide" });
   expect(dismiss.disabled).toBe(true);
-  await act(() => write.resolve(Result.success(true)));
+  await act(async () => {
+    write.resolve(Result.success(true));
+    await write.promise;
+  });
   await waitFor(() => expect(dismiss.disabled).toBe(false));
   expect(screen.getByRole("heading", { name: "Getting started" })).toBeTruthy();
 });
