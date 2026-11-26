@@ -84,6 +84,7 @@ it.each([
   "/required-actions",
   "/share/42",
   "/accept-terms",
+  "/admin/legal",
   "/forms-extra",
 ])("does not read standing for %s", async (path) => {
   expect(await destination(path)).toBeNull();
