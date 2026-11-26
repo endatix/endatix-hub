@@ -18,6 +18,7 @@ import {
   RETURN_URL_PARAM,
 } from "@/features/auth/infrastructure";
 import SigninForm from "@/features/auth/use-cases/signin/ui/signin-form";
+import { signinDestination } from "@/features/auth/use-cases/signin/signin-destination";
 import { DeclinedNotice } from "@/features/legal/operator-contact";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -32,11 +33,12 @@ export async function generateMetadata(): Promise<Metadata> {
 interface SignInPageProps {
   searchParams: Promise<{
     [RETURN_URL_PARAM]: string | undefined;
+    callbackUrl?: string;
   }>;
 }
 
 const SignInPage = async ({ searchParams }: SignInPageProps) => {
-  const { returnUrl } = await searchParams;
+  const returnUrl = signinDestination(await searchParams);
   const authSession = await auth();
 
   if (authSession?.user && !authSession.error) {

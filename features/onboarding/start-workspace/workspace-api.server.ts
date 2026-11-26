@@ -41,11 +41,20 @@ export function workspaceResult(response: ApiResult<unknown>): Result<WorkspaceC
     : Result.error("Your workspace setup could not be read. Refresh to try again.");
 }
 
+async function readChoice(api: EndatixApi) {
+  try {
+    return workspaceResult(await api.get<unknown>(workspaceStartPath));
+  } catch (error) {
+    unstable_rethrow(error);
+    return Result.error<WorkspaceChoice>("Workspace setup is temporarily unavailable.");
+  }
+}
+
 export const currentWorkspaceStart = cache(async () => {
   try {
     const workspace = await workspaceApi();
     if (!workspace) return null;
-    const result = workspaceResult(await workspace.api.get<unknown>(workspaceStartPath));
+    const result = await readChoice(workspace.api);
     return { workspace, result };
   } catch (error) {
     unstable_rethrow(error);

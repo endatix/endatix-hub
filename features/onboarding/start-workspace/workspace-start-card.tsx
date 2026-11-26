@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Check, FilePenLine, UsersRound } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { PendingButton } from "@/components/common/pending-button";
 import { Button } from "@/components/ui/button";
 import { StandingRefusal } from "@/components/error-handling/standing-refusal";
@@ -19,10 +19,12 @@ interface Props {
 }
 
 export function WorkspaceStartCard(props: Readonly<Props>) {
+  const { panel, rememberAction } = useSetupFocus(props.choice.kind);
   return (
     <div className="grid items-start gap-6 min-[861px]:grid-cols-[280px_minmax(0,1fr)] min-[861px]:gap-8">
       <SetupSteps stage={props.choice.kind} />
-      <section aria-label="Workspace setup choice" className="min-w-0 rounded-[20px] border bg-card p-5 text-card-foreground sm:p-8">
+      <section ref={panel} tabIndex={-1} onClickCapture={rememberAction} aria-label="Workspace setup choice" className="min-w-0 rounded-[20px] border bg-card p-5 text-card-foreground sm:p-8">
+        <span className="sr-only" aria-live="polite">{stageAnnouncement[props.choice.kind]}</span>
         <p className="mb-3 text-xs font-semibold tracking-widest text-muted-foreground uppercase">
           {props.choice.kind === "complete" ? "Setup complete" : "Workspace setup · Step 2 of 2"}
         </p>
@@ -31,6 +33,27 @@ export function WorkspaceStartCard(props: Readonly<Props>) {
     </div>
   );
 }
+
+function useSetupFocus(stage: WorkspaceChoice["kind"]) {
+  const panel = useRef<HTMLElement>(null);
+  const action = useRef<Element | null>(null);
+  const previous = useRef(stage);
+  useEffect(() => {
+    if (previous.current !== stage && action.current && !action.current.isConnected && document.activeElement === document.body) {
+      panel.current?.focus({ preventScroll: true });
+    }
+    previous.current = stage;
+    action.current = null;
+  }, [stage]);
+  return { panel, rememberAction: () => { action.current = document.activeElement?.closest("button") ?? null; } };
+}
+
+const stageAnnouncement = {
+  offer: "Choose how to start.",
+  working: "Preparing your survey.",
+  retryable: "Setup paused.",
+  complete: "Workspace setup is complete.",
+};
 
 function ChoicePanel({ choice, scope, canRetry }: Readonly<Props>) {
   if (choice.kind === "complete") return <CompletedChoice formId={choice.formId} />;

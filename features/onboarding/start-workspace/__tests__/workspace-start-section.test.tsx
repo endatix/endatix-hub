@@ -172,7 +172,9 @@ it("leaves Forms unchanged when blank setup is busy and refreshes only after a c
   expect(revalidate.mock.calls).toEqual([["/forms"], ["/workspace/setup"]]);
 });
 
-it("returns no setup when the optional read unexpectedly fails", async () => {
+it("offers recovery on the dedicated page when the receipt cannot be read", async () => {
   get.mockRejectedValueOnce(new Error("Receipt unavailable"));
-  expect(await WorkspaceStartSection()).toBeNull();
+  const section = await WorkspaceStartSection();
+  expect(section).not.toBeNull();
+  expect(post).not.toHaveBeenCalled();
 });
