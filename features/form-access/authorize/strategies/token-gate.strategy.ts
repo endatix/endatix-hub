@@ -54,7 +54,9 @@ async function authorizeActiveDefinitionRead(context: FormStorageGateRunContext)
   const policy = await formPolicyStrategy(context);
   if (Result.isError(policy)) return policy;
   if (!policy.value.canViewFiles) return formAccessForbidden<FormStorageAccess>("File view is not permitted");
-  return context.hubAccessToken ? policy : anonymousPublicFormStrategy(context);
+  const access = context.hubAccessToken ? policy : await anonymousPublicFormStrategy(context);
+  if (Result.isError(access)) return access;
+  return Result.success({ ...access.value, canUploadFiles: false, canDeleteFiles: false });
 }
 
 /** Submission or access token (body or cookie). */

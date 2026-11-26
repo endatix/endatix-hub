@@ -18,7 +18,7 @@ export async function anonymousPublicFormStrategy(
   }
 
   return Result.success({
-    definitionJson: definitionResult.data.jsonData,
+    definitionJson: definitionResult.data.jsonData ?? null,
     formId: gate.formId,
     submissionId: gate.submissionId,
     isPublicForm: true,
