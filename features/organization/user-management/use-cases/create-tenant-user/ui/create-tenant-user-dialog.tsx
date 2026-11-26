@@ -2,7 +2,6 @@
 
 import {
   type ComponentProps,
-  useEffect,
   useRef,
   useState,
   useTransition,
@@ -24,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toast";
 import { useTrackEvent } from "@/features/analytics/posthog/client";
 import { SystemRoles } from "@/features/auth/authorization/domain/system-roles";
+import { StandingRefusal } from "@/components/error-handling/standing-refusal";
 import type { RoleListItem } from "@/lib/endatix-api";
 import {
   createTenantUserAction,
@@ -47,32 +47,8 @@ export function CreateTenantUserDialog({
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [state, setState] = useState<CreateTenantUserActionState>(initialState);
   const [pending, startTransition] = useTransition();
+  const draftVersion = useRef(0);
   const { trackEvent } = useTrackEvent();
-  const handledSuccessStateRef = useRef<CreateTenantUserActionState | null>(
-    null,
-  );
-
-  useEffect(() => {
-    if (state.isSuccess && handledSuccessStateRef.current !== state) {
-      handledSuccessStateRef.current = state;
-      toast.success("Invite sent");
-      trackEvent("organization_user_invited", {
-        success: true,
-      });
-      setOpen(false);
-      setSelectedRoles([]);
-      setState(initialState);
-      return;
-    }
-
-    if (
-      state.isSuccess === false &&
-      state.formErrors?.length &&
-      !state.errors?.email?.length
-    ) {
-      toast.error(state.formErrors[0]);
-    }
-  }, [state, trackEvent]);
 
   const toggleSelectedRole = (roleName: string, checked: boolean) => {
     if (isTenantAdminRole(roleName)) {
@@ -87,6 +63,7 @@ export function CreateTenantUserDialog({
   };
 
   const resetInviteDraft = () => {
+    draftVersion.current++;
     setSelectedRoles([]);
     setState(initialState);
   };
@@ -95,6 +72,17 @@ export function CreateTenantUserDialog({
     setOpen(nextOpen);
     if (!nextOpen) {
       resetInviteDraft();
+    }
+  };
+
+  const finishInvite = (result: CreateTenantUserActionState, displayed: number) => {
+    if (result.isSuccess) {
+      toast.success("Invite sent");
+      trackEvent("organization_user_invited", { success: true });
+      if (displayed === draftVersion.current) handleOpenChange(false);
+    } else if (displayed === draftVersion.current) {
+      reportInviteFailure(result);
+      setState(result);
     }
   };
 
@@ -109,8 +97,10 @@ export function CreateTenantUserDialog({
       roles: getStringFormValues(formData, "roles"),
     };
 
+    const displayed = draftVersion.current;
     startTransition(async () => {
-      setState(await createTenantUserAction(initialState, payload));
+      const result = await createTenantUserAction(initialState, payload);
+      finishInvite(result, displayed);
     });
   };
 
@@ -136,6 +126,7 @@ export function CreateTenantUserDialog({
         </ResponsivePanelHeader>
 
         <ResponsivePanelBody>
+          <InviteFeedback state={state} />
           <div className="flex flex-col gap-2">
             <Label htmlFor="email">Email Address</Label>
             <Input
@@ -239,4 +230,24 @@ export function CreateTenantUserDialog({
 
 function isTenantAdminRole(roleName: string) {
   return roleName.toLowerCase() === SystemRoles.Admin.toLowerCase();
+}
+
+function InviteFeedback({ state }: Readonly<{ state: CreateTenantUserActionState }>) {
+  if (!state.feedback) return null;
+  if (state.feedback.kind === "standing") return <StandingRefusal refusal={state.feedback.refusal} />;
+  return (
+    <Alert role="alert">
+      <AlertDescription>
+        {state.feedback.kind === "declined"
+          ? "This workspace can’t invite teammates yet. You can keep working and try again later."
+          : "Invitations are temporarily unavailable. Try sending the invite again."}
+      </AlertDescription>
+    </Alert>
+  );
+}
+
+function reportInviteFailure(state: CreateTenantUserActionState) {
+  if (state.isSuccess === false && !state.feedback && state.formErrors?.length && !state.errors?.email?.length) {
+    toast.error(state.formErrors[0]);
+  }
 }

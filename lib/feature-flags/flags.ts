@@ -41,6 +41,11 @@ export const saasManagementFlag = flag<boolean>({
   defaultValue: false,
 });
 
+export const onboardingFlag = flag<boolean>({
+  key: "onboarding",
+  defaultValue: false,
+});
+
 const termsAcceptanceFlag = flag<boolean>({
   key: "terms-acceptance",
   defaultValue: false,

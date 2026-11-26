@@ -43,6 +43,7 @@ describe("getFormDesignHref", () => {
   it.each([
     [undefined, "/forms/f1/design"],
     ["overview", "/forms/f1/design"],
+    ["forms", "/forms/f1/design?from=forms"],
     ["audience", "/forms/f1/design?from=audience"],
   ] as const)("opens the designer from %s as %s", (from, expected) => {
     // Act & Assert
@@ -51,6 +52,9 @@ describe("getFormDesignHref", () => {
 });
 
 describe("getFormDesignReturn", () => {
+  it("returns to Forms after opening the first survey", () => {
+    expect(getFormDesignReturn("42", "forms")).toEqual({ href: "/forms", label: "Forms" });
+  });
   it("returns to the section the designer was opened from", () => {
     // Act
     const target = getFormDesignReturn("f1", "audience");

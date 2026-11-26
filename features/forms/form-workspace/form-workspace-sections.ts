@@ -82,7 +82,7 @@ export function getFormWorkspaceSections(
 /** Opens the designer, remembering the page to return to when it closes. */
 export function getFormDesignHref(
   formId: string,
-  from?: FormWorkspaceSectionId,
+  from?: FormWorkspaceSectionId | "forms",
 ): Route {
   const query =
     from && from !== "overview" ? `?${RETURN_QUERY_KEY}=${from}` : "";
@@ -99,6 +99,7 @@ export function getFormDesignReturn(
   formId: string,
   from: string | undefined,
 ): FormDesignReturn {
+  if (from === "forms") return { href: "/forms", label: "Forms" };
   const section = SECTIONS.find((entry) => entry.id === from) ?? SECTIONS[0];
   return { href: sectionHref(formId, section.path), label: section.label };
 }

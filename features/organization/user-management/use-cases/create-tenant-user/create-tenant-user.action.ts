@@ -4,17 +4,15 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
-import { ApiResult, EndatixApi } from "@/lib/endatix-api";
+import { EndatixApi } from "@/lib/endatix-api";
 import {
   getStringFormValue,
   getStringFormValues,
 } from "@/lib/utils/form-data-utils";
 import { ServerActionState } from "@/lib/utils/zod-error-utils";
-import {
-  stateFromApiError,
-  stateFromUnexpectedError,
-} from "../server-action-state";
+import { stateFromUnexpectedError } from "../server-action-state";
 import { getUnassignableRoleError } from "../role-assignment-rules";
+import { inviteFailure, type inviteFeedback } from "./invite-feedback";
 
 const createTenantUserSchema = z.object({
   email: z.email({ error: "Enter a valid email address" }).trim(),
@@ -24,7 +22,7 @@ const createTenantUserSchema = z.object({
 export type CreateTenantUserActionState = ServerActionState<{
   email?: string;
   roles?: string[];
-}>;
+}> & { feedback?: ReturnType<typeof inviteFeedback> };
 
 type CreateTenantUserPayload =
   | FormData
@@ -60,14 +58,10 @@ export async function createTenantUserAction(
     await requirePermission(Permissions.Tenant.InviteUsers);
 
     const api = new EndatixApi(session?.accessToken);
-    const result = await api.users.create(validatedData.data);
-
-    if (ApiResult.isSuccess(result)) {
-      revalidatePath("/settings/organization/users");
-      return { isSuccess: true, message: "Invite sent." };
-    }
-
-    return stateFromApiError(result, rawData);
+    const failure = inviteFailure(await api.users.create(validatedData.data));
+    if (failure) return { ...failure, data: rawData };
+    revalidatePath("/settings/organization/users");
+    return { isSuccess: true, message: "Invite sent." };
   } catch (error) {
     return stateFromUnexpectedError(error, rawData, "createTenantUserAction");
   }
