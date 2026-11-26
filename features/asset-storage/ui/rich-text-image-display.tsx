@@ -14,6 +14,10 @@ import { useStorageReadRuntime } from "./use-storage-read-runtime";
 const richText = ".sv-string-viewer, .sv-string-editor--html, .sd-html";
 type ReadImage = (src: string) => Promise<string | null>;
 
+function isDisplayImage(image: HTMLImageElement) {
+  return image.closest(richText) && !image.closest(".ql-editor, [contenteditable=true]:focus");
+}
+
 function readImages(runtime: () => StorageReadRuntime | null): ReadImage {
   // Deduplicate a render batch, but a later page needs a new grant.
   const queue = new PrivateReadUrlBatchQueue({
@@ -35,8 +39,7 @@ class DisplaySources {
   ) {}
 
   async project(image: HTMLImageElement) {
-    const editing = image.closest(".ql-editor, [contenteditable=true]:focus");
-    if (editing || !image.closest(richText)) return;
+    if (!isDisplayImage(image)) return;
     const src = canonicalContentImage(
       image.getAttribute("src") ?? "",
       this.config,
@@ -57,7 +60,7 @@ class DisplaySources {
   restore(root: Element) {
     for (const image of root.querySelectorAll("img")) {
       const projected = this.projections.get(image);
-      if (projected?.display === image.getAttribute("src") && projected) image.src = projected.source;
+      if (projected && projected.display === image.getAttribute("src")) image.src = projected.source;
       this.projections.delete(image);
     }
   }

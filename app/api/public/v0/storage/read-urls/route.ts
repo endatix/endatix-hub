@@ -14,28 +14,26 @@ export type {
   ReadUrlsResponse,
 } from "@/features/asset-storage/use-cases/resolve-read-urls/resolve-read-urls";
 
-/**
- * Batch-resolve storage object URLs to signed GET URLs for public form respondents.
- * Requires formId and form-access gate (body token or submission cookie).
- */
-export async function POST(request: Request): Promise<Response> {
-  let body: unknown;
+async function parseReadBatch(request: Request): Promise<ReturnType<typeof parsePublicReadUrlsBody>> {
   try {
-    body = await request.json();
+    const body = await request.json();
+    return parsePublicReadUrlsBody(body);
   } catch {
-    return apiResponses.badRequest({ detail: "Invalid JSON body" });
+    return Result.validationError("Invalid JSON body");
   }
+}
 
-  const parsed = parsePublicReadUrlsBody(
-    body as Parameters<typeof parsePublicReadUrlsBody>[0],
-  );
+/** Batch-resolve private storage reads for a public form respondent. */
+export async function POST(request: Request): Promise<Response> {
+  const parsed = await parseReadBatch(request);
   if (Result.isError(parsed)) {
     return apiResponses.badRequest({ detail: parsed.message });
   }
 
   const session = await auth();
-  const gateResult = await resolvePublicStorageGate(parsed.value.gate, session,
-    parsed.value.richTextImages ? { allowCookieFallback: true } : undefined);
+  const gateResult = await resolvePublicStorageGate(parsed.value.gate, session, {
+    allowCookieFallback: parsed.value.richTextImages,
+  });
   if (Result.isError(gateResult)) {
     return mapGateResultToResponse(gateResult)!;
   }

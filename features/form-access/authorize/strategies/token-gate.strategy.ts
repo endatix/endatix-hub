@@ -41,6 +41,11 @@ function assertGateSubmissionMatches(
   return null;
 }
 
+function mayChangeAccessTokenFiles(token: string, isComplete: boolean | undefined) {
+  return hasTokenPermission(token, TokenPermission.Write) ||
+    (hasTokenPermission(token, TokenPermission.Submit) && isComplete === false);
+}
+
 /** Submission or access token (body or cookie). */
 export async function tokenGateStrategy(
   context: FormStorageGateRunContext,
@@ -69,11 +74,7 @@ export async function tokenGateStrategy(
       return mismatch;
     }
 
-    const isIncompleteSubmission = submissionResult.data.isComplete === false;
-    const canEdit = hasTokenPermission(token, TokenPermission.Write);
-    const canSubmitIncomplete =
-      hasTokenPermission(token, TokenPermission.Submit) && isIncompleteSubmission;
-    const canMutateFiles = canEdit || canSubmitIncomplete;
+    const canMutateFiles = mayChangeAccessTokenFiles(token, submissionResult.data.isComplete);
 
     return Result.success({
       definitionJson: submissionResult.data.formDefinition?.jsonData ?? null,

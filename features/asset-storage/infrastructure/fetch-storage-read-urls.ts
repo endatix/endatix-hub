@@ -37,11 +37,10 @@ export async function fetchStorageReadUrls(
     return null;
   }
 
-  const endpoint = pickStorageReadEndpoint(runtime.policyName);
   const body = readRequestBody(urls, runtime, purpose);
 
   try {
-    const res = await fetch(endpoint, {
+    const res = await fetch(pickStorageReadEndpoint(runtime.policyName), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",

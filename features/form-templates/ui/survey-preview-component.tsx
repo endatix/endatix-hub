@@ -116,9 +116,7 @@ export default function SurveyPreviewComponent({
 
   return (
     <div className="survey-container mt-4">
-      <RichTextImageDisplay>
-        <Survey model={model} />
-      </RichTextImageDisplay>
+      <RichTextImageDisplay><Survey model={model} /></RichTextImageDisplay>
     </div>
   );
 }
