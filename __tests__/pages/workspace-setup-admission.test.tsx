@@ -5,6 +5,8 @@ import { expect, it, vi } from "vitest";
 import DefaultNav from "@/app/(main)/@nav/default";
 import FormsNav from "@/app/(main)/@nav/page";
 import OrganizationForms from "@/app/(main)/settings/organization/forms/page";
+import TenantsPage from "@/app/(main)/admin/tenants/page";
+import { Result, type ResultType } from "@/lib/result";
 import { canResumeWorkspaceSetup } from "@/features/onboarding/start-workspace/workspace-api.server";
 import { withWorkspaceSetupAfter } from "@/features/onboarding/server";
 
@@ -17,6 +19,20 @@ vi.mock("@/features/auth/authorization", async (original) => ({
 vi.mock("@/features/auth/required-actions/workspace-redirect.server", () => ({
   workspaceSlot: (render: () => ReactNode) => render,
   resolveWorkspaceAction: vi.fn(),
+  admitWorkspacePage: (guard: Promise<unknown>) => guard,
+}));
+vi.mock("@/lib/feature-flags/flags", async (original) => ({
+  ...(await original<object>()), tenantManagementFlag: async () => false,
+}));
+vi.mock("@/features/platform-admin/server", () => ({
+  requirePlatformAdmin: async () => ({ accessToken: "owner" }),
+  listPlatformTenants: async () => Result.error("Tenant list denied", undefined, undefined, { statusCode: 403 }),
+}));
+vi.mock("@/features/platform-admin/list-tenants/ui/tenants-list", () => ({
+  TenantsList: async ({ tenantsPromise }: { tenantsPromise: Promise<ResultType<unknown>> }) => {
+    const result = await tenantsPromise;
+    return Result.isError(result) ? <p>{result.message}</p> : <p>Tenants</p>;
+  },
 }));
 vi.mock("@/features/onboarding/start-workspace/workspace-api.server", () => ({
   canResumeWorkspaceSetup: vi.fn(async () => true),
@@ -59,6 +75,13 @@ it("offers the owner setup on the admitted settings destination", async () => {
 it("does not start setup when the streamed page data refuses access", async () => {
   const document = await html(withWorkspaceSetupAfter(Promise.resolve(false), <p>Access denied</p>));
   expect(document).toContain("Access denied");
+  expect(canResumeWorkspaceSetup).not.toHaveBeenCalled();
+});
+
+it("keeps the streamed tenant-list denial without starting the owner read", async () => {
+  const document = await html(await TenantsPage({}));
+  expect(document).toContain("Tenant list denied");
+  expect(document).not.toContain("/forms#workspace-setup");
   expect(canResumeWorkspaceSetup).not.toHaveBeenCalled();
 });
 

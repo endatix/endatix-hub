@@ -1,4 +1,5 @@
 import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
+import { withWorkspaceSetupEntry } from "@/features/onboarding/server";
 import { SectionTitle } from "@/components/headings/section-title";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -55,7 +56,7 @@ export default async function EditSubmissionPage({ params }: Params) {
     return <SubmissionNotEditable formId={formId} />;
   }
 
-  return (
+  return withWorkspaceSetupEntry(
     <Suspense fallback={<SubmissionDataSkeleton />}>
       <AssetStorageProvider>
         <DesignerRuntimeProvider

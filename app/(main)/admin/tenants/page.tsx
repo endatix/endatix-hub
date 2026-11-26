@@ -1,4 +1,5 @@
 import { withWorkspaceSetupAfter } from "@/features/onboarding/server";
+import { Result } from "@/lib/result";
 import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { CreateTenantPanel } from "@/features/platform-admin/create-tenant/ui/create-tenant-panel";
 import {
@@ -28,7 +29,7 @@ export default async function TenantsPage({
   const listRequest = parsePlatformTenantListParams(resolvedSearchParams);
   const tenantsPromise = listPlatformTenants(session, listRequest);
 
-  return withWorkspaceSetupAfter(tenantsPromise.then(() => true),
+  return withWorkspaceSetupAfter(tenantsPromise.then(Result.isSuccess),
     <PlatformAdminShell
       title="Tenants"
       description="Review and manage tenants. Assume a tenant only for support access."
