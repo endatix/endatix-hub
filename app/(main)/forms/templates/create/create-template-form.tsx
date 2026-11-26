@@ -29,23 +29,33 @@ import { ServerActionState } from "@/lib/utils/zod-error-utils";
 const NO_FOLDER_ID = "__none__";
 const INITIAL_STATE: CreateTemplateActionState = ServerActionState.emptyState();
 
-function submitTemplate(previous: CreateTemplateActionState, data: FormData) {
-  // React can queue a second submission before the pending button renders.
-  if (previous.isSuccess && previous.templateId) return Promise.resolve(previous);
-  return createTemplateAction(previous, data);
+function useCreateTemplate() {
+  const router = useRouter();
+  async function submit(previous: CreateTemplateActionState, data: FormData) {
+    // React can queue a second submission before the pending button renders.
+    if (previous.isSuccess && previous.templateId) return previous;
+    const createPath = window.location.pathname;
+    const result = await createTemplateAction(previous, data);
+    if (!result.isSuccess || !result.templateId) return result;
+    if (window.location.pathname === createPath) {
+      toast.success({
+        title: "Form template created successfully",
+        description: "Opening template editor...",
+      });
+      router.push(`/forms/templates/${result.templateId}`);
+    }
+    return result;
+  }
+  return useActionState(submit, INITIAL_STATE);
 }
 
 export default function CreateTemplateForm({
   folders,
   requireFolderAssignment,
 }: Readonly<TemplateCreateContext>) {
-  const [state, formAction, isCreating] = useActionState(
-    submitTemplate,
-    INITIAL_STATE,
-  );
+  const [state, formAction, isCreating] = useCreateTemplate();
   const [selectedFolderId, setSelectedFolderId] =
     useState<string>(NO_FOLDER_ID);
-  const router = useRouter();
   const createdId = state.isSuccess ? state.templateId : undefined;
   const isPending = isCreating || Boolean(createdId);
 
@@ -56,15 +66,6 @@ export default function CreateTemplateForm({
       setSelectedFolderId(NO_FOLDER_ID);
     }
   }, [state?.data?.folderId]);
-
-  useEffect(() => {
-    if (!createdId) return;
-    toast.success({
-      title: "Form template created successfully",
-      description: "Opening template editor...",
-    });
-    router.push(`/forms/templates/${createdId}`);
-  }, [createdId, router]);
 
   return (
     <>

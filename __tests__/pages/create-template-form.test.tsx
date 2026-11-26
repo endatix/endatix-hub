@@ -207,3 +207,31 @@ it("does not create again for a submission queued behind a successful create", a
   expect(create).toHaveBeenCalledOnce();
   expect(router.push).toHaveBeenCalledWith("/forms/templates/45");
 });
+
+it("opens the saved template even when a context refresh replaces the submitting form", async () => {
+  // Arrange
+  context.mockResolvedValue(folderContext(false));
+  const pending = Promise.withResolvers<{
+    isSuccess: true;
+    templateId: string;
+  }>();
+  create.mockReturnValueOnce(pending.promise);
+  const view = render(await CreateFormTemplatePage());
+  fireEvent.submit(pendingButton("Create Template").form!);
+  context.mockResolvedValue(
+    Result.error("Unavailable", undefined, undefined, { statusCode: 503 }),
+  );
+
+  // Act
+  view.rerender(await CreateFormTemplatePage());
+  expect(
+    screen.getByRole("heading", {
+      name: "This service is temporarily unavailable.",
+    }),
+  ).toBeTruthy();
+  await act(async () => pending.resolve({ isSuccess: true, templateId: "45" }));
+
+  // Assert
+  expect(router.push).toHaveBeenCalledWith("/forms/templates/45");
+  expect(create).toHaveBeenCalledOnce();
+});
