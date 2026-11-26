@@ -190,9 +190,9 @@ describe("CreateFormSheet", () => {
     await waitFor(() =>
       expect(screen.queryByRole("button", { name: "Try again" })).toBeNull(),
     );
+    expect(await screen.findByDisplayValue("Marketing")).toBeTruthy();
     expect(screen.getByDisplayValue("Unsaved draft")).toBe(name);
     expect(screen.getByDisplayValue("Draft description")).toBeTruthy();
-    expect(screen.getByDisplayValue("Marketing")).toBeTruthy();
   });
   it("opens when the empty-state button is clicked before the sheet registers", async () => {
     // Arrange
