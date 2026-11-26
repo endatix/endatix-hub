@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { workspaceActionTarget } from "@/features/auth/server";
 import type { Session } from "next-auth";
 import { getBrand } from "@/lib/branding/server";
 import { helpMenuItems } from "@/lib/constants";
@@ -10,7 +11,7 @@ type Props = Readonly<{ session: Session | null }>;
 
 export async function MemberGuide({ session }: Props) {
   const member = await guideApi(session);
-  if (!member) return null;
+  if (!member || await workspaceActionTarget()) return null;
   const result = guideVisibility(await member.api.get(guidePath));
   if (Result.isError(result)) return null;
   const items = Object.values(helpMenuItems(await getBrand()));

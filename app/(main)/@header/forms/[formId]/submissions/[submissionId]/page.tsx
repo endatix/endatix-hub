@@ -2,7 +2,7 @@ import { SubmissionDetailsProvider } from "@/features/submissions/ui/details/sub
 import { SubmissionDetailsHeader } from "@/features/submissions/ui/details/submission-details-header";
 import { getSubmissionDetailsUseCase } from "@/features/submissions/use-cases/get-submission-details.use-case";
 import { Suspense } from "react";
-import { workspaceActionTarget } from "@/features/auth/server";
+import { workspaceSlot } from "@/features/auth/server";
 
 type Params = {
   params: Promise<{
@@ -11,8 +11,7 @@ type Params = {
   }>;
 };
 
-export default async function SubmissionPageHeader({ params }: Params) {
-  if (await workspaceActionTarget()) return null;
+async function SubmissionPageHeader({ params }: Params) {
   const { formId, submissionId } = await params;
 
   const submissionPromise = getSubmissionDetailsUseCase({
@@ -28,3 +27,5 @@ export default async function SubmissionPageHeader({ params }: Params) {
     </Suspense>
   );
 }
+
+export default workspaceSlot(SubmissionPageHeader);

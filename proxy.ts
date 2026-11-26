@@ -38,10 +38,8 @@ export function shouldRedirectToLogin(
 }
 
 export default async function proxy(request: NextRequest) {
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.delete(WORKSPACE_NAVIGATION);
   if (request.method === "POST" && request.headers.has("next-action"))
-    return NextResponse.next({ request: { headers: requestHeaders } });
+    return forwardRequest(request);
   if (isMaintenanceMode()) {
     return rewriteToMaintenance(request);
   }
@@ -53,9 +51,14 @@ export default async function proxy(request: NextRequest) {
     return redirectToLogin(request);
   }
 
-  if (request.method === "GET" && session?.accessToken && isWorkspacePage(pathname)) {
-    requestHeaders.set(WORKSPACE_NAVIGATION, pathname + request.nextUrl.search);
-  }
+  const navigation = request.method === "GET" && session?.accessToken && isWorkspacePage(pathname);
+  return forwardRequest(request, navigation ? pathname + request.nextUrl.search : undefined);
+}
+
+function forwardRequest(request: NextRequest, source?: string) {
+  const requestHeaders = new Headers(request.headers);
+  if (source) requestHeaders.set(WORKSPACE_NAVIGATION, source);
+  else requestHeaders.delete(WORKSPACE_NAVIGATION);
   return NextResponse.next({ request: { headers: requestHeaders } });
 }
 

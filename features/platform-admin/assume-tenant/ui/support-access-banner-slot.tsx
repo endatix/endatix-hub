@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { workspaceActionTarget } from "@/features/auth/server";
 import { exitAssumeAction } from "../assume-tenant.action";
 import { getAssumedTenantName } from "../get-assumed-tenant-name.server";
 import { readAssumeSession } from "../read-assume-session";
@@ -36,6 +37,7 @@ async function NamedSupportAccessBanner({
   accessToken,
   tenantId,
 }: Readonly<{ accessToken: string; tenantId: string }>) {
+  if (await workspaceActionTarget()) return <SupportAccessBannerView exitAction={exitAssumeAction} />;
   return (
     <SupportAccessBannerView
       tenantName={await getAssumedTenantName(accessToken, tenantId)}

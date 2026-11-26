@@ -44,6 +44,7 @@ export const workspaceActionTarget = cache(async () => {
   const source = (await headers()).get(WORKSPACE_NAVIGATION);
   if (!source) return null;
   const url = new URL(source, "http://workspace.invalid");
+  if (url.pathname === "/admin/legal") return null;
   const session = await auth();
   const target = await workspaceRedirect(session, url);
   return target === TERMS_PATH ? termsVisit(source, workspaceScope(session?.accessToken)) : target;
@@ -55,10 +56,11 @@ export async function resolveWorkspaceAction() {
   if (target) redirect(target);
 }
 
-export async function redirectDisabledPage(fallback: Route): Promise<never> {
+export async function redirectDisabledPage<T extends string>(fallback: Route<T>): Promise<never> {
   const source = (await headers()).get(WORKSPACE_NAVIGATION);
   const visit = source && new URL(source, "http://workspace.invalid").searchParams.get(RESOLVER_VISIT);
-  redirect(visit === "1" ? REQUIRED_ACTIONS_PATH : fallback);
+  if (visit === "1") redirect(REQUIRED_ACTIONS_PATH);
+  redirect(fallback);
 }
 
 /** A throwing page guard must finish before deciding whether to show a resolver. */
@@ -66,4 +68,12 @@ export async function admitWorkspacePage<T>(guard: Promise<T>) {
   const admitted = await guard;
   await resolveWorkspaceAction();
   return admitted;
+}
+
+/** Parallel slots must not load product data or override the page's own denial. */
+export function workspaceSlot<P extends unknown[], T>(render: (...props: P) => T) {
+  return async (...props: P) => {
+    if (await workspaceActionTarget()) return null;
+    return render(...props);
+  };
 }

@@ -119,6 +119,7 @@ it.each([
 });
 
 it("rechecks the tenants page grant before a pending blocker even with a warm role cache", async () => {
+  vi.spyOn(Date, "now").mockReturnValue(Date.UTC(2026, 0, 1));
   const { authorization, SystemRoles } = await import("@/features/auth/authorization");
   const { default: TenantsPage } = await import("@/app/(main)/admin/tenants/page");
   nextHeaders.mockResolvedValue(new Headers());
@@ -167,7 +168,13 @@ it("terminates the settings → disabled export resolver → settings cycle at a
   );
   exportEnabled.mockResolvedValue(false);
   expect(await destination("/settings")).toBe(origin + "/required-actions");
-  expect(await destination(exportPath)).toBe(origin + "/required-actions");
+  const { default: ExportFormatsPage } = await import("@/app/(main)/settings/organization/export-formats/page");
+  nextHeaders.mockResolvedValue(new Headers({ [WORKSPACE_NAVIGATION]: exportPath }));
+  const current = snapshot(true, [{ ...action, resolvePath: exportPath }]);
+  me.mockResolvedValue({ ...current, data: { ...current.data, isAdmin: true } });
+  await expect(ExportFormatsPage()).rejects.toMatchObject({
+    digest: expect.stringContaining(";/settings;"),
+  });
   expect(await destination("/required-actions")).toBeNull();
   exportEnabled.mockResolvedValue(true);
   expect(await destination("/settings")).toBe(origin + exportPath);

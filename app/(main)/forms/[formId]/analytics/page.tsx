@@ -20,8 +20,7 @@ export default async function FormAnalyticsPage({ params }: Readonly<Params>) {
   await requireHubAccess();
 
   const { formId } = await params;
-  const flags = await getFormWorkspaceFlags();
-  if (!flags.analytics) return redirectDisabledPage(`/forms/${formId}`);
+  if (!(await getFormWorkspaceFlags()).analytics) return redirectDisabledPage(`/forms/${formId}`);
   await resolveWorkspaceAction();
 
   const form = await loadWorkspaceForm(formId, "analytics");

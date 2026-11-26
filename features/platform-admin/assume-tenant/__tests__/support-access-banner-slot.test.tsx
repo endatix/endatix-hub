@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { SupportAccessBannerSlot } from "../ui/support-access-banner-slot";
 
 vi.mock("../assume-tenant.action", () => ({
@@ -38,7 +38,7 @@ describe("SupportAccessBannerSlot", () => {
     expect(getAssumedTenantName).not.toHaveBeenCalled();
   });
 
-  it("shows the banner immediately while the tenant name is still loading", () => {
+  it("shows the banner immediately while the tenant name is still loading", async () => {
     getAssumedTenantName.mockReturnValue(new Promise(() => {}));
 
     render(
@@ -50,6 +50,6 @@ describe("SupportAccessBannerSlot", () => {
     // The fallback is the banner itself, not null: a sticky bar that appears
     // only after the name resolves would shift the page under the reader.
     expect(screen.getByText("Support access")).toBeTruthy();
-    expect(getAssumedTenantName).toHaveBeenCalledWith(expect.any(String), "99");
+    await waitFor(() => expect(getAssumedTenantName).toHaveBeenCalledWith(expect.any(String), "99"));
   });
 });
