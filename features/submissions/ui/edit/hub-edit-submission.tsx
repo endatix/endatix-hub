@@ -31,7 +31,7 @@ export function HubEditSubmission({
       toast.success("Changes saved");
       router.push(`/forms/${submission.formId}/submissions/${submission.id}`);
     },
-    [router, submission.formId, submission.id],
+    [router, submission],
   );
 
   const onDiscard = useCallback(() => {

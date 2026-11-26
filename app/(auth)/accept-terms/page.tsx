@@ -66,7 +66,7 @@ function Reader({ terms, submit, updated, decline }: Readonly<ReaderProps>) {
       {updated && <ChangedVersion />}
       <p>Version {terms.number}</p>
       <LegalMarkdown text={terms.markdown} />
-      <Link href="/accept-terms/privacy" target="_blank">
+      <Link href="/accept-terms/privacy" target="_blank" className="text-primary underline">
         Read the Privacy notice (opens in a new tab)
       </Link>
       <ConsentForm key={terms.versionId} submit={submit} decline={decline} />
