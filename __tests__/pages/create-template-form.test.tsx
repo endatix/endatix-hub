@@ -20,6 +20,13 @@ vi.mock("@/features/form-templates/application/create-template.action", () => ({
 }));
 vi.mock("@/components/ui/toast", () => ({ toast: { success: vi.fn() } }));
 
+function folderContext(requireFolderAssignment: boolean) {
+  return Result.success({
+    requireFolderAssignment,
+    folders: [{ id: "7", name: "Templates" }],
+  });
+}
+
 it("opens the admitted template form without creating anything and explains a missing required folder", async () => {
   // Arrange
   context.mockResolvedValue(
@@ -41,12 +48,7 @@ it.each([false, true])(
   "shows the admitted folder picker with required assignment set to %s",
   async (required) => {
     // Arrange
-    context.mockResolvedValue(
-      Result.success({
-        requireFolderAssignment: required,
-        folders: [{ id: "7", name: "Templates" }],
-      }),
-    );
+    context.mockResolvedValue(folderContext(required));
 
     // Act
     render(<CreateTemplateForm />);
@@ -62,12 +64,7 @@ it.each([false, true])(
 
 it("retains the chosen folder after a refused submission, then opens the created template after a successful retry", async () => {
   // Arrange
-  context.mockResolvedValue(
-    Result.success({
-      requireFolderAssignment: true,
-      folders: [{ id: "7", name: "Templates" }],
-    }),
-  );
+  context.mockResolvedValue(folderContext(true));
   create
     .mockImplementationOnce(async (_previous, submitted: FormData) => ({
       isSuccess: false,
