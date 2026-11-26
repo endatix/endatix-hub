@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import TermsPage from "@/app/(auth)/accept-terms/page";
 import PrivacyPage from "@/app/(auth)/accept-terms/privacy/page";
+import PublicTermsPage from "@/app/(auth)/legal/terms/page";
 import { confirmedScope, workspaceScope } from "@/lib/routes/workspace-scope.server";
 import { acceptTerms } from "@/features/legal/accept-terms.action";
 
@@ -134,6 +135,23 @@ it.each([
     versionId:"9007199254740995", scope:workspaceScope("member"), returnUrl:expected,
   }, expect.any(FormData)));
 });
+it("opens the displayed public Terms without the personal acceptance flow", async () => {
+  // Act
+  render(await PublicTermsPage({searchParams: Promise.resolve({version:"9007199254740995"})}));
+  // Assert
+  expect(screen.getByRole("heading", {name:"Published conditions"})).toBeTruthy();
+  expect(screen.queryByRole("checkbox")).toBeNull();
+  expect(me).not.toHaveBeenCalled();
+});
+
+it("offers recovery instead of showing newer text under the old version link", async () => {
+  // Act
+  render(await PublicTermsPage({searchParams: Promise.resolve({version:"42"})}));
+  // Assert
+  expect(screen.getByRole("link", {name:"Read the current Terms"}).getAttribute("href")).toBe("/legal/terms");
+  expect(screen.queryByText("Published conditions")).toBeNull();
+});
+
 it("renders only the published Privacy notice, with no acceptance", async () => {
   render(await PrivacyPage());
   expect(publication).toHaveBeenCalledWith("/public/legal/privacy", {

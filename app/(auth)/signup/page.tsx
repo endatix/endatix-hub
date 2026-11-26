@@ -4,6 +4,9 @@ import { saasManagementFlag } from "@/lib/feature-flags/flags";
 import type { Metadata } from "next";
 import { getBrand, isBuiltInBrand } from "@/lib/branding/server";
 import { notFound } from "next/navigation";
+import { PublicationStatus } from "../publication-status";
+import { publicLegalLinks } from "@/features/legal/public-links.server";
+import { SignupTerms } from "@/features/legal/signup-terms";
 
 async function intro(): Promise<string> {
   const brand = await getBrand();
@@ -23,5 +26,12 @@ export default async function SignupPage() {
     notFound();
   }
 
-  return <SignupRequestForm intro={await intro()} />;
+  const [description, legal] = await Promise.all([intro(), publicLegalLinks()]);
+  if (legal.unavailable)
+    return <PublicationStatus title="The Terms are temporarily unavailable." />;
+  return (
+    <SignupRequestForm intro={description}>
+      <SignupTerms legal={legal} />
+    </SignupRequestForm>
+  );
 }

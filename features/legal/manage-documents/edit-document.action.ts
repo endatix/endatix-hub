@@ -1,6 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { Result } from "@/lib/result";
+import { invalidateLegalFooter } from "../public-links.server";
 import { confirmedDocument, documentApi, documentsPath, writeDocument } from "./document-api.server";
 import { documentKind, editSchema, type DocumentKind, type DocumentState, type Edit } from "./documents";
 
@@ -10,7 +11,10 @@ export async function editDocument(input: Edit) {
   const edit = editSchema.safeParse(input);
   if (!edit.success) return Result.validationError<DocumentState>("Invalid legal document edit.");
   const result = confirmedDocument(await writeDocument(api, edit.data), edit.data.kind);
-  if (Result.isSuccess(result)) revalidatePath("/admin/legal");
+  if (Result.isSuccess(result)) {
+    if (edit.data.operation === "publish") invalidateLegalFooter();
+    revalidatePath("/admin/legal");
+  }
   return result;
 }
 
