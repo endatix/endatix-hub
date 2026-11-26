@@ -173,6 +173,25 @@ describe("useCreatorJson", () => {
     expect(creator.JSON).toEqual(intermediate);
   });
 
+  it.each([
+    { saves: ["B"], reads: ["C", "B"] },
+    { saves: ["B", "C", "B"], reads: ["B", "C"] },
+  ])("retires stale completed saves after coalesced or external reads: $saves / $reads", async ({ saves, reads }) => {
+    // Arrange
+    const creator = createCreator();
+    const { result, rerender } = renderCreatorJson({ creator, json: { title: "A" } });
+    for (const title of saves) {
+      creator.JSON = { title };
+      await result.current(creator.JSON, async () => Result.success("saved"));
+    }
+
+    // Act
+    for (const title of reads) rerender({ creator, json: { title } });
+
+    // Assert
+    expect(creator.JSON).toEqual({ title: reads.at(-1) });
+  });
+
   it.each(["refused", "empty", "threw"])("applies an external definition after its local save %s", async outcome => {
     // Arrange
     const creator = createCreator();

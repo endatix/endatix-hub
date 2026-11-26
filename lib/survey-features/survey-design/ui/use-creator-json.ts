@@ -41,16 +41,16 @@ async function writeSubmission<T extends Result<unknown> | undefined>(
   }
 }
 
-function takeReadback(pending: Set<Submission>, json: object) {
-  const match = [...pending].find(attempt => isSameDefinition(attempt.definition, json));
-  if (!match) return false;
+function takeReadback(pending: Set<Submission>, json: object, previous: object | null) {
+  const match = [...pending].findLast(attempt => isSameDefinition(attempt.definition, json));
+  if (!match && isSameDefinition(previous, json)) return false;
   // A newer read supersedes completed saves that React never rendered separately.
   // In-flight writes may still supply a delayed response of their own.
   for (const attempt of pending) {
     if (attempt === match) break;
     if (attempt.confirmed) pending.delete(attempt);
   }
-  return pending.delete(match);
+  return match !== undefined && pending.delete(match);
 }
 
 function useCanvasSubmission(creator: SurveyCreatorModel | null, captureJsonSave: CaptureJsonSave) {
@@ -80,7 +80,7 @@ function useSavedSnapshot(
   useEffect(() => {
     if (!creator || !json) return;
     const previous = lastRead.current?.creator === creator ? lastRead.current.json : null;
-    const submitted = takeReadback(pending, json);
+    const submitted = takeReadback(pending, json, previous);
     if (isSameDefinition(previous, json)) return;
     if (!submitted && (!previous || !isSameDefinition(creator.JSON, json))) {
       creator.JSON = json;
