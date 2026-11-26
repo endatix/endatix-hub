@@ -22,23 +22,22 @@ export function useCreatorJson(
   json: object | null,
 ) {
   const appliedToRef = useRef<SurveyCreatorModel | null>(null);
-  const lastAppliedJsonRef = useRef<object | null>(null);
+  const lastServerJsonRef = useRef<object | null>(null);
 
   useEffect(() => {
     if (!creator || !json) {
       return;
     }
 
-    if (
-      appliedToRef.current === creator &&
-      (isSameDefinition(lastAppliedJsonRef.current, json) ||
-        isSameDefinition(creator.JSON, json))
-    ) {
+    const sameCreator = appliedToRef.current === creator;
+    if (sameCreator && isSameDefinition(lastServerJsonRef.current, json)) {
       return;
     }
 
-    creator.JSON = json;
+    if (!sameCreator || !isSameDefinition(creator.JSON, json)) {
+      creator.JSON = json;
+    }
     appliedToRef.current = creator;
-    lastAppliedJsonRef.current = json;
+    lastServerJsonRef.current = json;
   }, [creator, json]);
 }

@@ -70,6 +70,20 @@ describe("useCreatorJson", () => {
     expect(creator.JSON).toBe(secondTurn);
   });
 
+  it("preserves an unsaved edit after the preceding save is read back twice", () => {
+    // Arrange
+    const creator = createCreator();
+    const { rerender } = renderCreatorJson({ creator, json: { title: "Original" } });
+    creator.JSON = { title: "Saved" };
+    rerender({ creator, json: { title: "Saved" } });
+    const draft = { title: "Still editing" };
+    creator.JSON = draft;
+    // Act
+    rerender({ creator, json: { title: "Saved" } });
+    // Assert
+    expect(creator.JSON).toBe(draft);
+  });
+
   it("assigns JSON when it arrives after the Creator", () => {
     // Arrange
     const creator = createCreator();
