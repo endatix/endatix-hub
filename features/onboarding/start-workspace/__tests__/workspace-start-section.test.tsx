@@ -100,3 +100,18 @@ it("sends the explicit choice to the owner endpoint and refreshes Forms after co
   expect(result).toMatchObject({ value: { kind: "complete", formId: "42" } });
   expect(revalidate).toHaveBeenCalledWith("/forms");
 });
+
+it("leaves Forms unchanged when blank setup is busy and refreshes only after a confirmed retry", async () => {
+  // Arrange
+  const scope = workspaceScope("current")!;
+  post.mockResolvedValueOnce(ApiResult.httpStatusError(503, "Workspace setup is busy. Try again."));
+  post.mockResolvedValueOnce(ApiResult.success({ state: "blank", choices: [], formId: "42" }));
+
+  // Act & Assert
+  const busy = await startBlank(scope);
+  expect(busy).toMatchObject({ statusCode: 503, message: "Workspace setup is busy. Try again." });
+  expect(revalidate).not.toHaveBeenCalled();
+  const resumed = await startBlank(scope);
+  expect(resumed).toMatchObject({ value: { kind: "complete", formId: "42" } });
+  expect(revalidate.mock.calls).toEqual([["/forms"]]);
+});
