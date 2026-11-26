@@ -1,48 +1,68 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
-import { Helpers } from "survey-core";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { SurveyCreatorModel } from "survey-creator-core";
 import { Result } from "@/lib/result/result";
+import { SURVEY_CREATOR_BUILT_IN_TAB } from "@/lib/survey-js";
 
-/** Definition equality — survey-core defaults compare answers. See AGENTS.md SurveyJS domain. */
-const SAME_DEFINITION = {
-  ignoreOrder: false,
-  caseSensitive: true,
-  trimStrings: false,
-  doNotConvertNumbers: true,
-} as const;
-
-function isSameDefinition(left: object | null, right: object): boolean {
-  return Helpers.checkIfValuesEqual(left, right, SAME_DEFINITION);
+function isSameDefinition(left: unknown, right: unknown): boolean {
+  if (left === right) return true;
+  if (!left || !right || typeof left !== "object" || typeof right !== "object") return false;
+  if (Array.isArray(left) !== Array.isArray(right)) return false;
+  const keys = Object.keys(left);
+  return keys.length === Object.keys(right).length && keys.every(key =>
+    Object.hasOwn(right, key) && isSameDefinition(Reflect.get(left, key), Reflect.get(right, key)),
+  );
 }
 
 type CaptureJsonSave = () => () => boolean;
 
-function captureSavedDefinition(submitted: object, captureJsonSave: CaptureJsonSave) {
+function captureSavedDefinition(creator: SurveyCreatorModel | null, submitted: object, captureJsonSave: CaptureJsonSave) {
+  const jsonTab = SURVEY_CREATOR_BUILT_IN_TAB.json;
+  const startedOnJson = creator?.activeTab === jsonTab;
   const acknowledgeBuffer = captureJsonSave();
   return (current: Result<object>) =>
-    acknowledgeBuffer() && Result.isSuccess(current) && isSameDefinition(current.value, submitted);
+    (acknowledgeBuffer() || (startedOnJson && creator.activeTab !== jsonTab)) &&
+    Result.isSuccess(current) && isSameDefinition(current.value, submitted);
 }
 
-function useCanvasSubmission(captureJsonSave: CaptureJsonSave) {
-  const pending = useRef<{ definition: object } | null>(null);
+type Submission = { definition: object };
+
+async function writeSubmission<T extends Result<unknown> | undefined>(
+  pending: Set<Submission>, attempt: Submission, write: (definition: object) => Promise<T>,
+) {
+  pending.add(attempt);
+  let confirmed = false;
+  try {
+    const result = await write(attempt.definition);
+    confirmed = !!result && Result.isSuccess(result);
+    return result;
+  } finally {
+    if (!confirmed) pending.delete(attempt);
+  }
+}
+
+function takeReadback(pending: Set<Submission>, json: object) {
+  for (const attempt of pending) {
+    if (isSameDefinition(attempt.definition, json)) return pending.delete(attempt);
+  }
+  return false;
+}
+
+function useCanvasSubmission(creator: SurveyCreatorModel | null, captureJsonSave: CaptureJsonSave) {
+  const pending = useMemo(() => new Set<Submission>(), [creator]);
+  const latest = useRef<Submission | null>(null);
   const saveCanvas = useCallback(async <T extends Result<unknown> | undefined>(
     submitted: object, write: (definition: object) => Promise<T>,
   ) => {
     const attempt = { definition: submitted };
-    const stillSaved = captureSavedDefinition(submitted, captureJsonSave);
+    const matches = captureSavedDefinition(creator, submitted, captureJsonSave);
+    latest.current = attempt;
     // Reading creator.JSON here would apply the pending Ace buffer to the canvas.
-    pending.current = attempt;
-    let confirmed = false;
-    try {
-      const result = await write(submitted);
-      confirmed = !!result && Result.isSuccess(result);
-      return { result, stillSaved };
-    } finally {
-      if (!confirmed && pending.current === attempt) pending.current = null;
-    }
-  }, [captureJsonSave]);
+    const result = await writeSubmission(pending, attempt, write);
+    const stillSaved = (current: Result<object>) => latest.current === attempt && matches(current);
+    return { result, stillSaved };
+  }, [creator, captureJsonSave, pending]);
   return { pending, saveCanvas };
 }
 
@@ -53,19 +73,17 @@ export function useCreatorJson(
   captureJsonSave: CaptureJsonSave,
 ) {
   const lastRead = useRef<{ creator: SurveyCreatorModel; json: object } | null>(null);
-  const { pending, saveCanvas } = useCanvasSubmission(captureJsonSave);
+  const { pending, saveCanvas } = useCanvasSubmission(creator, captureJsonSave);
 
   useEffect(() => {
     if (!creator || !json) return;
     const previous = lastRead.current?.creator === creator ? lastRead.current.json : null;
+    const submitted = takeReadback(pending, json);
     if (isSameDefinition(previous, json)) return;
-
-    const submitted = isSameDefinition(pending.current?.definition ?? null, json);
     if (!previous || (!submitted && !isSameDefinition(creator.JSON, json))) {
       creator.JSON = json;
     }
     lastRead.current = { creator, json };
-    pending.current = null;
   }, [creator, json, pending]);
 
   return saveCanvas;

@@ -1,6 +1,7 @@
+// @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from "vitest";
 import type { ItemValue, QuestionMatrixDynamicModel } from "survey-core";
-import { SurveyCreatorModel, SurveyLogic } from "survey-creator-core";
+import { SurveyCreatorModel, SurveyLogic, type TabTestPlugin } from "survey-creator-core";
 import { SCREEN_OUT_TRIGGER_CLASS } from "../constants";
 import { registerScreenOutCreatorUi } from "../infrastructure/creator-bindings";
 import { screenOutExtension } from "../infrastructure/screen-out.extension";
@@ -39,6 +40,22 @@ describe("screen-out Creator bindings", () => {
 
     // Assert
     expect(plugin.model).toBe(openEditor);
+  });
+
+  it("retains a live Preview answer when screen-out labels load", async () => {
+    // Arrange
+    const creator = new SurveyCreatorModel();
+    creator.JSON = FORM_JSON;
+    creator.activeTab = "preview";
+    const preview = creator.getPlugin<TabTestPlugin>("preview");
+    preview.model.survey.setValue("age", "21");
+
+    // Act
+    await screenOutExtension.onCreatorReady?.(creator, deps);
+
+    // Assert
+    expect(preview.model.survey.getValue("age")).toBe("21");
+    creator.dispose();
   });
 
   it("keeps a stored screen-out trigger when Creator loads the form", () => {

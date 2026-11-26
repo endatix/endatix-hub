@@ -118,6 +118,27 @@ describe("useCreatorJson", () => {
     expect(creator.JSON).toBe(original);
   });
 
+  it.each([["First", "Second"], ["Second", "First"]])("keeps newer edits through echoes in order %s, %s", async (a, b) => {
+    // Arrange
+    const creator = createCreator();
+    const { result, rerender } = renderCreatorJson({ creator, json: {} });
+    const older = Promise.withResolvers<Result<string>>();
+    const first = result.current({ title: "First" }, () => older.promise);
+    const second = await result.current({ title: "Second" }, async () => Result.success("ok"));
+    const draft = { title: "Still editing" };
+    creator.JSON = draft;
+
+    // Act
+    rerender({ creator, json: { title: a } });
+    rerender({ creator, json: { title: b } });
+    older.resolve(Result.success("ok"));
+
+    // Assert
+    expect(creator.JSON).toBe(draft);
+    expect((await first).stillSaved(Result.success({ title: "First" }))).toBe(false);
+    expect(second.stillSaved(Result.success(draft))).toBe(false);
+  });
+
   it.each(["refused", "empty", "threw"])("applies an external definition after its local save %s", async outcome => {
     // Arrange
     const creator = createCreator();
@@ -190,6 +211,20 @@ describe("useCreatorJson", () => {
 });
 
 describe("useCreatorJson snapshot comparison", () => {
+  it.each([[false, "false"], [0, "0"], [null, ""], [[], {}]])(
+    "keeps a type-changing edit pending after a successful save (%j to %j)", async (before, after) => {
+      // Arrange
+      const creator = createCreator();
+      const { result } = renderCreatorJson({ creator, json: {} });
+      const submitted = { choices: [{ value: before }] };
+
+      // Act
+      const saved = await result.current(submitted, async () => Result.success("saved"));
+
+      // Assert
+      expect(saved.stillSaved(Result.success({ choices: [{ value: after }] }))).toBe(false);
+    },
+  );
   const rerenderWith = (applied: object, next: object) => {
     const creator = createCreator();
     const { rerender } = renderCreatorJson({ creator, json: applied });

@@ -12,6 +12,7 @@ import {
 } from "@/lib/survey-features/designer/design-survey.context";
 import { Result } from "@/lib/result";
 import { updateFormDefinitionJsonAction } from "@/features/forms/application/actions/update-form-definition-json.action";
+import { updateFormThemeAction } from "@/features/themes/update-form-theme";
 
 const surveyCreator = vi.hoisted(() => vi.fn());
 
@@ -25,7 +26,7 @@ vi.mock("survey-creator-react", () => {
       onElementGetActions = event();
 
       constructor(options: unknown) {
-        surveyCreator(options);
+        surveyCreator(options, this);
       }
     },
     SurveyCreatorComponent: () => null,
@@ -239,6 +240,35 @@ it("preserves a rejected form edit so the same save can be retried", async () =>
 describe("creator theme settings", () => {
   beforeEach(() => {
     surveyCreator.mockClear();
+  });
+
+  it("saves a theme selected during a pending definition save on the next Save", async () => {
+    // Arrange
+    const response = Promise.withResolvers<Result<string>>();
+    vi.mocked(updateFormDefinitionJsonAction)
+      .mockReturnValueOnce(response.promise)
+      .mockResolvedValueOnce(Result.success("1"));
+    vi.mocked(updateFormThemeAction).mockResolvedValueOnce(Result.success(undefined));
+    const ready = vi.fn<(save: () => Promise<void>) => void>();
+    render(
+      <DesignSurveyProvider>
+        <FormEditor formJson={{}} formId="1" formName="Form" themeId="default" onSaveHandlerReady={ready} />
+        <EditIndicator />
+      </DesignSurveyProvider>,
+    );
+    await waitFor(() => expect(surveyCreator).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole("button", { name: "Clean" }));
+
+    // Act
+    const pending = ready.mock.lastCall![0]();
+    await waitFor(() => expect(updateFormDefinitionJsonAction).toHaveBeenCalled());
+    surveyCreator.mock.lastCall![1].theme = { id: "2", themeName: "New" };
+    response.resolve(Result.success("1"));
+    await act(() => pending);
+    await act(() => ready.mock.lastCall![0]());
+
+    // Assert
+    expect(updateFormThemeAction).toHaveBeenCalledWith({ formId: "1", themeId: "2" });
   });
 
   it("constructs the form editor with creator theme settings off", async () => {

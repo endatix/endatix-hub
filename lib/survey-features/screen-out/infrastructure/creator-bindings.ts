@@ -19,7 +19,7 @@ export function registerScreenOutCreatorUi(): void {
 
 export function bindScreenOutToCreator(creator: SurveyCreatorModel): void {
   registerScreenOutCreatorUi();
-  // The JSON tab has no trigger picker. Rebuilding it replaces the plugin's
-  // model while its mounted Ace editor is still bound to the previous one.
-  creator.updateLocalizedStrings(creator.activeTab !== SURVEY_CREATOR_BUILT_IN_TAB.json);
+  // Refresh the visible trigger picker without replacing an open Ace or Preview model.
+  const { designer, logic } = SURVEY_CREATOR_BUILT_IN_TAB;
+  creator.updateLocalizedStrings(creator.activeTab === designer || creator.activeTab === logic);
 }

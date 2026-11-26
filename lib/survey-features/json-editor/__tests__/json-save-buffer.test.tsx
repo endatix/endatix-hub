@@ -9,6 +9,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { stubResizeObserver } from "@/test/stubs/resize-observer";
 import { Result } from "@/lib/result";
 import { useJsonEditor } from "../use-json-editor.hook";
+import { useCreatorJson } from "../../survey-design/ui/use-creator-json";
 
 beforeEach(stubResizeObserver);
 
@@ -144,4 +145,20 @@ it("allows a Designer save after leaving the JSON tab", () => {
   // Assert
   expect(acknowledgeOldTab()).toBe(false);
   expect(hook.captureJsonSave()()).toBe(true);
+});
+
+it("acknowledges the saved definition after JSON gives way to Preview", async () => {
+  // Arrange
+  const { creator, editor, hook } = view;
+  const { result } = renderHook(() => useCreatorJson(creator, null, hook.captureJsonSave));
+  editor.setValue('{"title":"Submitted"}');
+  const response = Promise.withResolvers<Result<string>>();
+  const save = result.current({ title: "Submitted" }, () => response.promise);
+
+  // Act
+  creator.activeTab = "preview";
+  response.resolve(Result.success("saved"));
+
+  // Assert
+  expect((await save).stillSaved(hook.getJsonModel(creator))).toBe(true);
 });

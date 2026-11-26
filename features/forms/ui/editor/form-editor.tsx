@@ -12,7 +12,7 @@ import {
   ThemeSaveDialog,
   useThemeManagement,
 } from "@/features/themes/manage-theme-editor";
-import { StoredTheme } from "@/features/themes/types";
+import { selectedThemeId } from "./selected-theme-id";
 import { updateFormThemeAction } from "@/features/themes/update-form-theme";
 import { useDesignerRuntime } from "@/lib/designer-runtime";
 import type { DesignerAudience } from "@/lib/personalization/authoring";
@@ -100,8 +100,6 @@ Serializer.addProperty("survey", {
 
 registerAudioQuestionUI();
 addRandomizeGroupFeature();
-
-const DEFAULT_THEME_NAME = "default";
 
 const translations = getLocaleStrings("en");
 
@@ -319,7 +317,8 @@ function FormEditor({
       return;
     }
 
-    const theme = creator?.theme as StoredTheme;
+    const theme = creator?.theme;
+    const newThemeId = selectedThemeId(theme, themeId);
     let isThemeUpdated = false;
 
     const { result: updateDefinitionResult, stillSaved } = await saveCanvas(
@@ -339,10 +338,6 @@ function FormEditor({
       return;
     }
 
-    const newThemeId =
-      theme?.themeName?.toLowerCase() === DEFAULT_THEME_NAME
-        ? DEFAULT_THEME_ID
-        : (theme?.id ?? themeId);
     const currentThemeId = themeId ?? DEFAULT_THEME_ID;
 
     if (newThemeId !== currentThemeId) {
@@ -364,7 +359,7 @@ function FormEditor({
       isThemeUpdated = true;
     }
 
-    if (stillSaved(getJsonModel(creator))) {
+    if (stillSaved(getJsonModel(creator)) && selectedThemeId(creator?.theme, themeId) === newThemeId) {
       setHasUnsavedChanges(false);
       setIsJsonModified(false);
     }
@@ -373,7 +368,7 @@ function FormEditor({
         Form changes saved.{" "}
         {isThemeUpdated && (
           <span>
-            Theme set to <b>{theme.themeName}</b>
+            Theme set to <b>{theme?.themeName}</b>
           </span>
         )}
       </p>,
