@@ -11,7 +11,7 @@ function watchPreparation(check: () => Promise<boolean>, changed: () => void) {
     const finished = await check().catch(() => false);
     if (!live) return;
     if (finished) changed();
-    else timer = window.setTimeout(tick, 5000);
+    timer = window.setTimeout(tick, 5000);
   };
   let timer = window.setTimeout(tick, 5000);
   return () => {

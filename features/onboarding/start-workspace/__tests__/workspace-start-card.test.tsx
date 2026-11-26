@@ -13,8 +13,11 @@ vi.mock("../preparation-status.action", () => ({ readPreparation: vi.fn() }));
 it("reads only the visible preparation and refreshes Forms once its state changes", async () => {
   // Arrange
   vi.useFakeTimers();
-  vi.mocked(readPreparation).mockResolvedValueOnce(Result.success({kind: "working"}))
-    .mockResolvedValueOnce(Result.success({kind: "complete", formId: "42"}));
+  vi.mocked(readPreparation)
+    .mockResolvedValueOnce(Result.success({ kind: "working" }))
+    .mockResolvedValueOnce(Result.success({ kind: "retryable" }))
+    .mockResolvedValueOnce(Result.success({ kind: "working" }))
+    .mockResolvedValueOnce(Result.success({ kind: "complete", formId: "42" }));
   const { unmount } = render(<WorkspaceStartCard choice={{ kind: "working" }} scope="workspace" />);
   const status = screen.getByRole("status");
   status.getBoundingClientRect = () => new DOMRect(0, 0, 100, 20);
@@ -25,6 +28,9 @@ it("reads only the visible preparation and refreshes Forms once its state change
     expect(router.refresh).not.toHaveBeenCalled();
     await act(() => vi.advanceTimersByTimeAsync(10000));
     expect(router.refresh).toHaveBeenCalledTimes(1);
+    // Another tab retried before Forms reread. The still-mounted card follows that preparation.
+    await act(() => vi.advanceTimersByTimeAsync(5000));
+    expect(router.refresh).toHaveBeenCalledTimes(2);
     expect(screen.queryByRole("link")).toBeNull();
   } finally {
     unmount();
