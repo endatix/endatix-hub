@@ -3,11 +3,17 @@
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { EndatixApi } from "@/lib/endatix-api";
-import { Result } from "@/lib/result";
+import { Result, toResult } from "@/lib/result";
 
-type TemplateCreateContext = {
+export type TemplateCreateContext = {
   requireFolderAssignment: boolean;
   folders: { id: string; name: string }[];
+};
+
+const loadOptions = {
+  fallbackMessage: "Failed to load template creation settings.",
+  logMessage: "Failed to load template creation settings or folders.",
+  loggerName: "form-templates",
 };
 
 export async function getTemplateCreateContextAction(): Promise<
@@ -23,18 +29,15 @@ export async function getTemplateCreateContextAction(): Promise<
     api.folders.list(),
   ]);
 
-  const requireFolderAssignment =
-    settingsResult.success &&
-    (settingsResult.data.requireFolderAssignment ?? false);
-
-  const folders = foldersResult.success
-    ? foldersResult.data
-        .filter((folder) => folder.isActive)
-        .map((folder) => ({ id: folder.id, name: folder.name }))
-    : [];
+  const settings = toResult(settingsResult, loadOptions);
+  if (Result.isError(settings)) return settings;
+  const folders = toResult(foldersResult, loadOptions);
+  if (Result.isError(folders)) return folders;
 
   return Result.success({
-    requireFolderAssignment,
-    folders,
+    requireFolderAssignment: settings.value.requireFolderAssignment ?? false,
+    folders: folders.value
+      .filter((folder) => folder.isActive)
+      .map(({ id, name }) => ({ id, name })),
   });
 }

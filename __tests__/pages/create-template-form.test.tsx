@@ -1,14 +1,26 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
-import CreateTemplateForm from "@/app/(main)/forms/templates/create/create-template-form";
+import CreateFormTemplatePage from "@/app/(main)/forms/templates/create/page";
 import { Result } from "@/lib/result";
 
 const { context, create, router } = vi.hoisted(() => ({
   context: vi.fn(),
   create: vi.fn(),
-  router: { push: vi.fn() },
+  router: { push: vi.fn(), refresh: vi.fn() },
 }));
-vi.mock("next/navigation", () => ({ useRouter: () => router }));
+vi.mock("@/features/auth/authorization", () => ({
+  authorization: async () => ({ requireHubAccess: async () => undefined }),
+}));
+vi.mock("@/features/auth/required-actions/workspace-redirect.server", () => ({
+  admitWorkspacePage: async (guard: Promise<void>) => guard,
+}));
+vi.mock("@/features/onboarding/server", () => ({
+  withWorkspaceSetupEntry: (content: React.ReactNode) => content,
+}));
+vi.mock("next/navigation", () => ({
+  useRouter: () => router,
+  usePathname: () => "/forms/templates/create",
+}));
 vi.mock(
   "@/features/form-templates/application/get-template-create-context.action",
   () => ({
@@ -27,6 +39,24 @@ function folderContext(requireFolderAssignment: boolean) {
   });
 }
 
+it.each([
+  [403, "You do not have permission to perform this action."],
+  [503, "This service is temporarily unavailable."],
+] as const)("shows the %i read failure with a safe retry", async (statusCode, title) => {
+  // Arrange
+  context.mockResolvedValue(Result.error("Read failed", undefined, undefined, { statusCode }));
+
+  // Act
+  render(await CreateFormTemplatePage());
+
+  // Assert
+  expect(screen.getByRole("heading", { name: title })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Create Template" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
+  expect(router.refresh).toHaveBeenCalledOnce();
+  expect(create).not.toHaveBeenCalled();
+});
+
 it("opens the admitted template form without creating anything and explains a missing required folder", async () => {
   // Arrange
   context.mockResolvedValue(
@@ -34,7 +64,7 @@ it("opens the admitted template form without creating anything and explains a mi
   );
 
   // Act
-  render(<CreateTemplateForm />);
+  render(await CreateFormTemplatePage());
 
   // Assert
   expect(await screen.findByText(/no active folders exist/i)).toBeTruthy();
@@ -51,7 +81,7 @@ it.each([false, true])(
     context.mockResolvedValue(folderContext(required));
 
     // Act
-    render(<CreateTemplateForm />);
+    render(await CreateFormTemplatePage());
 
     // Assert
     const picker = await screen.findByRole("combobox");
@@ -76,7 +106,7 @@ it("retains the chosen folder after a refused submission, then opens the created
       errors: { name: ["Choose another name"], folderId: ["Check the folder"] },
     }))
     .mockResolvedValueOnce({ isSuccess: true, templateId: "45" });
-  render(<CreateTemplateForm />);
+  render(await CreateFormTemplatePage());
   Element.prototype.scrollIntoView ??= () => undefined;
   fireEvent.keyDown(await screen.findByRole("combobox"), { key: "ArrowDown" });
   fireEvent.click(await screen.findByRole("option", { name: "Templates" }));
@@ -98,4 +128,27 @@ it("retains the chosen folder after a refused submission, then opens the created
     expect(router.push).toHaveBeenCalledWith("/forms/templates/45"),
   );
   expect(create.mock.calls[1][1].get("folderId")).toBe("7");
+});
+
+it("locks submission during creation and navigation, but unlocks after a refused write", async () => {
+  // Arrange
+  context.mockResolvedValue(folderContext(false));
+  const pending = Promise.withResolvers<{ isSuccess: false; data: { name: string } }>();
+  create.mockReturnValueOnce(pending.promise).mockResolvedValueOnce({ isSuccess: true, templateId: "45" });
+  render(await CreateFormTemplatePage());
+  fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Example" } });
+
+  // Act
+  fireEvent.click(screen.getByRole("button", { name: "Create Template" }));
+  const busy = screen.getByRole<HTMLButtonElement>("button", { name: /creating/i });
+  fireEvent.click(busy);
+
+  // Assert
+  expect(busy.disabled).toBe(true);
+  expect(create).toHaveBeenCalledTimes(1);
+  await act(async () => pending.resolve({ isSuccess: false, data: { name: "Example" } }));
+  fireEvent.click(screen.getByRole("button", { name: "Create Template" }));
+  await waitFor(() => expect(router.push).toHaveBeenCalledWith("/forms/templates/45"));
+  expect(screen.getByRole<HTMLButtonElement>("button", { name: /creating/i }).disabled).toBe(true);
+  expect(create).toHaveBeenCalledTimes(2);
 });

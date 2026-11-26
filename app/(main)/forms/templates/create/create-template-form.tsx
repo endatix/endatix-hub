@@ -10,12 +10,11 @@ import {
 } from "@/features/form-templates/application/create-template.action";
 import Link from "next/link";
 import PageTitle from "@/components/headings/page-title";
-import { useActionState, useEffect, useState, useTransition } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Result } from "@/lib/result";
 import { toast } from "@/components/ui/toast";
 import { Loader2 } from "lucide-react";
-import { getTemplateCreateContextAction } from "@/features/form-templates/application/get-template-create-context.action";
+import type { TemplateCreateContext } from "@/features/form-templates/application/get-template-create-context.action";
 import {
   Select,
   SelectContent,
@@ -30,28 +29,19 @@ import { ServerActionState } from "@/lib/utils/zod-error-utils";
 const NO_FOLDER_ID = "__none__";
 const INITIAL_STATE: CreateTemplateActionState = ServerActionState.emptyState();
 
-export default function CreateTemplateForm() {
-  const [isPending, startTransition] = useTransition();
-  const [state, formAction] = useActionState(
+export default function CreateTemplateForm({
+  folders,
+  requireFolderAssignment,
+}: Readonly<TemplateCreateContext>) {
+  const [state, formAction, isCreating] = useActionState(
     createTemplateAction,
     INITIAL_STATE,
   );
-  const [folders, setFolders] = useState<{ id: string; name: string }[]>([]);
-  const [requireFolderAssignment, setRequireFolderAssignment] = useState(false);
   const [selectedFolderId, setSelectedFolderId] =
     useState<string>(NO_FOLDER_ID);
   const router = useRouter();
-  const isTemplateCreated = state?.isSuccess && state?.templateId;
-
-  useEffect(() => {
-    void (async () => {
-      const result = await getTemplateCreateContextAction();
-      if (Result.isSuccess(result)) {
-        setRequireFolderAssignment(result.value.requireFolderAssignment);
-        setFolders(result.value.folders);
-      }
-    })();
-  }, []);
+  const createdId = state.isSuccess ? state.templateId : undefined;
+  const isPending = isCreating || Boolean(createdId);
 
   useEffect(() => {
     if (state?.data?.folderId) {
@@ -62,16 +52,13 @@ export default function CreateTemplateForm() {
   }, [state?.data?.folderId]);
 
   useEffect(() => {
-    if (isTemplateCreated && state.templateId) {
-      startTransition(() => {
-        toast.success({
-          title: "Form template created successfully",
-          description: "Opening template editor...",
-        });
-        router.push(`/forms/templates/${state.templateId}`);
-      });
-    }
-  }, [isTemplateCreated, router, startTransition, state?.templateId]);
+    if (!createdId) return;
+    toast.success({
+      title: "Form template created successfully",
+      description: "Opening template editor...",
+    });
+    router.push(`/forms/templates/${createdId}`);
+  }, [createdId, router]);
 
   return (
     <>
