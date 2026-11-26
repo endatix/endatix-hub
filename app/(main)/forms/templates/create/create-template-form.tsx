@@ -15,6 +15,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type FormEvent,
 } from "react";
 import { unstable_rethrow, useRouter } from "next/navigation";
@@ -36,6 +37,11 @@ import { ServerActionState } from "@/lib/utils/zod-error-utils";
 
 const NO_FOLDER_ID = "__none__";
 const INITIAL_STATE: CreateTemplateActionState = ServerActionState.emptyState();
+
+// Submissions before hydration can be replayed without the form's submit guard.
+const subscribeToHydration = () => () => {};
+const hydrated = () => true;
+const prerendered = () => false;
 
 function unconfirmedCreation(
   error: unknown,
@@ -69,6 +75,7 @@ function useOpenCreatedTemplate(templateId?: string) {
 
 function useCreateTemplate() {
   const submitting = useRef(false);
+  const ready = useSyncExternalStore(subscribeToHydration, hydrated, prerendered);
   async function submit(previous: CreateTemplateActionState, data: FormData) {
     const result = await createTemplateAction(previous, data).catch((error) =>
       unconfirmedCreation(error, data),
@@ -83,13 +90,13 @@ function useCreateTemplate() {
     if (submitting.current) event.preventDefault();
     else submitting.current = true;
   }
-  return { state, action, isPending: pending || Boolean(createdId), onSubmit };
+  return { state, action, ready, isPending: pending || Boolean(createdId), onSubmit };
 }
 
 export default function CreateTemplateForm({
   context,
 }: Readonly<{ context: Result<TemplateCreateContext> }>) {
-  const { state, action, isPending, onSubmit } = useCreateTemplate();
+  const { state, action, ready, isPending, onSubmit } = useCreateTemplate();
   const [selectedFolderId, setSelectedFolderId] =
     useState<string>(NO_FOLDER_ID);
 
@@ -240,7 +247,7 @@ export default function CreateTemplateForm({
                   <Link href="/forms/templates">Cancel</Link>
                 )}
               </Button>
-              <Button type="submit" disabled={isPending}>
+              <Button type="submit" disabled={!ready || isPending}>
                 {isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

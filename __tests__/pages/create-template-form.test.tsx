@@ -8,6 +8,7 @@ import {
 import { expect, it, vi } from "vitest";
 import CreateFormTemplatePage from "@/app/(main)/forms/templates/create/page";
 import { Result } from "@/lib/result";
+import { renderToString } from "react-dom/server";
 
 const { context, create, router } = vi.hoisted(() => ({
   context: vi.fn(),
@@ -46,6 +47,27 @@ function folderContext(requireFolderAssignment: boolean) {
     folders: [{ id: "7", name: "Templates" }],
   });
 }
+
+it("keeps submit disabled before hydration without announcing a write", async () => {
+  // Arrange
+  context.mockResolvedValue(folderContext(false));
+  const page = await CreateFormTemplatePage();
+
+  // Act
+  const document = new DOMParser().parseFromString(
+    renderToString(page),
+    "text/html",
+  );
+  const submit = document.querySelector<HTMLButtonElement>(
+    'button[type="submit"]',
+  );
+
+  // Assert
+  expect(submit?.disabled).toBe(true);
+  expect(submit?.textContent).toBe("Create Template");
+  render(page);
+  expect(pendingButton("Create Template").disabled).toBe(false);
+});
 
 it.each([
   [403, "You do not have permission to perform this action."],
