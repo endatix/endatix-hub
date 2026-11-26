@@ -94,6 +94,7 @@ it("shows the requested read-only history page with its publisher, date and navi
   expect(get).toHaveBeenCalledWith("/admin/legal/documents/terms/versions?page=2&pageSize=10");
   expect(screen.getByText(/Version 12 · minor · published by user 9007199254740993/)).toBeTruthy();
   expect(screen.getByText(publication.publishedAt).getAttribute("datetime")).toBe(publication.publishedAt);
+  expect(screen.getByText("Showing 11-20 of 22 versions")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", {name:"Go to next page"}));
   expect(replace).toHaveBeenCalledWith("/admin/legal?kind=terms&page=3",{scroll:false});
   expect(screen.queryByRole("button", {name:/edit|publish|delete/i})).toBeNull();
@@ -103,6 +104,7 @@ it("shows the empty state for a genuine empty history page", async () => {
   // Act & Assert
   await renderHistory(emptyPage);
   expect(screen.getByText("No versions on this page.")).toBeTruthy();
+  expect(screen.getByText("Total versions: 0")).toBeTruthy();
 });
 
 it("keeps a publication whose text is a byte order mark", async () => {
@@ -116,7 +118,8 @@ it("keeps Previous available when the counted last page returns no versions", as
   await renderHistory({ ...emptyPage, page: 3, totalPages: 3, totalRecords: 25 }, 3);
   expect(screen.getByText("No versions on this page.")).toBeTruthy();
   expect(screen.getByText("Page 3 of 3")).toBeTruthy();
-  expect(screen.getByText(/of 25 versions/)).toBeTruthy();
+  expect(screen.getByText("Total versions: 25")).toBeTruthy();
+  expect(screen.queryByText(/21[-–]25 of 25/)).toBeNull();
 
   // Act
   fireEvent.click(screen.getByRole("button", { name: "Go to previous page" }));
