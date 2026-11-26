@@ -3,7 +3,7 @@
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { EndatixApi } from "@/lib/endatix-api";
-import { Result } from "@/lib/result";
+import { Result, toResult } from "@/lib/result";
 import { revalidatePath } from "next/cache";
 
 export type UpdateFormSettingsResult = Result<string>;
@@ -26,14 +26,12 @@ export async function updateFormSettingsAction(
   await requireHubAccess();
 
   const api = new EndatixApi(session?.accessToken);
-  const result = await api.forms.update(formId, payload);
-
-  if (!result.success) {
-    console.error("Failed to update form settings", result.error);
-    return Result.error(
-      result.error.message || "Failed to update form settings",
-    );
-  }
+  const result = toResult(await api.forms.update(formId, payload), {
+    fallbackMessage: "Failed to update form settings",
+    logMessage: "Failed to update form settings",
+    loggerName: "forms.settings",
+  });
+  if (Result.isError(result)) return result;
 
   revalidatePath("/(main)/forms");
   revalidatePath(`/(main)/forms/${formId}`);

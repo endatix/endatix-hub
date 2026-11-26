@@ -2,11 +2,17 @@
 
 import { Form } from "@/types";
 import { useTransition, useState, useEffect, useMemo } from "react";
+import { flushSync } from "react-dom";
+import { showStandingRefusal } from "@/components/error-handling/show-action-failure";
 import { updateFormStatusAction } from "../application/actions/update-form-status.action";
 import { updateFormVisibilityAction } from "../application/actions/update-form-visibility.action";
 import { toast } from "@/components/ui/toast";
 import { usePickerFolders } from "@/features/folders/list-folders";
-import { Result } from "@/lib/result";
+import {
+  Result,
+  toActionFailure,
+  type Error as ResultError,
+} from "@/lib/result";
 import { useRouter } from "next/navigation";
 import { updateFormSettingsAction } from "../application/actions/update-form-settings.action";
 import { getTenantSettingsAction } from "../application/actions/get-tenant-settings.action";
@@ -57,6 +63,15 @@ function limitOneDisabledReason(
 
 function errorMessage(result: Result<unknown> | undefined, fallback: string) {
   return result && Result.isError(result) ? result.message : fallback;
+}
+
+function showFolderChangeFailure(result: ResultError | undefined) {
+  if (result?.requiredAction) return showStandingRefusal(result.requiredAction);
+  const [title, ...rest] = (result?.message ?? "").split(". ");
+  toast.error({
+    title: title || "Failed to update folder",
+    description: rest.join(". ").trim() || undefined,
+  });
 }
 
 const FormDetails = ({ form, enableEditing = false }: FormDetailsProps) => {
@@ -320,17 +335,14 @@ const FormDetails = ({ form, enableEditing = false }: FormDetailsProps) => {
     startTransition(async () => {
       const payload =
         value === "__none__" ? { clearFolderId: true } : { folderId: value };
-      const result = await updateFormSettingsAction(form.id, payload);
+      const result = await updateFormSettingsAction(form.id, payload).catch(
+        toActionFailure<string>("Failed to update folder. Try again."),
+      );
 
       if (result === undefined || Result.isError(result)) {
-        setSelectedFolderId(previous);
-        const message = errorMessage(result, "Failed to update folder");
-        const [title, ...rest] = message.split(". ");
-        const details = rest.join(". ").trim();
-        toast.error({
-          title: title || "Failed to update folder",
-          description: details || undefined,
-        });
+        // A standing refusal can navigate immediately; commit the rollback before presenting it.
+        flushSync(() => setSelectedFolderId(previous));
+        showFolderChangeFailure(result);
         return;
       }
 
