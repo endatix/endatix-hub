@@ -1,6 +1,9 @@
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
+import { TelemetryLogger } from "@/features/telemetry";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { inviteFailure } from "../invite-feedback";
+
+vi.mock("@/features/telemetry", () => ({ TelemetryLogger: { error: vi.fn() } }));
 
 it.each([
   [409, "invite_declined", "declined"],
@@ -12,4 +15,5 @@ it.each([
   const response = ApiResult.httpStatusError(status, "Invite response", code);
   // Act & Assert
   expect(inviteFailure(response)?.feedback?.kind).toBe(expected);
+  expect(TelemetryLogger.error).toHaveBeenCalledTimes(status === 503 || code === "conflict" ? 1 : 0);
 });

@@ -5,6 +5,8 @@ import { CreateTenantUserDialog } from "../ui/create-tenant-user-dialog";
 
 vi.mock("../create-tenant-user.action", () => ({ createTenantUserAction: vi.fn() }));
 const trackEvent = vi.hoisted(() => vi.fn());
+const successToast = vi.hoisted(() => vi.fn());
+vi.mock("@/components/ui/toast", () => ({ toast: { success: successToast, error: vi.fn() } }));
 vi.mock("@/features/analytics/posthog/client", () => ({ useTrackEvent: () => ({ trackEvent }) }));
 
 beforeEach(() => {
@@ -44,11 +46,13 @@ it.each([true, false])("keeps a reopened draft intact after a late invite result
   // Act
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   fireEvent.click(await screen.findByRole("button", { name: "Invite User" }));
+  fireEvent.change(screen.getByLabelText("Email Address"), { target: { value: "another@example.com" } });
   await act(async () => finish(success
     ? { isSuccess: true, message: "Invite sent." }
     : { isSuccess: false, feedback: { kind: "unavailable" } }));
   // Assert
   expect(screen.queryByText(/Invitations are temporarily unavailable/)).toBeNull();
-  expect((screen.getByLabelText("Email Address") as HTMLInputElement).value).toBe("");
+  expect((screen.getByLabelText("Email Address") as HTMLInputElement).value).toBe("another@example.com");
   expect(trackEvent.mock.calls).toEqual(success ? [["organization_user_invited", { success: true }]] : []);
+  expect(successToast.mock.calls).toEqual(success ? [["Invite sent"]] : []);
 });
