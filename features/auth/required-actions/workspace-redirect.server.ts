@@ -35,6 +35,8 @@ export async function workspaceRedirect(
 }
 
 function isWorkspacePage(path: string) {
+  // The repair page checks PlatformAdmin itself, even with a pending action.
+  if (path === "/admin/legal") return false;
   if (path === "/") return true;
   return HUB_PATHS.some(
     (root) =>
