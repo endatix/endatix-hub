@@ -185,9 +185,9 @@ export async function uploadContentFiles(config: ContentUploadConfig, files: Fil
   });
   if (Result.isError(grants)) return grants;
   const uploads = await Promise.all(prepared.map(file => putContentFile(file, grants.value)));
-  const error = uploads.find(Result.isError);
+  const error = uploads.find(upload => Result.isError(upload));
   if (error && Result.isError(error)) return error;
-  return Result.success(uploads.filter(Result.isSuccess).map(upload => upload.value));
+  return Result.success(uploads.filter(upload => Result.isSuccess(upload)).map(upload => upload.value));
 }
 
 async function putContentFile({ file, buffer }: PreparedUploadBytes, grants: UploadUrlsData) {
