@@ -21,7 +21,7 @@ export async function VersionHistory({ api, kind, paging }: Readonly<Props>) {
       <h2 className="text-xl font-semibold">Version history</h2>
       {items.length === 0 && <p>No versions on this page.</p>}
       {items.map((version) => <Version key={version.id} version={version} />)}
-      <VersionPager counts={counts} />
+      <VersionPager counts={counts} itemCount={items.length} />
     </section>
   );
 }

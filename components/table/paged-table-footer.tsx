@@ -32,12 +32,27 @@ export interface PagedTableFooterProps {
   onPageSizeChange: (pageSize: number) => void;
   pageSizeOptions?: readonly number[];
   rowsPerPageLabel?: string;
+  summaryText?: string;
   /**
    * "card" (default) preserves the original Card-matched footer chrome used
    * by roles/users/platform-admins tables. "surface" is the tighter,
    * borderless-adjacent styling used by the data-lists grids.
    */
   variant?: "card" | "surface";
+}
+
+function PageRange({ page, pageSize, totalRecords, entityLabel }: Readonly<
+  Pick<PagedTableFooterProps, "page" | "pageSize" | "totalRecords" | "entityLabel">
+>) {
+  const showingFrom = totalRecords === 0 ? 0 : (page - 1) * pageSize + 1;
+  const showingTo = Math.min(page * pageSize, totalRecords);
+  const range = `${formatInteger(showingFrom)}-${formatInteger(showingTo)} of ${formatInteger(totalRecords)}`;
+  return (
+    <>
+      <span className="sm:hidden">{range}</span>
+      <span className="hidden sm:inline">Showing {range} {entityLabel}</span>
+    </>
+  );
 }
 
 export function PagedTableFooter({
@@ -51,10 +66,9 @@ export function PagedTableFooter({
   onPageSizeChange,
   pageSizeOptions = defaultPageSizeOptions,
   rowsPerPageLabel = "Rows per page",
+  summaryText,
   variant = "card",
 }: Readonly<PagedTableFooterProps>) {
-  const showingFrom = totalRecords === 0 ? 0 : (page - 1) * pageSize + 1;
-  const showingTo = Math.min(page * pageSize, totalRecords);
   const displayPage = totalPages === 0 ? 0 : page;
   const canGoPrevious = page > 1;
   const canGoNext = hasNextPage;
@@ -69,14 +83,7 @@ export function PagedTableFooter({
       )}
     >
       <div className="flex-1 text-sm text-muted-foreground">
-        <span className="sm:hidden">
-          {formatInteger(showingFrom)}-{formatInteger(showingTo)} of{" "}
-          {formatInteger(totalRecords)}
-        </span>
-        <span className="hidden sm:inline">
-          Showing {formatInteger(showingFrom)}-{formatInteger(showingTo)} of{" "}
-          {formatInteger(totalRecords)} {entityLabel}
-        </span>
+        {summaryText ?? <PageRange page={page} pageSize={pageSize} totalRecords={totalRecords} entityLabel={entityLabel} />}
       </div>
       <div className="flex items-center justify-between gap-3 sm:justify-end sm:space-x-6 lg:space-x-8">
         <div className="flex items-center space-x-2">

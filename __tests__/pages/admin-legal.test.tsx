@@ -19,7 +19,7 @@ vi.mock("next/navigation", () => ({
   }),
   useRouter: () => ({ refresh: vi.fn(), replace }),
   usePathname: () => "/admin/legal",
-  useSearchParams: () => new URLSearchParams("kind=terms&page=2"),
+  useSearchParams: () => new URLSearchParams(window.location.search),
 }));
 vi.mock("@/features/legal/manage-documents/edit-document.action", () => ({
   editDocument: vi.fn(),
@@ -64,37 +64,92 @@ it("does not display a Required control for Privacy, even when Terms also exists
   expect(screen.getByRole("button", { name: "Review and publish" }).hasAttribute("disabled")).toBe(true);
 });
 
-it("shows the requested read-only history page with its publisher, date and navigation", async () => {
-  // Arrange
+const publication = {
+  id: "25",
+  number: 12,
+  change: "minor",
+  markdown: "Synthetic draft",
+  publishedAt: "2026-11-01T10:00:00.1234567+00:00",
+  publishedByUserId: "9007199254740993",
+};
+const emptyPage = { page: 1, pageSize: 10, totalRecords: 0, totalPages: 0, items: [] };
+const historyPage = {
+  page: 2, pageSize: 10, totalRecords: 22, totalPages: 3,
+  items: [publication],
+};
+
+async function renderHistory(data: unknown, page = 2) {
   const { VersionHistory } = await vi.importActual<
     typeof import("@/features/legal/manage-documents/version-history")
   >("@/features/legal/manage-documents/version-history");
-  get.mockResolvedValueOnce({
-    success: true,
-    data: {
-      page: 2,
-      pageSize: 10,
-      totalRecords: 22,
-      totalPages: 3,
-      items: [
-        {
-          id: "25",
-          number: 12,
-          change: "minor",
-          markdown: "Synthetic draft",
-          publishedAt: "2026-11-01T10:00:00Z",
-          publishedByUserId: "9007199254740993",
-        },
-      ],
-    },
-  });
+  get.mockResolvedValueOnce({ success: true, data });
+  window.history.replaceState(null, "", `/admin/legal?kind=terms&page=${page}`);
+  render(<PagedListUrlProvider>{await VersionHistory({ api: new EndatixApi(), kind: "terms", paging: { page } })}</PagedListUrlProvider>);
+}
+
+it("shows the requested read-only history page with its publisher, date and navigation", async () => {
   // Act
-  render(<PagedListUrlProvider>{await VersionHistory({ api: new EndatixApi(), kind: "terms", paging: {page: 2} })}</PagedListUrlProvider>);
+  await renderHistory(historyPage);
   // Assert
   expect(get).toHaveBeenCalledWith("/admin/legal/documents/terms/versions?page=2&pageSize=10");
-  expect(screen.getByText(/published by user 9007199254740993/)).toBeTruthy();
-  expect(screen.getByText("2026-11-01T10:00:00Z")).toBeTruthy();
+  expect(screen.getByText(/Version 12 · minor · published by user 9007199254740993/)).toBeTruthy();
+  expect(screen.getByText(publication.publishedAt).getAttribute("datetime")).toBe(publication.publishedAt);
+  expect(screen.getByText("Showing 11-20 of 22 versions")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", {name:"Go to next page"}));
   expect(replace).toHaveBeenCalledWith("/admin/legal?kind=terms&page=3",{scroll:false});
   expect(screen.queryByRole("button", {name:/edit|publish|delete/i})).toBeNull();
+});
+
+it("shows the empty state for a genuine empty history page", async () => {
+  // Act & Assert
+  await renderHistory(emptyPage);
+  expect(screen.getByText("No versions on this page.")).toBeTruthy();
+  expect(screen.getByText("Total versions: 0")).toBeTruthy();
+});
+
+it("keeps a publication whose text is a byte order mark", async () => {
+  // Act & Assert
+  await renderHistory({ ...historyPage, items: [{ ...publication, markdown: "\uFEFF" }] });
+  expect(screen.getByText(/published by user 9007199254740993/)).toBeTruthy();
+});
+
+it("keeps Previous available when the counted last page returns no versions", async () => {
+  // Arrange
+  await renderHistory({ ...emptyPage, page: 3, totalPages: 3, totalRecords: 25 }, 3);
+  expect(screen.getByText("No versions on this page.")).toBeTruthy();
+  expect(screen.getByText("Page 3 of 3")).toBeTruthy();
+  expect(screen.getByText("Total versions: 25")).toBeTruthy();
+  expect(screen.queryByText(/21[-–]25 of 25/)).toBeNull();
+
+  // Act
+  fireEvent.click(screen.getByRole("button", { name: "Go to previous page" }));
+
+  // Assert
+  expect(replace).toHaveBeenCalledWith("/admin/legal?kind=terms&page=2", { scroll: false });
+});
+
+it.each([
+  ["null body", null],
+  ["failed envelope with paging fields", { ...emptyPage, success: false, message: "Internal diagnostic" }],
+  ["missing items", {}],
+  ["invalid page", { ...emptyPage, page: 0 }],
+  ["missing count", { ...emptyPage, totalRecords: undefined }],
+  ["inconsistent totals", { ...emptyPage, totalPages: 1 }],
+  ["more publications than counted", { ...emptyPage, items: [publication] }],
+  ["invalid row", { ...historyPage, items: [publication, null] }],
+  ["blank text", { ...historyPage, items: [{ ...publication, markdown: " \u0085" }] }],
+  ["null character", { ...historyPage, items: [{ ...publication, markdown: "bad\0text" }] }],
+  ...Object.entries({
+    id: "9223372036854775808", number: 0, change: "unknown", markdown: null,
+    publishedAt: "not a date", publishedByUserId: 123,
+  }).map(([field, value]): [string, unknown] => [
+    `invalid ${field}`, { ...historyPage, items: [{ ...publication, [field]: value }] },
+  ]),
+])("shows a retryable error for %s", async (_label, data) => {
+  // Act & Assert
+  await renderHistory(data);
+  expect(screen.getByRole("button", { name: "Try Again" })).toBeTruthy();
+  expect(screen.queryByText("No versions on this page.")).toBeNull();
+  expect(screen.queryByText(/published by user/)).toBeNull();
+  expect(screen.queryByText(/Internal diagnostic/)).toBeNull();
 });
