@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
+import { LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StandingRefusal } from "@/components/error-handling/standing-refusal";
-import { ErrorType, Kind, Result, type Error as ResultError } from "@/lib/result/result";
+import { Result, type Error as ResultError } from "@/lib/result/result";
 import { getFormDesignHref } from "@/features/forms/form-workspace";
 import { retryPreparation, startBlank } from "./start-blank.action";
+import { PreparingStatus } from "./preparing-status";
 import type { WorkspaceChoice } from "./workspace-choice";
 
 interface Props {
@@ -65,24 +66,27 @@ function CompletedChoice({ formId }: Readonly<{ formId: string | null }>) {
   );
 }
 
+async function confirmChoice(scope: string, action: "blank" | "retry") {
+  try {
+    return await (action === "blank" ? startBlank(scope) : retryPreparation(scope));
+  } catch {
+    return Result.error("Could not confirm your draft. Try again or refresh to check its status.");
+  }
+}
+
 function useWorkspaceChoice(scope: string) {
+  const [activeAction, setActiveAction] = useState<"blank" | "retry">("blank");
   const [failure, setFailure] = useState<ResultError>();
   const [pending, startTransition] = useTransition();
-  const submit = (action: typeof startBlank) =>
+  const submit = (action: "blank" | "retry") => {
+    setFailure(undefined);
+    setActiveAction(action);
     startTransition(async () => {
-      setFailure(undefined);
-      try {
-        const result = await action(scope);
-        if (Result.isError(result)) setFailure(result);
-      } catch {
-        setFailure({
-          kind: Kind.Error,
-          errorType: ErrorType.Error,
-          message: "Could not confirm your draft. Try again or refresh to check its status.",
-        });
-      }
+      const result = await confirmChoice(scope, action);
+      if (Result.isError(result)) setFailure(result);
     });
-  return { failure, pending, submit };
+  };
+  return { failure, pending, activeAction, submit };
 }
 
 function BlankOffer({ scope }: Readonly<{ scope: string }>) {
@@ -97,7 +101,7 @@ function BlankOffer({ scope }: Readonly<{ scope: string }>) {
         <span className="block text-xs text-muted-foreground">First question</span>
         Untitled question
       </blockquote>
-      <Button disabled={pending} onClick={() => submit(startBlank)}>
+      <Button disabled={pending} onClick={() => submit("blank")}>
         {pending ? "Starting…" : "Start blank"}
       </Button>
       {failure && <ChoiceFailure failure={failure} />}
@@ -105,28 +109,24 @@ function BlankOffer({ scope }: Readonly<{ scope: string }>) {
   );
 }
 
-function PreparingStatus() {
-  const router = useRouter();
-  const status = useRef<HTMLParagraphElement>(null);
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      if (!document.hidden && status.current?.getClientRects().length) router.refresh();
-    }, 5000);
-    return () => window.clearInterval(timer);
-  }, [router]);
-  return <p role="status" ref={status}>You can leave this page and come back while we prepare your survey.</p>;
+function RunningLabel({ children }: Readonly<{ children: string }>) {
+  return <><LoaderCircle aria-hidden="true" className="size-4 motion-safe:animate-spin" />{children}</>;
 }
 
 function RecoveryPanel({ scope, working, canRetry }: Readonly<{ scope: string; working: boolean; canRetry?: boolean }>) {
-  const { failure, pending, submit } = useWorkspaceChoice(scope);
+  const { failure, pending, activeAction, submit } = useWorkspaceChoice(scope);
   return (
     <div className="space-y-3">
       <h2 className="text-xl font-semibold">{working ? "Preparing your survey" : "Your survey couldn’t be prepared"}</h2>
-      {working && <PreparingStatus />}
+      {working && <PreparingStatus scope={scope} />}
       <p className="text-muted-foreground">Finish blank to use a survey with one untitled question instead.</p>
       <div className="flex flex-wrap gap-2">
-        {canRetry && <Button disabled={pending} onClick={() => submit(retryPreparation)}>Retry preparation</Button>}
-        <Button variant="outline" disabled={pending} onClick={() => submit(startBlank)}>Finish blank</Button>
+        {canRetry && <Button disabled={pending} onClick={() => submit("retry")}>
+          {pending && activeAction === "retry" ? <RunningLabel>Retrying…</RunningLabel> : "Retry preparation"}
+        </Button>}
+        <Button variant="outline" disabled={pending} onClick={() => submit("blank")}>
+          {pending && activeAction === "blank" ? <RunningLabel>Finishing…</RunningLabel> : "Finish blank"}
+        </Button>
       </div>
       {failure && <ChoiceFailure failure={failure} />}
     </div>

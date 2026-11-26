@@ -4,6 +4,7 @@ import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { workspaceScope } from "@/lib/routes/workspace-scope.server";
 import { WorkspaceStartSection } from "../workspace-start-section";
 import { retryPreparation, startBlank } from "../start-blank.action";
+import { preparationChanged } from "../preparation-status.action";
 
 const { get, post, grant, enabled, onboarding, revalidate } = vi.hoisted(() => ({
   get: vi.fn(),
@@ -39,10 +40,13 @@ beforeEach(() => {
 });
 
 it.each(["themes.create", "themes.view"])("keeps finish blank available without %s", async (missing) => {
+  // Arrange
   onboarding.mockResolvedValue(false);
   grant.mockImplementation((permissions: string[]) => ({ success: !permissions.includes(missing) }));
   get.mockResolvedValueOnce(ApiResult.success({ state: "retryable", choices: [], formId: null }));
+  // Act
   render(await WorkspaceStartSection());
+  // Assert
   expect(screen.getByText("Finish blank").closest("details")).not.toBeNull();
   expect(screen.queryByRole("button", { name: "Retry preparation", hidden: true })).toBeNull();
   expect(await retryPreparation(workspaceScope("current")!)).toMatchObject({ message: expect.stringContaining("not available") });
@@ -50,6 +54,7 @@ it.each(["themes.create", "themes.view"])("keeps finish blank available without 
 });
 
 it("retries the saved choice only in the displayed workspace", async () => {
+  // Act & Assert
   await retryPreparation("old workspace");
   expect(post).not.toHaveBeenCalled();
   post.mockResolvedValueOnce(ApiResult.success({ state: "working", choices: [], formId: null }));
@@ -57,6 +62,18 @@ it("retries the saved choice only in the displayed workspace", async () => {
   expect(post.mock.calls).toEqual([["/onboarding/workspace-start/retry"]]);
   expect(result).toMatchObject({ value: { kind: "working" } });
   expect(revalidate).toHaveBeenCalledWith("/forms");
+});
+
+it("retains the recovery controls on a busy status read but refreshes on completion or access change", async () => {
+  // Arrange
+  const scope = workspaceScope("current")!;
+  get.mockResolvedValueOnce(ApiResult.httpStatusError(503, "Busy"));
+  get.mockResolvedValueOnce(ApiResult.success({ state: "ready", choices: [], formId: "42" }));
+  // Act & Assert
+  expect(await preparationChanged("another session")).toBe(true);
+  expect(get).not.toHaveBeenCalled();
+  expect(await preparationChanged(scope)).toBe(false);
+  expect(await preparationChanged(scope)).toBe(true);
 });
 
 it("leaves a non-enrolled member in their normal workspace", async () => {
