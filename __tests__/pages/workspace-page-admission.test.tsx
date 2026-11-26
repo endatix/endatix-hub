@@ -1,4 +1,4 @@
-/// <reference types="vite/client" />
+/// <reference types="vite/types/importMeta.d.ts" />
 import { beforeEach, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { WORKSPACE_NAVIGATION } from "@/lib/routes/workspace-navigation";
