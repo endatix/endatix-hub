@@ -16,6 +16,13 @@ const BUILD_READ_URLS_BODY = {
   hub: buildHubStorageReadUrlsBody,
 } as const;
 
+function readRequestBody(urls: string[], runtime: StorageReadRuntime, purpose?: "rich-text") {
+  const body = BUILD_READ_URLS_BODY[runtime.policyName](urls, runtime);
+  if (purpose !== "rich-text" || runtime.policyName !== "public") return body;
+  const { urls: richTextImages, ...gate } = body;
+  return { ...gate, richTextImages };
+}
+
 export {
   pickStorageReadEndpoint,
   pickStorageDeleteEndpoint,
@@ -31,16 +38,14 @@ export async function fetchStorageReadUrls(
   }
 
   const endpoint = pickStorageReadEndpoint(runtime.policyName);
-  const body = BUILD_READ_URLS_BODY[runtime.policyName](urls, runtime);
+  const body = readRequestBody(urls, runtime, purpose);
 
   try {
     const res = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify(purpose === "rich-text" && runtime.policyName === "public"
-        ? { ...body, urls: undefined, richTextImages: urls }
-        : body),
+      body: JSON.stringify(body),
     });
 
     if (!res.ok) {

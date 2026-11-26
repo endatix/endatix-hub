@@ -7,6 +7,7 @@ import {
 } from "@/features/form-access/server";
 import type {
   HubStorageScope,
+  FormStorageAccess,
   FormStorageGateInput,
 } from "@/features/form-access/server";
 import { appendStorageReadQuery } from "@/features/asset-storage/infrastructure/append-storage-read-query";
@@ -52,13 +53,15 @@ interface PrivateReadUrlParseResult {
 /**
  * Public form read-urls: OSS gate, per-object path checks, then provider presign.
  */
-export async function resolvePublicReadUrls(input: {
+interface PublicReadBatch {
   richTextImages?: true;
   gate: FormStorageGateInput;
   hubAccessToken?: string;
   urls: string[];
   clientConfig: ClientStorageConfig;
-}): Promise<Result<ReadUrlsResponse>> {
+}
+
+export async function resolvePublicReadUrls(input: PublicReadBatch): Promise<Result<ReadUrlsResponse>> {
   const accessResult = await authorizeFormStorageAccess(input.gate, {
     hubAccessToken: input.hubAccessToken,
   });
@@ -71,23 +74,28 @@ export async function resolvePublicReadUrls(input: {
     return formAccessForbidden("File view is not permitted");
   }
 
+  return resolveAuthorizedReadBatch(input, access);
+}
+
+async function resolveAuthorizedReadBatch(input: PublicReadBatch, access: FormStorageAccess) {
   const accessForPaths = {
     ...access,
     submissionId: access.submissionId ?? input.gate.submissionId,
   };
 
-  const sources = input.richTextImages
-    ? await loadRichTextSources(access)
-    : undefined;
+  const sources = input.richTextImages ? await loadRichTextSources(access) : undefined;
   return resolvePresignedReadUrls({
     urls: input.urls,
     clientConfig: input.clientConfig,
-    assertObject: (parsed, originalUrl) =>
+    assertObject: (parsed, url) =>
       assertPublicObjectAccess(parsed, accessForPaths, input.clientConfig) ??
-      (sources && (!canonicalContentImage(originalUrl, input.clientConfig) || !sources.has(originalUrl))
-        ? "Image is not in the form definition"
-        : null),
+      assertReferencedImage(sources, url, input.clientConfig),
   });
+}
+
+function assertReferencedImage(sources: Set<string> | undefined, url: string, config: ClientStorageConfig) {
+  if (!sources) return null;
+  return canonicalContentImage(url, config) && sources.has(url) ? null : "Image is not in the form definition";
 }
 
 async function loadRichTextSources(access: { formId: string; definitionJson?: string | null }) {
