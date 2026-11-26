@@ -74,6 +74,7 @@ function FormDesignerContent({
     onSave: handleSave,
     onNavigateBack: handleNavigateBack,
   });
+  const Editor = isAssistantEnabled ? FormEditorWithChat : FormEditorContainer;
 
   return (
     <div className="flex h-full flex-col">
@@ -83,33 +84,19 @@ function FormDesignerContent({
         isPublic={isPublic}
         backLabel={`Back to ${designReturn?.label ?? "Overview"}`}
       />
-      {isAssistantEnabled ? (
-        <FormEditorWithChat
-          formId={formId}
-          formJson={formJson}
-          formName={formName}
-          options={options}
-          themeId={themeId}
-          isPublic={isPublic}
-          formIsEnabled={formIsEnabled}
-          audience={audience}
-          onThemeModificationChange={setIsCurrentThemeModified}
-          onSaveHandlerReady={setSaveHandler}
-        />
-      ) : (
-        <FormEditorContainer
-          formId={formId}
-          formJson={formJson}
-          formName={formName}
-          options={options}
-          themeId={themeId}
-          isPublic={isPublic}
-          formIsEnabled={formIsEnabled}
-          audience={audience}
-          onThemeModificationChange={setIsCurrentThemeModified}
-          onSaveHandlerReady={setSaveHandler}
-        />
-      )}
+      <Editor
+        isSaving={headerState.isSaving}
+        formId={formId}
+        formJson={formJson}
+        formName={formName}
+        options={options}
+        themeId={themeId}
+        isPublic={isPublic}
+        formIsEnabled={formIsEnabled}
+        audience={audience}
+        onThemeModificationChange={setIsCurrentThemeModified}
+        onSaveHandlerReady={setSaveHandler}
+      />
     </div>
   );
 }

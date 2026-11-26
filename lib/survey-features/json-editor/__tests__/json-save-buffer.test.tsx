@@ -163,6 +163,22 @@ it("acknowledges the saved definition after JSON gives way to Preview", async ()
   expect((await save).stillSaved(hook.getJsonModel(creator))).toBe(true);
 });
 
+it("loads an external saved definition into open Ace and then Preview", () => {
+  // Arrange
+  const { creator, editor, hook } = view;
+  const { rerender } = renderHook(({ json }) => useCreatorJson(creator, json, hook), {
+    initialProps: { json: { title: "B" } },
+  });
+
+  // Act
+  rerender({ json: { title: "External C" } });
+
+  // Assert
+  expect(JSON.parse(editor.getValue()).title).toBe("External C");
+  creator.activeTab = "preview";
+  expect(creator.JSON.title).toBe("External C");
+});
+
 it("accepts a canvas save in a newly opened JSON tab only while untouched", () => {
   // Arrange
   const { creator, hook } = view;

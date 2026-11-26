@@ -29,6 +29,7 @@ import type { DesignerAudience } from "./form-editor";
 const CRITICAL_WIDTH = 600;
 
 export interface FormEditorWithChatProps {
+  isSaving?: boolean;
   formId: string;
   formJson: object | null;
   formName: string;
@@ -42,6 +43,7 @@ export interface FormEditorWithChatProps {
 }
 
 export default function FormEditorWithChat({
+  isSaving,
   formId,
   formJson,
   formName,
@@ -133,6 +135,7 @@ export default function FormEditorWithChat({
         <ResizablePanel defaultSize={70}>
           {shouldRenderEditor ? (
             <FormEditorContainer
+              isSaving={isSaving}
               formId={formId}
               formJson={formJson}
               proposal={proposal}

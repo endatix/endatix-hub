@@ -130,6 +130,7 @@ SvgRegistry.registerIcon("icon-question-loops", questionLoopsIcon);
 registerThemes();
 
 interface FormEditorProps {
+  isSaving?: boolean;
   formId: string;
   formJson: object | null;
   proposal?: object | null;
@@ -169,6 +170,7 @@ function nameToTitle(name: string): string {
 }
 
 function FormEditor({
+  isSaving,
   formJson,
   proposal,
   formId,
@@ -251,7 +253,7 @@ function FormEditor({
     markFormModified,
   });
   const saveCanvas = useCreatorJson(creator, formJson, { captureJsonSave, proposal });
-  useCreatorTabUrl(creator);
+  useCreatorTabUrl(creator, isSaving);
 
   const saveCustomQuestion = useCallback(
     async (element: Question, questionName: string, questionTitle: string) => {

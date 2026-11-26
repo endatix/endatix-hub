@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import type { SurveyCreatorModel } from "survey-creator-core";
+import type { SurveyCreatorModel, TabJsonEditorBasePlugin } from "survey-creator-core";
+import type { AceJsonPlugin } from "../../json-editor/json-editor-state";
 import { Result } from "@/lib/result/result";
 import { SURVEY_CREATOR_BUILT_IN_TAB } from "@/lib/survey-js";
 
@@ -16,6 +17,22 @@ function isSameDefinition(left: unknown, right: unknown): boolean {
 }
 
 type CaptureJsonSave = () => () => boolean;
+
+function loadDefinition(creator: SurveyCreatorModel, definition: object, captureJsonSave: CaptureJsonSave) {
+  if (creator.activeTab !== SURVEY_CREATOR_BUILT_IN_TAB.json) {
+    creator.JSON = definition;
+    return;
+  }
+  // On the JSON tab creator.JSON only calls the vendor's optional text callback.
+  // Load the canvas and the mounted editor; Ace initializes from the canvas if not mounted yet.
+  const text = JSON.stringify(definition, null, 2);
+  creator.text = text;
+  const model = creator.getPlugin<TabJsonEditorBasePlugin>("json").model as AceJsonPlugin;
+  if (!model?.aceEditor) return;
+  model.text = text;
+  model.isJSONChanged = false;
+  captureJsonSave()();
+}
 
 function captureSavedDefinition(creator: SurveyCreatorModel | null, submitted: object, captureJsonSave: CaptureJsonSave) {
   const jsonTab = SURVEY_CREATOR_BUILT_IN_TAB.json;
@@ -73,7 +90,7 @@ function useCanvasSubmission(creator: SurveyCreatorModel | null, captureJsonSave
 function useSavedSnapshot(
   creator: SurveyCreatorModel | null,
   json: object | null,
-  pending: Set<Submission>,
+  { pending, captureJsonSave }: { pending: Set<Submission>; captureJsonSave: CaptureJsonSave },
 ) {
   const lastRead = useRef<{ creator: SurveyCreatorModel; json: object } | null>(null);
 
@@ -83,10 +100,10 @@ function useSavedSnapshot(
     const submitted = takeReadback(pending, json, previous);
     if (isSameDefinition(previous, json)) return;
     if (!submitted && (!previous || !isSameDefinition(creator.JSON, json))) {
-      creator.JSON = json;
+      loadDefinition(creator, json, captureJsonSave);
     }
     lastRead.current = { creator, json };
-  }, [creator, json, pending]);
+  }, [creator, json, pending, captureJsonSave]);
 }
 
 /** Saved readbacks preserve live edits; assistant proposals explicitly change the canvas. */
@@ -96,10 +113,10 @@ export function useCreatorJson(
   { captureJsonSave, proposal }: { captureJsonSave: CaptureJsonSave; proposal?: object | null },
 ) {
   const { pending, saveCanvas } = useCanvasSubmission(creator, captureJsonSave);
-  useSavedSnapshot(creator, json, pending);
+  useSavedSnapshot(creator, json, { pending, captureJsonSave });
   useEffect(() => {
-    if (creator && proposal) creator.JSON = proposal;
-  }, [creator, proposal]);
+    if (creator && proposal) loadDefinition(creator, proposal, captureJsonSave);
+  }, [creator, proposal, captureJsonSave]);
 
   return saveCanvas;
 }

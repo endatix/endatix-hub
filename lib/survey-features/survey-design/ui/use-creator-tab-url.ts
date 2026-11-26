@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import type { SurveyCreatorModel } from "survey-creator-core";
 import {
@@ -26,7 +26,24 @@ function replaceTabQuery(nextQueryValue: string | null) {
   history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
 }
 
-export function useCreatorTabUrl(creator: SurveyCreatorModel | null) {
+function usePublishTab(creator: SurveyCreatorModel | null, saving: boolean) {
+  const deferred = useRef<{ creator: SurveyCreatorModel; slug: string | null } | null>(null);
+  useEffect(() => {
+    if (!creator) return;
+    if (!saving && deferred.current?.creator === creator) {
+      replaceTabQuery(deferred.current.slug);
+      deferred.current = null;
+    }
+    return bindSetTabToUrl(creator, slug => {
+      // Revalidating server actions target the URL that started the save. Changing
+      // its query mid-flight can make Next replace the document on the next refresh.
+      if (saving) deferred.current = { creator, slug };
+      else replaceTabQuery(slug);
+    });
+  }, [creator, saving]);
+}
+
+export function useCreatorTabUrl(creator: SurveyCreatorModel | null, saving = false) {
   const searchParams = useSearchParams();
   const queryValue = searchParams.get(CREATOR_TAB_QUERY_KEY);
 
@@ -39,11 +56,5 @@ export function useCreatorTabUrl(creator: SurveyCreatorModel | null) {
     replaceTabQuery(serializeCreatorTabUrlSlug(resolved));
   }, [creator, queryValue]);
 
-  useEffect(() => {
-    if (!creator) {
-      return;
-    }
-
-    return bindSetTabToUrl(creator, replaceTabQuery);
-  }, [creator]);
+  usePublishTab(creator, saving);
 }

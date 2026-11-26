@@ -61,6 +61,20 @@ describe("useCreatorTabUrl", () => {
     );
   });
 
+  it("opens Preview immediately but writes its URL only after the save settles", () => {
+    // Arrange
+    const creator = newCreator();
+    const { rerender } = renderHook(({ saving }) => useCreatorTabUrl(creator, saving), {
+      initialProps: { saving: true },
+    });
+
+    // Act & Assert
+    act(() => { creator.activeTab = SURVEY_CREATOR_BUILT_IN_TAB.preview; });
+    expect(window.location.search).toBe("");
+    rerender({ saving: false });
+    expect(window.location.search).toBe("?tab=preview");
+  });
+
   it("keeps other search params and the hash", () => {
     // Arrange
     window.history.replaceState(null, "", "/forms/1/design?foo=bar#toolbox");
