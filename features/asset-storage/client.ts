@@ -56,3 +56,4 @@ export {
   enrichImageElement,
   ORIGINAL_SRC_ATTRIBUTE,
 } from "./use-cases/view-protected-files/enrich-image-urls";
+export { RichTextImageDisplay } from "./ui/rich-text-image-display";

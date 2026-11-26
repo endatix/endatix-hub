@@ -62,6 +62,7 @@ vi.mock("@/lib/designer-runtime", () => ({
 }));
 
 vi.mock("@/features/asset-storage/client", () => ({
+  RichTextImageDisplay: ({ children }: React.PropsWithChildren) => children,
   useStorageWithCreator: () => ({
     registerStorageHandlers: () => vi.fn(),
     isStorageReady: true,

@@ -1,4 +1,5 @@
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
+import { optionalSubmissionAbsence } from "@/lib/endatix-api/submissions/optional-submission-absence";
 import { Result } from "@/lib/result";
 import {
   hasTokenPermission,
@@ -12,6 +13,9 @@ import type {
   FormStorageTokenType,
 } from "../../types";
 import type { FormStorageGateRunContext } from "./gate-context";
+import { formPolicyStrategy } from "./form-policy.strategy";
+import { anonymousPublicFormStrategy } from "./anonymous-public-form.strategy";
+import { optionalPartialCookie } from "../../types";
 
 function resolveTokenType(
   token: string,
@@ -39,6 +43,20 @@ function assertGateSubmissionMatches(
   }
 
   return null;
+}
+
+function mayChangeAccessTokenFiles(token: string, isComplete: boolean | undefined) {
+  return hasTokenPermission(token, TokenPermission.Write) ||
+    (hasTokenPermission(token, TokenPermission.Submit) && isComplete === false);
+}
+
+async function authorizeActiveDefinitionRead(context: FormStorageGateRunContext) {
+  const policy = await formPolicyStrategy(context);
+  if (Result.isError(policy)) return policy;
+  if (!policy.value.canViewFiles) return formAccessForbidden<FormStorageAccess>("File view is not permitted");
+  const access = context.hubAccessToken ? policy : await anonymousPublicFormStrategy(context);
+  if (Result.isError(access)) return access;
+  return Result.success({ ...access.value, canUploadFiles: false, canDeleteFiles: false });
 }
 
 /** Submission or access token (body or cookie). */
@@ -69,13 +87,10 @@ export async function tokenGateStrategy(
       return mismatch;
     }
 
-    const isIncompleteSubmission = submissionResult.data.isComplete === false;
-    const canEdit = hasTokenPermission(token, TokenPermission.Write);
-    const canSubmitIncomplete =
-      hasTokenPermission(token, TokenPermission.Submit) && isIncompleteSubmission;
-    const canMutateFiles = canEdit || canSubmitIncomplete;
+    const canMutateFiles = mayChangeAccessTokenFiles(token, submissionResult.data.isComplete);
 
     return Result.success({
+      definitionJson: submissionResult.data.formDefinition?.jsonData ?? null,
       formId: gate.formId,
       submissionId,
       isPublicForm: false,
@@ -90,6 +105,9 @@ export async function tokenGateStrategy(
     token,
   );
   if (ApiResult.isError(submissionResult)) {
+    if (gate[optionalPartialCookie] && optionalSubmissionAbsence(submissionResult) === "missing") {
+      return authorizeActiveDefinitionRead(context);
+    }
     return formAccessForbidden("Form access denied");
   }
 

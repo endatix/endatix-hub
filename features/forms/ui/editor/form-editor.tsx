@@ -3,7 +3,7 @@
 import { toast } from "@/components/ui/toast";
 import { TelemetryLogger } from "@/features/telemetry";
 import { customQuestions } from "@/customizations/questions/question-registry";
-import { useStorageWithCreator } from "@/features/asset-storage/client";
+import { RichTextImageDisplay, useStorageWithCreator } from "@/features/asset-storage/client";
 import { useSurveyLicenseKey } from "@/features/config/survey-license-provider";
 import { designerRuntimeDeps } from "./designer-runtime-deps";
 import {
@@ -702,7 +702,7 @@ function FormEditor({
           </div>
         </div>
       ) : creator ? (
-        <SurveyCreatorComponent creator={creator} />
+        <RichTextImageDisplay><SurveyCreatorComponent creator={creator} /></RichTextImageDisplay>
       ) : (
         <div>Error loading form editor</div>
       )}

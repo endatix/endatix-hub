@@ -17,6 +17,7 @@ vi.mock("@/features/public-form/infrastructure/cookie-store", () => ({
 }));
 
 import { resolveStorageGateInput } from "../resolve-gate-from-request";
+import { resolveAuthoredImageGate } from "../resolve-public-storage-gate";
 
 describe("resolveStorageGateInput", () => {
   beforeEach(() => {
@@ -39,6 +40,39 @@ describe("resolveStorageGateInput", () => {
 
     expect(gate.token).toBe("22.1893456000.s.stamp~sig");
     expect(gate.tokenType).toBe("AccessToken");
+  });
+
+  it("takes the authored image credential and its kind from the selected cookie", async () => {
+    // Arrange
+    const token = "22.1893456000.s.stamp~sig";
+    mockGetToken.mockReturnValue(Result.success(token));
+
+    // Act
+    const result = await resolveAuthoredImageGate(
+      { formId: "100", tokenType: "SubmissionToken" },
+      null,
+    );
+
+    // Assert
+    expect(result).toEqual(
+      Result.success({ formId: "100", token, tokenType: "AccessToken" }),
+    );
+  });
+
+  it("rejects inconsistent explicit credential metadata instead of selecting a cookie", async () => {
+    // Act
+    const result = await resolveAuthoredImageGate(
+      {
+        formId: "100",
+        token: "abc123",
+        tokenType: "AccessToken",
+      },
+      null,
+    );
+
+    // Assert
+    expect(Result.isError(result)).toBe(true);
+    expect(mockGetToken).not.toHaveBeenCalled();
   });
 
   it("skips cookie when allowCookieFallback is false", async () => {

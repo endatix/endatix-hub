@@ -7,6 +7,7 @@ import {
 } from "@/features/form-access/server";
 import type {
   HubStorageScope,
+  FormStorageAccess,
   FormStorageGateInput,
 } from "@/features/form-access/server";
 import { appendStorageReadQuery } from "@/features/asset-storage/infrastructure/append-storage-read-query";
@@ -17,6 +18,9 @@ import {
   type ParsedStorageObjectUrl,
 } from "@/features/asset-storage/utils";
 import type { ClientStorageConfig } from "@endatix/storage-core";
+import { collectRichTextImageSources } from "./rich-text-image-sources";
+import { canonicalContentImage } from "../view-protected-files/canonical-content-image";
+import { getActiveFormDefinition } from "@/services/api";
 
 export type ReadUrlResolvedEntry = { url: string } | { error: string };
 
@@ -32,6 +36,7 @@ interface ParsedReadUrl {
 
 type StorageObjectAccessAssert = (
   parsed: ParsedStorageObjectUrl,
+  originalUrl: string,
 ) => string | null;
 
 interface ResolvePresignedReadUrlsInput {
@@ -48,12 +53,15 @@ interface PrivateReadUrlParseResult {
 /**
  * Public form read-urls: OSS gate, per-object path checks, then provider presign.
  */
-export async function resolvePublicReadUrls(input: {
+interface PublicReadBatch {
+  richTextImages?: true;
   gate: FormStorageGateInput;
   hubAccessToken?: string;
   urls: string[];
   clientConfig: ClientStorageConfig;
-}): Promise<Result<ReadUrlsResponse>> {
+}
+
+export async function resolvePublicReadUrls(input: PublicReadBatch): Promise<Result<ReadUrlsResponse>> {
   const accessResult = await authorizeFormStorageAccess(input.gate, {
     hubAccessToken: input.hubAccessToken,
   });
@@ -66,17 +74,39 @@ export async function resolvePublicReadUrls(input: {
     return formAccessForbidden("File view is not permitted");
   }
 
+  return resolveAuthorizedReadBatch(input, access);
+}
+
+async function resolveAuthorizedReadBatch(input: PublicReadBatch, access: FormStorageAccess) {
   const accessForPaths = {
     ...access,
     submissionId: access.submissionId ?? input.gate.submissionId,
   };
 
+  const sources = input.richTextImages ? await loadRichTextSources(access) : undefined;
   return resolvePresignedReadUrls({
     urls: input.urls,
     clientConfig: input.clientConfig,
-    assertObject: (parsed) =>
-      assertPublicObjectAccess(parsed, accessForPaths, input.clientConfig),
+    assertObject: (parsed, url) =>
+      assertPublicObjectAccess(parsed, accessForPaths, input.clientConfig) ??
+      assertReferencedImage(sources, url, input.clientConfig),
   });
+}
+
+function assertReferencedImage(sources: Set<string> | undefined, url: string, config: ClientStorageConfig) {
+  if (!sources) return null;
+  return canonicalContentImage(url, config) && sources.has(url) ? null : "Image is not in the form definition";
+}
+
+async function loadRichTextSources(access: { formId: string; definitionJson?: string | null }) {
+  try {
+    const json = access.definitionJson === undefined
+      ? (await getActiveFormDefinition(access.formId, true)).jsonData
+      : access.definitionJson;
+    return json ? collectRichTextImageSources(JSON.parse(json)) : new Set<string>();
+  } catch {
+    return new Set<string>();
+  }
 }
 
 /**
@@ -166,7 +196,7 @@ function parsePrivateReadUrls(
       continue;
     }
 
-    const accessError = assertObject(located);
+    const accessError = assertObject(located, url);
     if (accessError !== null) {
       resolved[url] = { error: accessError };
       continue;

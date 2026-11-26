@@ -4,6 +4,7 @@ import type { FormStorageGateInput, FormStorageTokenType } from "../types";
 import { validateGateInput } from "./validate-gate-input";
 
 export interface PublicReadUrlsRequestBody {
+  richTextImages?: unknown;
   formId?: string;
   submissionId?: string;
   token?: string;
@@ -19,6 +20,20 @@ export interface HubReadUrlsRequestBody {
 }
 
 const MAX_READ_URLS = 50;
+
+type PublicReadTargets = { urls: string[]; richTextImages?: true };
+
+function publicReadTargets(body: PublicReadUrlsRequestBody): Result<PublicReadTargets> {
+  if (body.richTextImages !== undefined && body.urls !== undefined) {
+    return Result.validationError("Specify one read target list");
+  }
+  const sources = parseUrlsField(body.richTextImages ?? body.urls);
+  if (Result.isError(sources)) return sources;
+  return Result.success({
+    urls: sources.value,
+    ...(body.richTextImages !== undefined ? { richTextImages: true as const } : {}),
+  });
+}
 
 /**
  * Parses the urls field.
@@ -111,12 +126,12 @@ export function parseHubReadUrlsBody(body: HubReadUrlsRequestBody): Result<{
  */
 export function parsePublicReadUrlsBody(
   body: PublicReadUrlsRequestBody,
-): Result<{ gate: FormStorageGateInput; urls: string[] }> {
+): Result<PublicReadTargets & { gate: FormStorageGateInput }> {
   if (!body.formId?.trim()) {
     return Result.validationError("formId is required");
   }
 
-  const urlsResult = parseUrlsField(body.urls);
+  const urlsResult = publicReadTargets(body);
   if (Result.isError(urlsResult)) {
     return urlsResult;
   }
@@ -133,6 +148,6 @@ export function parsePublicReadUrlsBody(
 
   return Result.success({
     gate: gateResult.value,
-    urls: urlsResult.value,
+    ...urlsResult.value,
   });
 }

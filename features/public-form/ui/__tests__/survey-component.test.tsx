@@ -87,8 +87,8 @@ vi.mock("@/features/analytics/posthog/client", () => ({
 }));
 
 vi.mock("@/features/asset-storage/client", () => ({
-  useStorageWithSurvey: (...args: unknown[]) =>
-    mockUseStorageWithSurvey(...args),
+  RichTextImageDisplay: ({ children }: React.PropsWithChildren) => children,
+  useStorageWithSurvey: mockUseStorageWithSurvey,
 }));
 
 vi.mock("../use-survey-theme.hook", () => ({
