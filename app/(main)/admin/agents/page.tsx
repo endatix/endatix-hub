@@ -1,3 +1,4 @@
+import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import PageTitle from "@/components/headings/page-title";
 import AgentsList from "@/features/agents/ui/agents-list";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,7 +14,7 @@ import { getSession } from "@/features/auth";
 import { requireAdmin } from "@/components/admin-ui/admin-protection";
 
 export default async function AgentsPage() {
-  await requireAdmin();
+  await admitWorkspacePage(requireAdmin());
 
   return (
     <>

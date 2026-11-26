@@ -1,3 +1,4 @@
+import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { getUserFile } from "@/features/asset-storage/server";
 import { SubmissionFileModal } from "@/features/asset-storage/use-cases/get-user-file/ui";
 import { auth } from "@/auth";
@@ -14,7 +15,7 @@ type Params = {
 export default async function FileModalPage({ params }: Readonly<Params>) {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
-  await requireHubAccess();
+  await admitWorkspacePage(requireHubAccess());
 
   const { formId, submissionId, fileName } = await params;
 

@@ -32,6 +32,13 @@ const HUB_PATHS = [
 
 const ENDATIX_AUTH_PROVIDER_ID = "endatix";
 
+export function isWorkspacePage(path: string) {
+  if (path === "/") return true;
+  return HUB_PATHS.some(
+    (root) => root !== "/required-actions" && (path === root || path.startsWith(`${root}/`)),
+  );
+}
+
 const TENANT_PUBLIC_AUTH_PREFIX = "/t/";
 
 function isTenantPublicAuthPath(pathname: string): boolean {

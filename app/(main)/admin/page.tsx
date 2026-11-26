@@ -1,3 +1,4 @@
+import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { PlatformAdminShell } from "@/features/platform-admin/ui/platform-admin-shell";
 import { getPlatformDashboard, requirePlatformAdmin } from "@/features/platform-admin/server";
 import { PlatformDashboard } from "@/features/platform-admin/view-platform-dashboard/ui/platform-dashboard";
@@ -5,7 +6,7 @@ import { termsAcceptanceEnabled } from "@/lib/feature-flags/flags";
 import Link from "next/link";
 
 export default async function AdminPage() {
-  const session = await requirePlatformAdmin();
+  const session = await admitWorkspacePage(requirePlatformAdmin());
   const [dashboard, legalEnabled] = await Promise.all([getPlatformDashboard(session), termsAcceptanceEnabled()]);
 
   return (

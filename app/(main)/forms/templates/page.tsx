@@ -1,3 +1,4 @@
+import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import PageTitle from "@/components/headings/page-title";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,7 +14,7 @@ import { toResult } from "@/lib/result";
 export default async function FormTemplatesPage() {
   const session = await auth();
   const { requireHubAccess, checkPermission } = await authorization(session);
-  await requireHubAccess();
+  await admitWorkspacePage(requireHubAccess());
   const headerDataPromise = getFormsHeaderDataCached(session?.accessToken);
   const canCreateForms = (await checkPermission(Permissions.Forms.Create))
     .success;

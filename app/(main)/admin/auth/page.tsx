@@ -1,3 +1,4 @@
+import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import {
   getAuthSettings,
   requirePlatformAdmin,
@@ -7,7 +8,7 @@ import { getBrand } from "@/lib/branding/server";
 import { AuthSettingsPanel } from "@/features/platform-admin/view-auth-settings/ui/auth-settings-panel";
 
 export default async function AuthSettingsPage() {
-  const session = await requirePlatformAdmin();
+  const session = await admitWorkspacePage(requirePlatformAdmin());
   const [summary, brand] = await Promise.all([
     getAuthSettings(session),
     getBrand(),

@@ -1,3 +1,4 @@
+import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import {
   getEmailSettings,
   requirePlatformAdmin,
@@ -6,7 +7,7 @@ import { PlatformAdminShell } from "@/features/platform-admin/ui/platform-admin-
 import { EmailSettingsPanel } from "@/features/platform-admin/view-email-settings/ui/email-settings-panel";
 
 export default async function EmailSettingsPage() {
-  const session = await requirePlatformAdmin();
+  const session = await admitWorkspacePage(requirePlatformAdmin());
   const settings = await getEmailSettings(session);
 
   return (

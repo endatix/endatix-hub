@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { workspaceSlot } from "@/features/auth/server";
 import MainHeader from "@/components/layout-ui/header/main-header";
 import { Button } from "@/components/ui/button";
 import { UNAUTHORIZED_PATH } from "@/features/auth";
@@ -16,7 +17,7 @@ type PageProps = {
   params: Promise<{ folderId: string }>;
 };
 
-export default async function FolderDetailsHeaderSlot({
+async function FolderDetailsHeaderSlot({
   params,
 }: Readonly<PageProps>) {
   const { folderId } = await params;
@@ -59,3 +60,5 @@ export default async function FolderDetailsHeaderSlot({
     />
   );
 }
+
+export default workspaceSlot(FolderDetailsHeaderSlot);

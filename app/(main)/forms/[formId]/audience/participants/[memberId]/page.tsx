@@ -1,5 +1,5 @@
+import { redirectDisabledPage, resolveWorkspaceAction } from "@/features/auth/required-actions/workspace-redirect.server";
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { Permissions } from "@/features/auth/authorization";
 import {
   loadParticipantPage,
@@ -26,7 +26,8 @@ export const metadata: Metadata = { title: "Participant" };
  */
 async function guardParticipantPage(formId: string) {
   const access = await requireAudienceAccess(PARTICIPANT_PAGE_PERMISSION);
-  if (Result.isError(access)) return redirect(`/forms/${formId}`);
+  if (Result.isError(access)) return redirectDisabledPage(`/forms/${formId}`);
+  await resolveWorkspaceAction();
   const { api, checkPermission } = access.value;
   const [testForms, testLinks] = await Promise.all([
     checkPermission(Permissions.Forms.Test),

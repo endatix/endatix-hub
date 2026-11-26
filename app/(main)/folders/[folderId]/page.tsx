@@ -1,3 +1,4 @@
+import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
 import {
@@ -17,7 +18,7 @@ export default async function FolderDetailsPage({
   const session = await auth();
   const { requireHubAccess, requirePermission } = await authorization(session);
   await requireHubAccess();
-  await requirePermission(Permissions.Folders.Manage);
+  await admitWorkspacePage(requirePermission(Permissions.Folders.Manage));
 
   const pageData = await getFolderManagementPageDataCached(
     session?.accessToken,

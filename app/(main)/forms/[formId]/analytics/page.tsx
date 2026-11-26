@@ -1,6 +1,6 @@
+import { redirectDisabledPage, resolveWorkspaceAction } from "@/features/auth/required-actions/workspace-redirect.server";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
-import { redirect } from "next/navigation";
 import { FormWorkspaceHeader } from "@/features/forms/form-workspace";
 import { getFormWorkspaceFlags } from "@/features/forms/form-workspace/form-workspace-flags.server";
 import { loadWorkspaceForm } from "@/features/forms/form-workspace/load-workspace-form.server";
@@ -20,8 +20,8 @@ export default async function FormAnalyticsPage({ params }: Readonly<Params>) {
   await requireHubAccess();
 
   const { formId } = await params;
-  const flags = await getFormWorkspaceFlags();
-  if (!flags.analytics) return redirect(`/forms/${formId}`);
+  if (!(await getFormWorkspaceFlags()).analytics) return redirectDisabledPage(`/forms/${formId}`);
+  await resolveWorkspaceAction();
 
   const form = await loadWorkspaceForm(formId, "analytics");
   if (Result.isError(form)) return <FormLoadError result={form} />;

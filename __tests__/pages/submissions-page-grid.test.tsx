@@ -13,6 +13,9 @@ vi.mock("@/lib/feature-flags/flags", () => ({
   reportingExportFlag: async () => flag.reportingExport,
 }));
 vi.mock("@/auth", () => ({ auth: vi.fn() }));
+vi.mock("@/features/auth/authorization", () => ({
+  authorization: async () => ({ requireHubAccess: async () => {} }),
+}));
 vi.mock("@/features/forms/form-workspace", () => ({
   FormWorkspaceHeader: function FormWorkspaceHeader() {
     return null;

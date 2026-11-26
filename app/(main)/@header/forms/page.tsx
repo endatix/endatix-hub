@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { workspaceSlot } from "@/features/auth/server";
 import MainHeader from "@/components/layout-ui/header/main-header";
 import FormsBreadcrumbNav from "@/components/layout-ui/navigation/forms-breadcrumb-nav";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,7 +16,7 @@ interface FormsHeaderPageProps {
   searchParams?: Promise<{ browse?: string }>;
 }
 
-export default async function FormsHeaderSlot({
+async function FormsHeaderSlot({
   searchParams,
 }: Readonly<FormsHeaderPageProps>) {
   const session = await auth();
@@ -79,3 +80,5 @@ async function FormsHeaderActions({
     />
   );
 }
+
+export default workspaceSlot(FormsHeaderSlot);

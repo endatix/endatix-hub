@@ -1,3 +1,4 @@
+import { redirectDisabledPage, resolveWorkspaceAction } from "@/features/auth/required-actions/workspace-redirect.server";
 import { Permissions } from "@/features/auth/authorization";
 import { AudiencePageShell } from "@/features/audience/get-audience-page/ui/audience-page-shell";
 import { audienceListSearch } from "@/features/audience/get-audience-page/audience-return-to";
@@ -24,7 +25,6 @@ import {
   firstSearchParam,
   type SearchParamValue,
 } from "@/lib/utils/next-utils";
-import { redirect } from "next/navigation";
 
 type Params = {
   params: Promise<{ formId: string }>;
@@ -131,7 +131,8 @@ async function audienceView(
  */
 async function guardAudiencePage(formId: string) {
   const access = await requireAudienceAccess(Permissions.Forms.View);
-  if (Result.isError(access)) return redirect(`/forms/${formId}`);
+  if (Result.isError(access)) return redirectDisabledPage(`/forms/${formId}`);
+  await resolveWorkspaceAction();
   const { api, checkPermission } = access.value;
   const [manageSettings, editForms, testForms, testLinks] = await Promise.all([
     checkPermission(Permissions.Tenant.ManageSettings),

@@ -10,9 +10,9 @@ import { resolverPath } from "@/lib/routes/resolve-target";
 
 const flags = {
   terms: () => termsAcceptanceEnabled(),
-  analytics: formAnalyticsFlag,
-  audience: personalizationFlag,
-  reporting: reportingExportFlag,
+  analytics: () => formAnalyticsFlag(),
+  audience: () => personalizationFlag(),
+  reporting: () => reportingExportFlag(),
 };
 
 export async function resolverAvailable(path: string) {

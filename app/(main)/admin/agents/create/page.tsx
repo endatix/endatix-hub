@@ -1,12 +1,13 @@
 "use server";
 
+import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import Link from "next/link";
 import PageTitle from "@/components/headings/page-title";
 import { requireAdmin } from "@/components/admin-ui/admin-protection";
 import CreateAgent from "@/features/agents/ui/create-agent";
 
 export default async function CreateAgentPage() {
-  await requireAdmin();
+  await admitWorkspacePage(requireAdmin());
 
   return (
     <>

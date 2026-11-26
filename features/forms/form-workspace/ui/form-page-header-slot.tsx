@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { workspaceActionTarget } from "@/features/auth/server";
 import MainHeader from "@/components/layout-ui/header/main-header";
 import FormsBreadcrumbNav from "@/components/layout-ui/navigation/forms-breadcrumb-nav";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -55,7 +56,8 @@ async function FormRecordActionsSlot({ formId, active }: Readonly<Props>) {
  * The sticky header of a form's pages: the trail to the form, a divider, the switcher of its
  * pages, and the record actions (Design, Share, more).
  */
-export function FormPageHeaderSlot(props: Readonly<Props>) {
+export async function FormPageHeaderSlot(props: Readonly<Props>) {
+  if (await workspaceActionTarget()) return null;
   return (
     <MainHeader
       sticky

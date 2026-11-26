@@ -1,3 +1,4 @@
+import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { CreateUpdateAgentRequestSchema } from "@/lib/endatix-api/agents/types";
 import EditAgent from "@/features/agents/ui/edit-agent";
 import { EndatixApi } from "@/lib/endatix-api/endatix-api";
@@ -12,7 +13,7 @@ export default async function EditAgentPage({
 }: {
   params: Promise<{ agentId: string }>;
 }) {
-  await requireAdmin();
+  await admitWorkspacePage(requireAdmin());
 
   const { agentId } = await params;
 

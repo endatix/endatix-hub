@@ -1,3 +1,4 @@
+import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { AssetStorageProvider } from "@/features/asset-storage/server";
@@ -42,7 +43,7 @@ export default async function FolderSlugFormsPage({
   const { folderSlug } = await params;
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
-  await requireHubAccess();
+  await admitWorkspacePage(requireHubAccess());
 
   const api = new EndatixApi(session?.accessToken);
   const folderResult = await api.folders.getBySlug(folderSlug);

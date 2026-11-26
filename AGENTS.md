@@ -175,6 +175,7 @@ Known deviations, to be migrated when next touched (do not copy them): `Forms.li
 
 ## Server Pages
 
+- On a workspace page, pass its ordinary throwing guard to `admitWorkspacePage`. If the page renders its own denial, call `resolveWorkspaceAction` only after that denial branch. Keep the legal repair page exempt; redirect-only aliases delegate admission to their destination.
 - Keep `app/` pages mostly orchestration-focused: parse route/search params, start independent data work early, and pass typed data into UI components.
 - Resolve a ternary into a named local before JSX. Pass `currentUserId={currentUserId}`, not `condition ? a : b` inside the prop list. Same work on a Server Component; the name is what you inspect when a prop is wrong. Reference: `app/(main)/admin/platform-admins/page.tsx`.
 - Prefer streaming slow, independent page sections with `Suspense` boundaries instead of blocking the whole route when partial rendering improves UX.

@@ -1,3 +1,4 @@
+import { resolveWorkspaceAction } from "@/features/auth/required-actions/workspace-redirect.server";
 import PageTitle from "@/components/headings/page-title";
 import { auth } from "@/auth";
 import { SIGNIN_PATH } from "@/features/auth";
@@ -31,11 +32,11 @@ export default async function FoldersManagementPage({
   const { requireHubAccess, checkPermission } = await authorization(session);
   await requireHubAccess();
 
-  const canManageFolders = (await checkPermission(Permissions.Folders.Manage))
-    .success;
-  if (!canManageFolders) {
+  const manageFolders = await checkPermission(Permissions.Folders.Manage);
+  if (!manageFolders.success) {
     return <UnauthorizedComponent />;
   }
+  await resolveWorkspaceAction();
 
   const api = new EndatixApi(session?.accessToken);
   const foldersApiResult = await api.folders.list({ includeInactive: true });
@@ -104,7 +105,7 @@ export default async function FoldersManagementPage({
             folder={folder}
             formCount={formCount}
             templateCount={templateCount}
-            canManage={canManageFolders}
+            canManage
           />
         ))}
       </div>

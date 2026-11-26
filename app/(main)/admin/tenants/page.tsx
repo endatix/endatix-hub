@@ -1,3 +1,4 @@
+import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { CreateTenantPanel } from "@/features/platform-admin/create-tenant/ui/create-tenant-panel";
 import {
   listPlatformTenants,
@@ -18,7 +19,7 @@ export default async function TenantsPage({
   searchParams,
 }: Readonly<TenantsPageProps>) {
   const [session, resolvedSearchParams, canManage] = await Promise.all([
-    requirePlatformAdmin(),
+    admitWorkspacePage(requirePlatformAdmin()),
     searchParams,
     tenantManagementFlag(),
   ]);

@@ -1,3 +1,4 @@
+import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { auth } from "@/auth";
 import { SIGNIN_PATH } from "@/features/auth";
 import { authorization } from "@/features/auth/authorization";
@@ -10,7 +11,7 @@ import { redirect } from "next/navigation";
 export default async function Home() {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
-  await requireHubAccess();
+  await admitWorkspacePage(requireHubAccess());
 
   const enableExperimental = await experimentalFeaturesFlag();
   const allowHomePage =

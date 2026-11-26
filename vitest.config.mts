@@ -25,6 +25,7 @@ export default defineConfig({
   },
   test: {
     globals: true,
+    setupFiles: ["./test/request-headers.ts"],
     // With Vitest 5's default clearMocks, every test starts with fresh mocks, spies, env and
     // globals. Stub inside a hook or the test, never at module scope. See AGENTS.md Tests.
     restoreMocks: true,

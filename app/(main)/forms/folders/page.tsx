@@ -1,3 +1,4 @@
+import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import PageTitle from "@/components/headings/page-title";
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
@@ -21,7 +22,7 @@ import { FolderOpen } from "lucide-react";
 export default async function FormFoldersPage() {
   const session = await auth();
   const { requireHubAccess, checkPermission } = await authorization(session);
-  await requireHubAccess();
+  await admitWorkspacePage(requireHubAccess());
 
   const api = new EndatixApi(session?.accessToken);
   const foldersApiResult = await api.folders.list();

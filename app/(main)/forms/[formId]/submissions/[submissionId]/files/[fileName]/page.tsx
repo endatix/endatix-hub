@@ -1,3 +1,4 @@
+import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { NotFoundComponent } from "@/components/error-handling/not-found";
 import { getUserFile } from "@/features/asset-storage/server";
 import { SubmissionFileView } from "@/features/asset-storage/use-cases/get-user-file/ui";
@@ -17,7 +18,7 @@ type Params = {
 export default async function FilePage({ params }: Readonly<Params>) {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
-  await requireHubAccess();
+  await admitWorkspacePage(requireHubAccess());
 
   const { formId, submissionId, fileName } = await params;
 

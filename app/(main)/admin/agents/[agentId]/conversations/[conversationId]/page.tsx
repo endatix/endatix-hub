@@ -1,3 +1,4 @@
+import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { getSession } from "@/features/auth";
 import { EndatixApi } from "@/lib/endatix-api";
 import { Model } from "survey-core";
@@ -15,7 +16,7 @@ interface Params {
 }
 
 export default async function ConversationDetailsPage({ params }: Params) {
-  await requireAdmin();
+  await admitWorkspacePage(requireAdmin());
 
   const { agentId, conversationId } = await params;
 

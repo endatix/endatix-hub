@@ -1,3 +1,4 @@
+import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import FormTemplateEditorContainer from "@/features/form-templates/ui/form-template-editor-container";
 import { getFormTemplate } from "@/services/api";
 import { NotFoundComponent } from "@/components/error-handling/not-found";
@@ -20,7 +21,7 @@ type Params = {
 export default async function FormTemplateEditPage({ params }: Params) {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
-  await requireHubAccess();
+  await admitWorkspacePage(requireHubAccess());
 
   const { templateId } = await params;
   let template: FormTemplate | null = null;

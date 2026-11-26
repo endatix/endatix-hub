@@ -91,6 +91,28 @@ describe("accepting the displayed publication", () => {
     expect(await acceptTerms(display, new FormData())).toMatch(/checkbox/);
     expect(post).not.toHaveBeenCalled();
   });
+  it("continues from a stale reader without recording another acceptance", async () => {
+    // Arrange
+    me.mockResolvedValue(snapshot());
+
+    // Act & Assert
+    await expect(acceptTerms(display, checked)).rejects.toThrow(`navigate:${display.returnUrl}`);
+    expect(post).not.toHaveBeenCalled();
+  });
+  it.each([
+    [workspaceScope(token), "/admin/tenants", "/admin/tenants"],
+    [homeScope(token), "/forms/99/design", "/forms"],
+    ["previous-session", "/forms/99/design", "/forms"],
+  ])("resumes a covered session according to the displayed scope: %s", async (scope, returnUrl, target) => {
+    // Arrange
+    me.mockResolvedValue(snapshot());
+
+    // Act & Assert
+    await expect(acceptTerms({ ...display, scope, returnUrl }, checked)).rejects.toMatchObject({
+      message: `navigate:${target}`,
+    });
+    expect(post).not.toHaveBeenCalled();
+  });
   it.each([
     { status: 401, destination: "/signin" },
     { status: 403, destination: "/required-actions" },

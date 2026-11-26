@@ -2,6 +2,23 @@ import { NextRequest } from "next/server";
 import { resolverVisit } from "@/lib/routes/optional-resolver";
 import { beforeEach, expect, it, vi } from "vitest";
 import proxy from "@/proxy";
+import { resolveWorkspaceAction } from "@/features/auth/required-actions/workspace-redirect.server";
+import { WORKSPACE_NAVIGATION } from "@/lib/routes/workspace-navigation";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
+import { getURLFromRedirectError } from "next/dist/client/components/redirect";
+
+const { nextHeaders } = vi.hoisted(() => ({ nextHeaders: vi.fn() }));
+vi.mock("next/headers", () => ({ headers: nextHeaders }));
+vi.mock("next/cache", () => {
+  const entries = new Map<string, unknown>();
+  return {
+    unstable_cache: (load: () => Promise<unknown>, key: string[]) => async () => {
+      const id = JSON.stringify(key);
+      if (!entries.has(id)) entries.set(id, await load());
+      return entries.get(id);
+    },
+  };
+});
 
 const { me } = vi.hoisted(() => ({ me: vi.fn() }));
 const { exportEnabled } = vi.hoisted(() => ({ exportEnabled: vi.fn() }));
@@ -9,11 +26,13 @@ vi.mock("@/lib/feature-flags/flags", () => ({
   formAnalyticsFlag: async () => false,
   personalizationFlag: async () => false,
   reportingExportFlag: exportEnabled,
+  tenantManagementFlag: async () => true,
 }));
 vi.mock("@/auth", () => ({
-  auth: async () => ({ accessToken: "session-token" }),
+  auth: async () => ({ accessToken: "session-token", user: { id: "42" } }),
 }));
-vi.mock("@/lib/endatix-api", () => ({
+vi.mock("@/lib/endatix-api", async (original) => ({
+  ...(await original<object>()),
   EndatixApi: class {
     auth = { getAuthorizationData: me };
   },
@@ -37,7 +56,16 @@ function snapshot(mode: unknown, actions: object[] = [action]) {
 }
 async function destination(path: string, method = "GET") {
   const outcome = await proxy(new NextRequest(origin + path, { method }));
-  return outcome.headers.get("location");
+  expect(outcome.headers.get("location")).toBeNull();
+  const source = outcome.headers.get(`x-middleware-request-${WORKSPACE_NAVIGATION}`);
+  nextHeaders.mockResolvedValue(new Headers(source ? { [WORKSPACE_NAVIGATION]: source } : {}));
+  try {
+    await resolveWorkspaceAction();
+    return null;
+  } catch (error) {
+    if (!isRedirectError(error)) throw error;
+    return origin + getURLFromRedirectError(error);
+  }
 }
 beforeEach(() => me.mockResolvedValue(snapshot(true)));
 
@@ -84,11 +112,34 @@ it.each([
   "/required-actions",
   "/share/42",
   "/accept-terms",
-  "/admin/legal",
   "/forms-extra",
 ])("does not read standing for %s", async (path) => {
   expect(await destination(path)).toBeNull();
   expect(me).not.toHaveBeenCalled();
+});
+
+it("rechecks the tenants page grant before a pending blocker even with a warm role cache", async () => {
+  vi.spyOn(Date, "now").mockReturnValue(Date.UTC(2026, 0, 1));
+  const { authorization, SystemRoles } = await import("@/features/auth/authorization");
+  const { default: TenantsPage } = await import("@/app/(main)/admin/tenants/page");
+  nextHeaders.mockResolvedValue(new Headers());
+  const standing = snapshot(true);
+  me.mockResolvedValue({ ...standing, data: { ...standing.data, roles: [SystemRoles.PlatformAdmin] } });
+  const { requirePlatformAdmin } = await authorization();
+  await expect(requirePlatformAdmin()).resolves.toBeUndefined();
+  me.mockResolvedValue({ ...standing, data: { ...standing.data, roles: [] } });
+  await expect(requirePlatformAdmin()).resolves.toBeUndefined();
+  nextHeaders.mockResolvedValue(new Headers({ [WORKSPACE_NAVIGATION]: "/admin/tenants" }));
+
+  await expect(TenantsPage({})).rejects.toMatchObject({
+    digest: expect.stringContaining(";/unauthorized;"),
+  });
+});
+
+it("keeps the default sidebar's folder reader off a blocked workspace page", async () => {
+  const { default: DefaultNavigation } = await import("@/app/(main)/@nav/default");
+  nextHeaders.mockResolvedValue(new Headers({ [WORKSPACE_NAVIGATION]: "/folders" }));
+  expect(await DefaultNavigation()).toBeNull();
 });
 
 it.each([
@@ -123,7 +174,13 @@ it("terminates the settings → disabled export resolver → settings cycle at a
   );
   exportEnabled.mockResolvedValue(false);
   expect(await destination("/settings")).toBe(origin + "/required-actions");
-  expect(await destination(exportPath)).toBe(origin + "/required-actions");
+  const { default: ExportFormatsPage } = await import("@/app/(main)/settings/organization/export-formats/page");
+  nextHeaders.mockResolvedValue(new Headers({ [WORKSPACE_NAVIGATION]: exportPath }));
+  const current = snapshot(true, [{ ...action, resolvePath: exportPath }]);
+  me.mockResolvedValue({ ...current, data: { ...current.data, isAdmin: true } });
+  await expect(ExportFormatsPage()).rejects.toMatchObject({
+    digest: expect.stringContaining(";/settings;"),
+  });
   expect(await destination("/required-actions")).toBeNull();
   exportEnabled.mockResolvedValue(true);
   expect(await destination("/settings")).toBe(origin + exportPath);

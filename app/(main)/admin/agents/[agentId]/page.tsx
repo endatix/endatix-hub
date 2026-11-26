@@ -1,3 +1,4 @@
+import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import Link from "next/link";
 import PageTitle from "@/components/headings/page-title";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,7 @@ function agentNotFound() {
 }
 
 export default async function AgentDetailsPage({ params }: Params) {
-  await requireAdmin();
+  await admitWorkspacePage(requireAdmin());
 
   const { agentId } = await params;
 

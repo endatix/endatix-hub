@@ -1,3 +1,4 @@
+import { resolveWorkspaceAction } from "@/features/auth/required-actions/workspace-redirect.server";
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
 import { EndatixApi } from "@/lib/endatix-api";
@@ -71,17 +72,14 @@ export default async function SettingsOrganizationRolesPage(
     Permissions.Tenant.ManageRoles,
   ]);
 
-  if (!permissionsResult.success) {
+  if (!permissionsResult.success || !permissionsResult.data[Permissions.Tenant.ViewRoles]) {
     return <UnauthorizedComponent variant="card" />;
   }
 
   const permissions = permissionsResult.data;
-  const canViewRoles = permissions[Permissions.Tenant.ViewRoles];
   const canManageRoles = permissions[Permissions.Tenant.ManageRoles];
 
-  if (!canViewRoles) {
-    return <UnauthorizedComponent variant="card" />;
-  }
+  await resolveWorkspaceAction();
 
   const rolesRequest = parseRolesSearchParams(await props?.searchParams);
   const rolesPromise = getRolesPromise(rolesRequest, session?.accessToken);

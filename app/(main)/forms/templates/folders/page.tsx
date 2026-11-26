@@ -1,3 +1,4 @@
+import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import PageTitle from "@/components/headings/page-title";
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
@@ -9,7 +10,7 @@ import { FolderNavigationCards } from "@/features/folders/list-folders";
 export default async function TemplateFoldersPage() {
   const session = await auth();
   const { requireHubAccess, checkPermission } = await authorization(session);
-  await requireHubAccess();
+  await admitWorkspacePage(requireHubAccess());
 
   const foldersResult = await new EndatixApi(session?.accessToken).folders.list();
   if (ApiResult.isError(foldersResult))
