@@ -17,7 +17,7 @@ it("reads only the visible preparation and refreshes Forms once its state change
     .mockResolvedValueOnce(Result.success({kind: "complete", formId: "42"}));
   const { unmount } = render(<WorkspaceStartCard choice={{ kind: "working" }} scope="workspace" />);
   const status = screen.getByRole("status");
-  status.checkVisibility = () => true;
+  status.getBoundingClientRect = () => new DOMRect(0, 0, 100, 20);
   try {
     // Act & Assert
     await act(() => vi.advanceTimersByTimeAsync(5000));
@@ -50,16 +50,16 @@ it("defers a refresh after session expiry until the owner is watching again", as
   const { unmount } = render(<WorkspaceStartCard choice={{ kind: "working" }} scope="workspace" />);
   const status = screen.getByRole("status");
   const refused = Result.error<never>("Session expired", undefined, undefined, { statusCode: 401 });
-  status.checkVisibility = () => true;
+  status.getBoundingClientRect = () => new DOMRect(0, 0, 100, 20);
   vi.mocked(readPreparation).mockImplementationOnce(async () => {
-    status.checkVisibility = () => false;
+    status.getBoundingClientRect = () => new DOMRect();
     return refused;
   }).mockResolvedValueOnce(refused);
   try {
     // Act & Assert
     await act(() => vi.advanceTimersByTimeAsync(10000));
     expect(router.refresh).not.toHaveBeenCalled();
-    status.checkVisibility = () => true;
+    status.getBoundingClientRect = () => new DOMRect(0, 0, 100, 20);
     await act(() => vi.advanceTimersByTimeAsync(5000));
     expect(router.refresh).toHaveBeenCalledTimes(1);
   } finally {

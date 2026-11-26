@@ -24,7 +24,11 @@ export function PreparingStatus({ scope }: Readonly<{ scope: string }>) {
   const router = useRouter();
   const status = useRef<HTMLParagraphElement>(null);
   useEffect(() => {
-    const visible = () => !document.hidden && !!status.current?.checkVisibility();
+    const visible = () => {
+      const bounds = status.current?.getBoundingClientRect();
+      return !document.hidden && !!bounds && bounds.bottom > 0 && bounds.top < window.innerHeight &&
+        !status.current?.closest("details:not([open])");
+    };
     return watchPreparation(async () => visible() && await needsRefresh(scope) && visible(), () => router.refresh());
   }, [scope, router]);
   return <p role="status" ref={status}>You can leave this page and come back while we prepare your survey.</p>;

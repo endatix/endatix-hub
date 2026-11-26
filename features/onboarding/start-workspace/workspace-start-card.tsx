@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { LoaderCircle } from "lucide-react";
+import { PendingButton } from "@/components/common/pending-button";
 import { Button } from "@/components/ui/button";
 import { StandingRefusal } from "@/components/error-handling/standing-refusal";
 import { Result, type Error as ResultError } from "@/lib/result/result";
@@ -109,10 +109,6 @@ function BlankOffer({ scope }: Readonly<{ scope: string }>) {
   );
 }
 
-function RunningLabel({ children }: Readonly<{ children: string }>) {
-  return <><LoaderCircle aria-hidden="true" className="size-4 motion-safe:animate-spin" />{children}</>;
-}
-
 function RecoveryPanel({ scope, working, canRetry }: Readonly<{ scope: string; working: boolean; canRetry?: boolean }>) {
   const { failure, pending, activeAction, submit } = useWorkspaceChoice(scope);
   return (
@@ -120,13 +116,11 @@ function RecoveryPanel({ scope, working, canRetry }: Readonly<{ scope: string; w
       <h2 className="text-xl font-semibold">{working ? "Preparing your survey" : "Your survey couldn’t be prepared"}</h2>
       {working && <PreparingStatus scope={scope} />}
       <p className="text-muted-foreground">Finish blank to use a survey with one untitled question instead.</p>
-      <div className="flex flex-wrap gap-2">
-        {canRetry && <Button disabled={pending} onClick={() => submit("retry")}>
-          {pending && activeAction === "retry" ? <RunningLabel>Retrying…</RunningLabel> : "Retry preparation"}
-        </Button>}
-        <Button variant="outline" disabled={pending} onClick={() => submit("blank")}>
-          {pending && activeAction === "blank" ? <RunningLabel>Finishing…</RunningLabel> : "Finish blank"}
-        </Button>
+      <div className="flex flex-wrap gap-2 motion-reduce:[&_svg]:animate-none">
+        {canRetry && <PendingButton disabled={pending} pending={pending && activeAction === "retry"}
+          label="Retry preparation" pendingLabel="Retrying…" onClick={() => submit("retry")} />}
+        <PendingButton variant="outline" disabled={pending} pending={pending && activeAction === "blank"}
+          label="Finish blank" pendingLabel="Finishing…" onClick={() => submit("blank")} />
       </div>
       {failure && <ChoiceFailure failure={failure} />}
     </div>
