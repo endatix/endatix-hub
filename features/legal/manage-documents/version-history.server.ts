@@ -1,11 +1,25 @@
 import "server-only";
+import { z } from "zod";
 import type { EndatixApi } from "@/lib/endatix-api";
 import { normalizePagedResponse, type NormalizedPagedResponse } from "@/lib/endatix-api/shared/paged-response";
 import { appendPagingQueryParams, buildEndpointWithQuery } from "@/lib/endatix-api/shared/query-params";
-import type { IPagedRequest, PagedResponse } from "@/lib/endatix-api/shared/types";
-import { toResult } from "@/lib/result";
+import type { IPagedRequest } from "@/lib/endatix-api/shared/types";
+import { Result, toResult } from "@/lib/result";
 import { documentsPath, options } from "./document-api.server";
-import type { DocumentKind, Publication } from "./documents";
+import { publication, type DocumentKind, type Publication } from "./documents";
+
+const historyPage = z.object({
+  page: z.number().int().positive(),
+  pageSize: z.number().int().positive(),
+  totalRecords: z.number().int().nonnegative(),
+  totalPages: z.number().int().nonnegative(),
+  items: publication.array(),
+}).refine(({ page, pageSize, totalPages, totalRecords, items }) => {
+  const remaining = totalRecords - (page - 1) * pageSize;
+  return totalPages === Math.ceil(totalRecords / pageSize)
+    && page <= Math.max(1, totalPages)
+    && items.length <= Math.min(pageSize, remaining);
+});
 
 export function buildVersionHistoryEndpoint(kind: DocumentKind, paging: IPagedRequest) {
   const params = new URLSearchParams();
@@ -14,8 +28,10 @@ export function buildVersionHistoryEndpoint(kind: DocumentKind, paging: IPagedRe
 }
 
 export async function readVersions(api: EndatixApi, kind: DocumentKind, paging: IPagedRequest) {
-  const response = await api.get<PagedResponse<Publication>>(buildVersionHistoryEndpoint(kind, paging));
-  return toResult<PagedResponse<Publication>, NormalizedPagedResponse<Publication>>(response, {
-    ...options, mapData: normalizePagedResponse<Publication>,
-  });
+  const response = await api.get<unknown>(buildVersionHistoryEndpoint(kind, paging));
+  if (!response.success) return toResult<NormalizedPagedResponse<Publication>>(response, options);
+  const parsed = historyPage.safeParse(response.data);
+  return parsed.success
+    ? Result.success(normalizePagedResponse(parsed.data))
+    : Result.error<NormalizedPagedResponse<Publication>>("Could not read the document version history.");
 }

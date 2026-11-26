@@ -4,7 +4,8 @@ import { createEndatixIdSchema } from "@/lib/utils/type-validators";
 export const documentKind = z.enum(["terms", "privacy"]);
 export type DocumentKind = z.infer<typeof documentKind>;
 export const titles = { terms: "Terms", privacy: "Privacy notice" };
-export type Change = "material" | "minor";
+const change = z.enum(["material", "minor"]);
+export type Change = z.infer<typeof change>;
 
 const displayed = z.object({
   kind: documentKind,
@@ -27,16 +28,17 @@ export const editSchema = z.discriminatedUnion("operation", [
   displayed.extend({ operation: z.literal("required"), required: z.boolean() }),
   displayed.extend({
     operation: z.literal("publish"),
-    change: z.enum(["material", "minor"]),
+    change,
   }),
 ]);
 export type Edit = z.infer<typeof editSchema>;
 
-export interface Publication {
-  id: string;
-  number: number;
-  change: Change;
-  markdown: string;
-  publishedByUserId: string;
-  publishedAt: string;
-}
+export const publication = z.object({
+  id: createEndatixIdSchema("id"),
+  number: z.number().int().positive(),
+  change,
+  markdown: z.string().min(1),
+  publishedByUserId: createEndatixIdSchema("publishedByUserId"),
+  publishedAt: z.iso.datetime({ offset: true, local: true }),
+});
+export type Publication = z.infer<typeof publication>;
