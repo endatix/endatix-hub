@@ -17,24 +17,32 @@ function isSameDefinition(left: object | null, right: object): boolean {
   return Helpers.checkIfValuesEqual(left, right, SAME_DEFINITION);
 }
 
-function useCanvasSubmission() {
+type CaptureJsonSave = () => () => boolean;
+
+function captureSavedDefinition(submitted: object, captureJsonSave: CaptureJsonSave) {
+  const acknowledgeBuffer = captureJsonSave();
+  return (current: Result<object>) =>
+    acknowledgeBuffer() && Result.isSuccess(current) && isSameDefinition(current.value, submitted);
+}
+
+function useCanvasSubmission(captureJsonSave: CaptureJsonSave) {
   const pending = useRef<{ definition: object } | null>(null);
   const saveCanvas = useCallback(async <T extends Result<unknown> | undefined>(
     submitted: object, write: (definition: object) => Promise<T>,
   ) => {
     const attempt = { definition: submitted };
+    const stillSaved = captureSavedDefinition(submitted, captureJsonSave);
     // Reading creator.JSON here would apply the pending Ace buffer to the canvas.
     pending.current = attempt;
     let confirmed = false;
     try {
       const result = await write(submitted);
       confirmed = !!result && Result.isSuccess(result);
-      const stillSaved = (current: Result<object>) => Result.isSuccess(current) && isSameDefinition(current.value, submitted);
       return { result, stillSaved };
     } finally {
       if (!confirmed && pending.current === attempt) pending.current = null;
     }
-  }, []);
+  }, [captureJsonSave]);
   return { pending, saveCanvas };
 }
 
@@ -42,9 +50,10 @@ function useCanvasSubmission() {
 export function useCreatorJson(
   creator: SurveyCreatorModel | null,
   json: object | null,
+  captureJsonSave: CaptureJsonSave,
 ) {
   const lastRead = useRef<{ creator: SurveyCreatorModel; json: object } | null>(null);
-  const { pending, saveCanvas } = useCanvasSubmission();
+  const { pending, saveCanvas } = useCanvasSubmission(captureJsonSave);
 
   useEffect(() => {
     if (!creator || !json) return;

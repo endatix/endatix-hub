@@ -11,7 +11,7 @@ const createCreator = (): FakeCreator => ({ JSON: null });
 
 const renderCreatorJson = (initialProps: CreatorJsonProps) =>
   renderHook(
-    ({ creator, json }) => useCreatorJson(creator as never, json),
+    ({ creator, json }) => useCreatorJson(creator as never, json, () => () => true),
     { initialProps },
   );
 

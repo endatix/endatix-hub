@@ -146,7 +146,7 @@ function FormTemplateEditorContent({
   const [isLoading, setIsLoading] = useState(true);
   const [questionClasses, setQuestionClasses] = useState<any[]>([]);
   useRichTextEditing(creator);
-  const saveCanvas = useCreatorJson(creator, templateJson);
+  const saveCanvas = useCreatorJson(creator, templateJson, captureJsonSave);
   useCreatorTabUrl(creator);
 
   const creatorTheme = useEndatixCreatorTheme();
@@ -355,14 +355,13 @@ function FormTemplateEditorContent({
       return;
     }
 
-    const acknowledgeJsonSave = captureJsonSave();
     setIsSaving(true);
     try {
       const { result, stillSaved } = await saveCanvas(jsonResult.value, definition =>
         updateTemplateJsonAction(templateId, definition));
       if (!templateSaveSucceeded(result)) return;
 
-      if (acknowledgeJsonSave() && stillSaved(getJsonModel(creator))) {
+      if (stillSaved(getJsonModel(creator))) {
         setHasUnsavedChanges(false);
         setIsJsonModified(false);
       }
