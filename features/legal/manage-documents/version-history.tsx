@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { VersionPager } from "./version-pager";
+import type { IPagedRequest } from "@/lib/endatix-api/shared/types";
 import type { EndatixApi } from "@/lib/endatix-api";
 import { Result } from "@/lib/result";
 import { HubPageLoadError } from "@/components/error-handling/error-page/hub-page-load-error";
@@ -9,25 +10,18 @@ import type { DocumentKind, Publication } from "./documents";
 interface Props {
   api: EndatixApi;
   kind: DocumentKind;
-  page: number;
+  paging: IPagedRequest;
 }
-export async function VersionHistory({ api, kind, page }: Readonly<Props>) {
-  const result = await readVersions(api, kind, page);
+export async function VersionHistory({ api, kind, paging }: Readonly<Props>) {
+  const result = await readVersions(api, kind, paging);
   if (Result.isError(result)) return <HubPageLoadError result={result} />;
-  const versions = result.value;
+  const {items, ...counts} = result.value;
   return (
     <section className="space-y-4">
       <h2 className="text-xl font-semibold">Version history</h2>
-      {versions.items.length === 0 && <p>No versions on this page.</p>}
-      {versions.items.map((version) => <Version key={version.id} version={version} />)}
-      <nav aria-label="Version history pages" className="flex gap-4">
-        {page > 1 && (
-          <Link href={{ pathname: "/admin/legal", query: { kind, page: page - 1 } }}>Previous versions page</Link>
-        )}
-        {versions.hasNextPage && (
-          <Link href={{ pathname: "/admin/legal", query: { kind, page: page + 1 } }}>Next versions page</Link>
-        )}
-      </nav>
+      {items.length === 0 && <p>No versions on this page.</p>}
+      {items.map((version) => <Version key={version.id} version={version} />)}
+      <VersionPager counts={counts} />
     </section>
   );
 }

@@ -12,8 +12,8 @@ type Receive = (value: DocumentState) => void;
 function failureFor(error: RequestError, mode: "read" | "write"): Failure {
   const status = error.statusCode;
   const uncertain = mode === "write" && error.errorType !== ErrorType.ValidationError &&
-    (!status || status === 408 || (status >= 500 && status !== 503));
-  if (uncertain) return {message: "Could not confirm the change. Reload the saved document.", needsReload: true};
+    (!status || status < 400 || status === 408 || status >= 500);
+  if (uncertain) return {message: `${error.message} Reload the saved document to confirm its state.`, needsReload: true};
   return {message: error.message, needsReload: status === 409};
 }
 

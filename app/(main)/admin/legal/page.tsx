@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PagedListFrame } from "@/components/table/paged-list-frame";
+import { PagedListUrlProvider } from "@/components/table/paged-list-url-provider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listQueryKey } from "@/lib/list-page/list-query-key";
 import { HubPageLoadError } from "@/components/error-handling/error-page/hub-page-load-error";
@@ -13,7 +14,7 @@ import { parsePagedSearchParams } from "@/lib/list-page/parse-paged-search-param
 import { Result, toResult } from "@/lib/result";
 
 interface Props {
-  searchParams: Promise<{ kind?: string; page?: string }>;
+  searchParams: Promise<{ kind?: string; page?: string; pageSize?: string }>;
 }
 export default async function LegalPage({ searchParams }: Readonly<Props>) {
   const api = await documentApi();
@@ -22,18 +23,22 @@ export default async function LegalPage({ searchParams }: Readonly<Props>) {
   const kind = parseKind(query.kind);
   const result = toResult(await api.get<DocumentState[]>(documentsPath), options);
   if (Result.isError(result)) return <HubPageLoadError result={result} />;
-  const document = result.value.find((item) => item.kind === kind);
-  if (!document) notFound();
-  const { page } = parsePagedSearchParams(query);
+  if (!result.value.some((item) => item.kind === kind)) notFound();
+  const paging = historyPaging(query);
   return (
     <PlatformAdminShell title="Legal documents" description="Manage drafts, publication history and Terms acceptance.">
-      <DocumentNav documents={result.value} selected={document.kind} />
+      <DocumentNav documents={result.value} selected={kind} />
       {result.value.map(item => <DocumentEditor key={item.kind} document={item} active={item.kind === kind} />)}
-      <PagedListFrame listKey={listQueryKey({kind, page})} fallback={<Skeleton aria-label="Loading version history" className="h-24 w-full" />}>
-        <VersionHistory api={api} kind={document.kind} page={page} />
-      </PagedListFrame>
+      <PagedListUrlProvider><PagedListFrame listKey={listQueryKey({kind, ...paging})} fallback={<Skeleton aria-label="Loading version history" className="h-24 w-full" />}>
+        <VersionHistory api={api} kind={kind} paging={paging} />
+      </PagedListFrame></PagedListUrlProvider>
     </PlatformAdminShell>
   );
+}
+
+function historyPaging(query: {page?: string; pageSize?: string}) {
+  const { page, pageSize } = parsePagedSearchParams(query);
+  return { page, pageSize: pageSize === 25 ? 25 : 10 };
 }
 
 function parseKind(value?: string) {

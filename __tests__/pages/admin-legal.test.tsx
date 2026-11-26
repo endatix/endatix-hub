@@ -1,10 +1,11 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { PagedListUrlProvider } from "@/components/table/paged-list-url-provider";
 import { beforeEach, expect, it, vi } from "vitest";
 import { notFound } from "next/navigation";
 import LegalPage from "@/app/(main)/admin/legal/page";
 import { EndatixApi } from "@/lib/endatix-api";
 
-const { enabled, guard, get } = vi.hoisted(() => ({ enabled: vi.fn(), guard: vi.fn(), get: vi.fn() }));
+const { enabled, guard, get, replace } = vi.hoisted(() => ({ enabled: vi.fn(), guard: vi.fn(), get: vi.fn(), replace: vi.fn() }));
 vi.mock("@/lib/feature-flags/flags", () => ({ termsAcceptanceEnabled: enabled }));
 vi.mock("@/features/platform-admin/server", () => ({ requirePlatformAdmin: guard }));
 vi.mock("@/lib/endatix-api", () => ({
@@ -16,7 +17,9 @@ vi.mock("next/navigation", () => ({
   notFound: vi.fn(() => {
     throw new Error("Not found");
   }),
-  useRouter: () => ({ refresh: vi.fn() }),
+  useRouter: () => ({ refresh: vi.fn(), replace }),
+  usePathname: () => "/admin/legal",
+  useSearchParams: () => new URLSearchParams("kind=terms&page=2"),
 }));
 vi.mock("@/features/legal/manage-documents/edit-document.action", () => ({
   editDocument: vi.fn(),
@@ -86,13 +89,12 @@ it("shows the requested read-only history page with its publisher, date and navi
     },
   });
   // Act
-  render(await VersionHistory({ api: new EndatixApi(), kind: "terms", page: 2 }));
+  render(<PagedListUrlProvider>{await VersionHistory({ api: new EndatixApi(), kind: "terms", paging: {page: 2} })}</PagedListUrlProvider>);
   // Assert
   expect(get).toHaveBeenCalledWith("/admin/legal/documents/terms/versions?page=2&pageSize=10");
   expect(screen.getByText(/published by user 9007199254740993/)).toBeTruthy();
   expect(screen.getByText("2026-11-01T10:00:00Z")).toBeTruthy();
-  expect(screen.getByRole("link", { name: "Next versions page" }).getAttribute("href")).toBe(
-    "/admin/legal?kind=terms&page=3",
-  );
-  expect(screen.queryByRole("button")).toBeNull();
+  fireEvent.click(screen.getByRole("button", {name:"Go to next page"}));
+  expect(replace).toHaveBeenCalledWith("/admin/legal?kind=terms&page=3",{scroll:false});
+  expect(screen.queryByRole("button", {name:/edit|publish|delete/i})).toBeNull();
 });

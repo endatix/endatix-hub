@@ -10,6 +10,8 @@ export async function editDocument(input: Edit) {
   const edit = editSchema.safeParse(input);
   if (!edit.success) return Result.validationError<DocumentState>("Invalid legal document edit.");
   const result = toResult(await writeDocument(api, edit.data), options);
+  if (Result.isSuccess(result) && !result.value?.revision)
+    return Result.error<DocumentState>("Could not confirm the saved revision.");
   if (Result.isSuccess(result)) revalidatePath("/admin/legal");
   return result;
 }

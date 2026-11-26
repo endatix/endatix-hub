@@ -33,7 +33,7 @@ const edit = {
 beforeEach(() => {
   enabled.mockResolvedValue(true);
   guard.mockResolvedValue({ accessToken: "test" });
-  post.mockResolvedValue({ success: true, data: {} });
+  post.mockResolvedValue({ success: true, data: {revision:"9"} });
 });
 
 it("previews only saved data using ordinary platform authorization", async () => {

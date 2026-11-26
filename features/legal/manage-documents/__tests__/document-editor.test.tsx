@@ -63,6 +63,11 @@ it("keeps local text after a stale save and offers a fresh read without replayin
   expect(await screen.findByDisplayValue("Server edit")).toBeTruthy();
   expect(screen.getByText("Synthetic edit")).toBeTruthy();
   expect(editDocument).toHaveBeenCalledTimes(1);
+  vi.mocked(previewDraft).mockResolvedValue(Result.success({...doc, revision:"9", draftMarkdown:"New server edit"}));
+  fireEvent.click(screen.getByRole("button",{name:"Review and publish"}));
+  fireEvent.click(await screen.findByRole("button",{name:"Reload saved document"}));
+  expect(await screen.findByDisplayValue("New server edit")).toBeTruthy();
+  expect(screen.getByText("Synthetic edit")).toBeTruthy();
 });
 
 it("saves local edits against their original revision across a history navigation", async () => {
@@ -98,7 +103,7 @@ it("does not open a publish confirmation for a newer saved revision", async () =
 it("keeps the reviewed change available after an ordinary publication failure", async () => {
   // Arrange
   vi.mocked(previewDraft).mockResolvedValue(Result.success(doc));
-  vi.mocked(editDocument).mockResolvedValue(Result.error("Service is busy.", undefined, undefined, { statusCode: 503 }));
+  vi.mocked(editDocument).mockResolvedValue(Result.error("Service is busy.", undefined, undefined, { statusCode: 429 }));
   render(<DocumentEditor document={doc} />);
   // Act
   fireEvent.click(screen.getByRole("button", { name: "Review and publish" }));
@@ -115,10 +120,10 @@ it("keeps the reviewed change available after an ordinary publication failure", 
   });
 });
 
-it("requires a fresh read when the publish response is lost", async () => {
+it.each([undefined, 200, 503])("requires a fresh read after an unconfirmed publish (%s)", async statusCode => {
   // Arrange
   vi.mocked(previewDraft).mockResolvedValue(Result.success(doc));
-  vi.mocked(editDocument).mockResolvedValue(Result.error("Connection lost"));
+  vi.mocked(editDocument).mockResolvedValue(Result.error("Connection lost", undefined, undefined, { statusCode }));
   render(<DocumentEditor document={doc} />);
   // Act
   fireEvent.click(screen.getByRole("button", {name:"Review and publish"}));
