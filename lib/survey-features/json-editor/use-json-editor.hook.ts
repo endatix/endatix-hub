@@ -51,9 +51,32 @@ export interface UseJsonEditorOptions {
 }
 
 interface JsonBuffer {
-  model: JsonEditorBaseModel;
+  model: AceJsonPlugin;
   savedText: string;
   modified: boolean;
+}
+
+// Activation and file import both call Ace.setValue(). Only activation
+// clears Creator's pending flag after setValue returns.
+function listenForJsonEdits(buffer: JsonBuffer, onModified: () => void) {
+  const { model } = buffer;
+  const session = model.aceEditor.getSession();
+  let listening = true;
+  const checkEdit = () => {
+    if (!listening || !model.isJSONChanged || buffer.modified) return;
+    if (model.text === buffer.savedText) return;
+    buffer.modified = true;
+    onModified();
+  };
+  const onChange = () => {
+    if (model.isProcessingImmediately) queueMicrotask(checkEdit);
+    else checkEdit();
+  };
+  session.on("change", onChange);
+  return () => {
+    listening = false;
+    session.off("change", onChange);
+  };
 }
 
 function useJsonSaveBuffer() {
@@ -120,11 +143,6 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
         const buffer = { model, savedText: creator.text, modified: false };
         activeBuffer.current = buffer;
         let unsubscribe: (() => void) | undefined;
-        const onEdit = () => {
-          if (buffer.modified || model.text === buffer.savedText) return;
-          buffer.modified = true;
-          notify({ hasErrors: jsonTabBlocks(model) });
-        };
 
         const onPropertyChanged = (
           _sender: Base,
@@ -137,9 +155,9 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
           }
 
           if (!unsubscribe && model.aceEditor) {
-            const session = model.aceEditor.getSession();
-            session.on("change", onEdit);
-            unsubscribe = () => session.off("change", onEdit);
+            unsubscribe = listenForJsonEdits(buffer, () =>
+              notify({ hasErrors: jsonTabBlocks(model) }),
+            );
           }
         };
 
@@ -211,12 +229,14 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
         return Result.error(UNEXPECTED_ERROR_MESSAGE);
       }
 
-      if (jsonTabBlocks(jsonPlugin.model)) {
+      // On a restored JSON tab, persist the same Ace model that received the edit.
+      const model = activeBuffer.current?.model ?? jsonPlugin.model;
+      if (jsonTabBlocks(model)) {
         return Result.validationError(INVALID_JSON_ERROR_MESSAGE);
       }
 
       try {
-        const resultJson = JSON.parse(jsonPlugin.model.text);
+        const resultJson = JSON.parse(model.text);
         const surveyModel = new Model();
         surveyModel.fromJSON(resultJson);
 
@@ -229,7 +249,7 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
         return Result.validationError(MALFORMED_JSON_ERROR_MESSAGE);
       }
     },
-    [],
+    [activeBuffer],
   );
 
   return { registerJsonEditor, getJsonModel, captureJsonSave };

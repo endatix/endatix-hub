@@ -47,6 +47,28 @@ beforeEach(() => {
 });
 afterEach(() => view.dispose());
 
+it("opens clean but reports a file import as a change", async () => {
+  // Arrange
+  const { creator, publish } = view;
+  const plugin = creator.getPlugin<TabJsonEditorAcePlugin>("json");
+  await Promise.resolve();
+  expect(publish).not.toHaveBeenCalledWith(
+    expect.objectContaining({ isJsonModified: true }),
+  );
+
+  // Act
+  await new Promise<void>((done) =>
+    plugin.importFromFile(new File(['{"title":"Imported"}'], "form.json"), () =>
+      done(),
+    ),
+  );
+
+  // Assert
+  expect(publish).toHaveBeenLastCalledWith(
+    expect.objectContaining({ isJsonModified: true }),
+  );
+});
+
 it("recognizes another edit after the submitted text was saved", () => {
   // Arrange
   const { editor, hook, publish } = view;

@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { SignInPage } from "../../pages/auth/sign-in.page";
 import { openJsonTab, pasteIntoAce } from "../../utils/json-tab";
 import {
@@ -22,7 +22,52 @@ function definition(title: string) {
   );
 }
 
-test("saves successive edits without leaving the JSON Editor", async ({
+async function expectCleanEditor(page: Page, title: string) {
+  await expect(page.locator(".ace_editor")).toContainText(title);
+  await expect(page.getByText("Json modified", { exact: true })).toBeHidden();
+}
+
+async function saveAndReloadJson(page: Page, title: string) {
+  await expect(page.getByText("Json modified", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(
+    page.getByText("Form changes saved.", { exact: true }),
+  ).toBeVisible();
+  await page.reload();
+  await expectCleanEditor(page, title);
+}
+
+async function verifyJsonTabChanges(page: Page) {
+  await expectCleanEditor(page, "Original");
+  await page.getByRole("tab", { name: "Designer", exact: true }).click();
+  await expect(page.getByRole("tabpanel", { name: "Designer" })).toBeVisible();
+  await openJsonTab(page);
+  await expectCleanEditor(page, "Original");
+  const chooser = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: "Import", exact: true }).click();
+  await (
+    await chooser
+  ).setFiles({
+    name: "form.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(definition("Imported")),
+  });
+  await saveAndReloadJson(page, "Imported");
+  // Select the title in Ace; only the browser keypress changes its value.
+  await page.locator(".ace_editor").evaluate((root) => {
+    const { ace } = window as Window & { ace: typeof import("ace-builds") };
+    const instance = ace.edit(root as HTMLElement);
+    instance.find("Imported", { wrap: true });
+    instance.focus();
+  });
+  await expectCleanEditor(page, "Imported");
+  await page.keyboard.press("X");
+  await saveAndReloadJson(page, '"X"');
+}
+
+test.use({ viewport: { width: 1920, height: 1080 }, actionTimeout: 15000 });
+
+test("opens clean and saves imported, typed and pasted JSON without leaving the editor", async ({
   page,
 }) => {
   test.setTimeout(180_000);
@@ -40,6 +85,7 @@ test("saves successive edits without leaving the JSON Editor", async ({
     await page.goto(`/forms/${id}/design`);
     await openJsonTab(page);
     const save = page.getByRole("button", { name: "Save", exact: true });
+    await verifyJsonTabChanges(page);
     for (const title of ["First edit", "Second edit"]) {
       await pasteIntoAce(page, definition(title), title);
       await save.click();
