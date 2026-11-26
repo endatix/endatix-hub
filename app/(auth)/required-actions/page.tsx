@@ -12,7 +12,7 @@ import { mustReturnHome, resolveTarget } from "@/lib/routes/resolve-target";
 import { availableResolvers } from "@/features/auth/required-actions/available-resolvers.server";
 import { SystemRoles } from "@/features/auth/authorization/domain/system-roles";
 import { TERMS_PATH, termsVisit } from "@/lib/routes/terms-journey";
-import { workspaceScope } from "@/lib/routes/workspace-scope.server";
+import { homeScope } from "@/lib/routes/workspace-scope.server";
 
 export const metadata = { title: "Account actions" };
 
@@ -41,7 +41,12 @@ async function accountStatus(token: string, home?: string) {
   if (mustReturnHome(actions.data))
     return <SupportActionStatus exitAction={exitAssumeAction} />;
   const resolvers = await availableResolvers(actions.data);
-  if (home === "1") resumeHome(current.data.roles, resolvers, token);
+  if (home === "1")
+    resumeHome(
+      current.data.roles,
+      current.data.requiredActionsEnforced === true ? resolvers : [],
+      token,
+    );
   return <PendingActionStatus actions={resolvers} />;
 }
 
@@ -55,6 +60,6 @@ function resumeHome(
     : "/forms";
   const target = resolveTarget(actions, destination);
   if (target === TERMS_PATH)
-    redirect(termsVisit(destination, workspaceScope(token)));
+    redirect(termsVisit(destination, homeScope(token)));
   if (!target) redirect(destination);
 }

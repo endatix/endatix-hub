@@ -1,9 +1,9 @@
 import { getSession } from "@/features/auth";
 import { requireApiUrl } from "@/features/config/api-config";
 import { SubmissionData } from "@/features/submissions/types";
-import { Submission } from "@/lib/endatix-api";
+import { EndatixApi, Submission } from "@/lib/endatix-api";
 import { CreateFormRequest } from "@/lib/form-types";
-import { Result } from "@/lib/result";
+import { Result, toResult } from "@/lib/result";
 import {
   validateEndatixId,
   validateHexToken,
@@ -302,7 +302,7 @@ export const updateSubmission = async (
   formId: string,
   submissionId: string,
   submissionData: SubmissionData,
-): Promise<Submission> => {
+): Promise<Result<Submission>> => {
   const session = await getSession();
 
   if (!session.isLoggedIn) {
@@ -322,26 +322,10 @@ export const updateSubmission = async (
     throw new TypeError(validateSubmissionIdResult.message);
   }
 
-  const headers = new HeaderBuilder()
-    .withAuth(session)
-    .acceptJson()
-    .provideJson()
-    .build();
-
-  const response = await apiFetch(
-    `${requireApiUrl()}/forms/${validateFormIdResult.value}/submissions/${validateSubmissionIdResult.value}`,
-    {
-      method: "PATCH",
-      headers: headers,
-      body: JSON.stringify(submissionData),
-    },
-  );
-
-  if (!response.ok) {
-    throw new Error("Failed to update submission");
-  }
-
-  return response.json();
+  const api = new EndatixApi(session);
+  return toResult(await api.patch<Submission>(
+    `/forms/${validateFormIdResult.value}/submissions/${validateSubmissionIdResult.value}`, submissionData
+  ), {fallbackMessage:"Failed to save changes", logMessage:"Failed to update submission", loggerName:"submissions.edit"});
 };
 
 interface UpdateSubmissionStatusRequest {

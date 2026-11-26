@@ -6,6 +6,8 @@ import { invalidateUserAuthorizationCache } from "@/features/auth/server";
 import { EndatixApi } from "@/lib/endatix-api";
 import { termsAcceptanceEnabled } from "@/lib/feature-flags/flags";
 import { termsVisit } from "@/lib/routes/terms-journey";
+import { validateEndatixId } from "@/lib/utils/type-validators";
+import { Result, toResult } from "@/lib/result";
 import {
   type Journey,
   pendingTerms,
@@ -22,15 +24,27 @@ export async function acceptTerms(
   const token = await signedInToken();
   const before = await termsStanding(token);
   if (!before) return "Your account status is unavailable. Please retry.";
-  if (before.scope !== display.scope) redirect("/accept-terms");
-  if (!pendingTerms(before)) resumeWorkspace(before, display);
+  if (![before.scope, before.homeScope].includes(display.scope)) redirect("/accept-terms");
+  if (!pendingTerms(before)) resumeWorkspace(before, {});
   if (form.get("accept") !== "on")
     return "Select the checkbox to accept the Terms.";
+  if (Result.isError(validateEndatixId(display.versionId, "versionId")))
+    return "Reload the published Terms before accepting.";
   const result = await recordAcceptance(token, display.versionId);
   if (!result.success && result.error.details?.statusCode !== 409)
-    return "Could not confirm acceptance. Reload the Terms and try again.";
+    return acceptanceFailure(result);
   invalidateUserAuthorizationCache({ userId: before.userId });
-  return resumeAfterAcceptance(token, display);
+  return resumeAfterAcceptance(token, result.success ? display : {}, display);
+}
+
+function acceptanceFailure(result: import("@/lib/endatix-api").ApiError) {
+  toResult(result, {
+    logMessage: "Terms acceptance failed",
+    loggerName: "legal.acceptance",
+  });
+  if (result.error.details?.statusCode === 401) redirect("/signin");
+  if (result.error.details?.statusCode === 403) redirect("/required-actions");
+  return "Could not confirm acceptance. Reload the Terms and try again.";
 }
 
 async function recordAcceptance(token: string, versionId: string) {
@@ -42,12 +56,14 @@ async function recordAcceptance(token: string, versionId: string) {
   );
 }
 
-async function resumeAfterAcceptance(token: string, display: Journey) {
+async function resumeAfterAcceptance(
+  token: string,
+  accepted: Journey,
+  display: Journey,
+) {
   const after = await termsStanding(token);
   if (!after)
     return "Could not refresh your account status. Reload to continue.";
-  if (!pendingTerms(after)) resumeWorkspace(after, display);
-  redirect(
-    `${termsVisit(display.returnUrl ?? "/forms", after.scope)}&updated=1`,
-  );
+  if (!pendingTerms(after)) resumeWorkspace(after, accepted);
+  redirect(termsVisit(display.returnUrl ?? "/forms", display.scope, "updated"));
 }

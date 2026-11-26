@@ -5,7 +5,7 @@ import { EndatixApi, isAuthError } from "@/lib/endatix-api";
 import { requiredActionsSchema } from "@/lib/endatix-api/auth/required-action";
 import { mustReturnHome, resolveTarget } from "@/lib/routes/resolve-target";
 import { workspaceDestination } from "@/lib/routes/terms-journey";
-import { workspaceScope } from "@/lib/routes/workspace-scope.server";
+import { homeScope, workspaceScope } from "@/lib/routes/workspace-scope.server";
 import { SystemRoles, availableResolvers } from "@/features/auth/server";
 import { readAssumeSession } from "@/features/platform-admin/server";
 
@@ -28,6 +28,8 @@ export async function termsStanding(token: string) {
   return {
     userId: current.data.userId,
     scope: workspaceScope(token),
+    homeScope: homeScope(token),
+    enforced: current.data.requiredActionsEnforced === true,
     platformAdmin: current.data.roles.includes(SystemRoles.PlatformAdmin),
     actions: await availableResolvers(actions.data),
   };
@@ -49,13 +51,21 @@ export function pendingTerms({ actions }: Standing) {
 }
 
 export function resumeWorkspace(standing: Standing, journey: Journey): never {
-  const path = workspaceDestination(
-    standing.scope === journey.scope ? journey.returnUrl : undefined,
-  );
+  const path = scopedDestination(standing, journey);
   const destination =
     path.split("?")[0] === "/admin/tenants" && !standing.platformAdmin
       ? "/forms"
       : path;
-  const blocker = resolveTarget(standing.actions, destination.split("?")[0]);
-  redirect(blocker ?? destination);
+  const blocker =
+    standing.enforced &&
+    resolveTarget(standing.actions, destination.split("?")[0]);
+  redirect(blocker || destination);
+}
+
+export function scopedDestination(standing: Standing, journey: Journey) {
+  if (journey.scope === standing.homeScope)
+    return standing.platformAdmin ? "/admin/tenants" : "/forms";
+  return workspaceDestination(
+    standing.scope === journey.scope ? journey.returnUrl : undefined,
+  );
 }

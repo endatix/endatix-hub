@@ -49,6 +49,7 @@ vi.mock(
 );
 
 vi.mock("@/lib/feature-flags/flags", () => ({
+  termsAcceptanceEnabled: async () => true,
   tenantManagementFlag: tenantManagementFlagMock,
 }));
 

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { acceptTerms } from "../accept-terms.action";
-import { workspaceScope } from "@/lib/routes/workspace-scope.server";
+import { workspaceScope, homeScope } from "@/lib/routes/workspace-scope.server";
 import { invalidateUserAuthorizationCache } from "@/features/auth/server";
 
 const { token, me, post, enabled } = vi.hoisted(() => ({
@@ -88,6 +88,56 @@ describe("accepting the displayed publication", () => {
   });
   it("does not post unchecked consent", async () => {
     expect(await acceptTerms(display, new FormData())).toMatch(/checkbox/);
+    expect(post).not.toHaveBeenCalled();
+  });
+  it.each([
+    ["PlatformAdmin", "/admin/tenants"],
+    ["Authenticated", "/forms"],
+  ])(
+    "binds a support exit to an authorized home destination for %s",
+    async (role, destination) => {
+      const before = snapshot(action),
+        after = snapshot();
+      me.mockResolvedValueOnce({
+        ...before,
+        data: { ...before.data, roles: [role] },
+      }).mockResolvedValueOnce({
+        ...after,
+        data: { ...after.data, roles: [role] },
+      });
+      await expect(
+        acceptTerms(
+          {
+            ...display,
+            scope: homeScope(token),
+            returnUrl: "/forms/99/design",
+          },
+          checked,
+        ),
+      ).rejects.toThrow(`navigate:${destination}`);
+    },
+  );
+  it("does not enforce another blocker on a reporting-only host", async () => {
+    const after = snapshot({
+      ...action,
+      key: "profile",
+      resolvePath: "/settings/security",
+    });
+    me.mockResolvedValueOnce(snapshot(action)).mockResolvedValueOnce({
+      ...after,
+      data: { ...after.data, requiredActionsEnforced: false },
+    });
+    await expect(acceptTerms(display, checked)).rejects.toThrow(
+      `navigate:${display.returnUrl}`,
+    );
+  });
+  it("does not send an out-of-range publication ID", async () => {
+    expect(
+      await acceptTerms(
+        { ...display, versionId: "9223372036854775808" },
+        checked,
+      ),
+    ).toMatch(/Reload/);
     expect(post).not.toHaveBeenCalled();
   });
   it("drops a continuation from a different session before recording anything", async () => {

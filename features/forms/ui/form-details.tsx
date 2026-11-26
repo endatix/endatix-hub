@@ -74,6 +74,11 @@ function showFolderChangeFailure(result: ResultError | undefined) {
   });
 }
 
+function showStatusFailure(error: ResultError) {
+  if (error.requiredAction) return showStandingRefusal(error.requiredAction);
+  return toast.error("Failed to update form status. Error: " + error.message);
+}
+
 const FormDetails = ({ form, enableEditing = false }: FormDetailsProps) => {
   const [pending, startTransition] = useTransition();
   const [isEnabled, setIsEnabled] = useState(form?.isEnabled);
@@ -187,9 +192,7 @@ const FormDetails = ({ form, enableEditing = false }: FormDetailsProps) => {
 
       if (Result.isError(updateStatusResult)) {
         setIsEnabled(!enabled);
-        toast.error(
-          "Failed to update form status. Error: " + updateStatusResult.message,
-        );
+        showStatusFailure(updateStatusResult);
         return;
       }
 
