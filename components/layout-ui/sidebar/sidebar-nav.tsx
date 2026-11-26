@@ -50,11 +50,6 @@ const SidebarNav = ({
     initialNavItemKeys,
     status === "authenticated" && !!session,
   );
-  const brand = useBrand();
-  const secondaryNavItems = withBrandHelpLinks(
-    SitemapService.getSecondarySitemap(),
-    brand,
-  );
   const isLoggedIn = session?.user !== null;
   const currentUserInfo = getCurrentUserInfo(session);
 
@@ -75,21 +70,7 @@ const SidebarNav = ({
             ))}
           </SidebarMenu>
         </SidebarGroup>
-        <SidebarGroup className="mt-auto">
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {children}
-              {secondaryNavItems.map((item) => (
-                <SidebarNavItem
-                  key={item.title}
-                  item={item}
-                  isCollapsed={isSidebarCollapsed}
-                  size="sm"
-                />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        <SecondaryNav>{children}</SecondaryNav>
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
@@ -128,3 +109,21 @@ const SidebarNav = ({
 };
 
 export default SidebarNav;
+
+function SecondaryNav({ children }: Readonly<{ children?: React.ReactNode }>) {
+  const brand = useBrand();
+  const { state } = useSidebar();
+  const items = withBrandHelpLinks(SitemapService.getSecondarySitemap(), brand);
+  return (
+    <SidebarGroup className="mt-auto">
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {children}
+          {items.map((item) => (
+            <SidebarNavItem key={item.title} item={item} isCollapsed={state === "collapsed"} size="sm" />
+          ))}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  );
+}

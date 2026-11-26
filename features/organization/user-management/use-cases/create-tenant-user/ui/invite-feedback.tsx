@@ -1,6 +1,7 @@
 import { StandingRefusal } from "@/components/error-handling/standing-refusal";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { WorkspaceSetupLink } from "@/features/onboarding/start-workspace/workspace-setup-link";
+import Link from "next/link";
+import { workspaceSetupHref } from "@/lib/routes/workspace-path";
 import type { CreateTenantUserActionState } from "../create-tenant-user.action";
 
 export function InviteFeedback({ state: { feedback } }: Readonly<{ state: CreateTenantUserActionState }>) {
@@ -13,9 +14,9 @@ export function InviteFeedback({ state: { feedback } }: Readonly<{ state: Create
           ? "Invitations are temporarily unavailable. Try sending the invite again."
           : "This workspace can’t invite teammates yet."}
         {feedback.kind === "setup" && (
-          <WorkspaceSetupLink className="font-medium text-primary underline underline-offset-4">
+          <Link href={workspaceSetupHref} className="font-medium text-primary underline underline-offset-4">
             Continue workspace setup
-          </WorkspaceSetupLink>
+          </Link>
         )}
         {feedback.kind === "declined" && " You can keep working and try again later."}
       </AlertDescription>

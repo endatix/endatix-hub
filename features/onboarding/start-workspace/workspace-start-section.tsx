@@ -4,7 +4,7 @@ import { Result } from "@/lib/result";
 import { onboardingFlag } from "@/lib/feature-flags/flags";
 import { workspaceApi, workspaceResult, workspaceStartPath } from "./workspace-api.server";
 import { WorkspaceStartCard } from "./workspace-start-card";
-import { workspaceSetupId } from "./workspace-setup-link";
+import { workspaceSetupId } from "@/lib/routes/workspace-path";
 
 export async function WorkspaceStartSection() {
   const workspace = await workspaceApi();

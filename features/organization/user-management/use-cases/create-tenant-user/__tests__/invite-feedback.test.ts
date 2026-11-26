@@ -11,15 +11,17 @@ it.each([
   [409, "conflict", undefined],
   [403, "invite_declined", undefined],
   [503, undefined, "unavailable"],
-] as const)("distinguishes invite feedback for %s %s", (status, code, expected) => {
+] as const)("distinguishes invite feedback for %s %s", async (status, code, expected) => {
   // Arrange
   const response = ApiResult.httpStatusError(status, "Invite response", code);
   // Act & Assert
-  expect(inviteFailure(response)?.feedback?.kind).toBe(expected);
+  const canResumeSetup = vi.fn(async () => false);
+  expect((await inviteFailure(response, canResumeSetup))?.feedback?.kind).toBe(expected);
+  expect(canResumeSetup).toHaveBeenCalledTimes(expected === "declined" ? 1 : 0);
   expect(TelemetryLogger.error).toHaveBeenCalledTimes(status === 503 || code === "conflict" ? 1 : 0);
 });
 
-it("preserves the Terms recovery action when standing changes before an invite is sent", () => {
+it("preserves the Terms recovery action when standing changes before an invite is sent", async () => {
   // Arrange
   const refusal: RequiredActionError = {
     kind: "required_action",
@@ -31,13 +33,20 @@ it("preserves the Terms recovery action when standing changes before an invite i
   const response = ApiResult.httpStatusError(403, "Review Terms", "required_action", { requiredAction: refusal });
 
   // Act & Assert
-  expect(inviteFailure(response)).toMatchObject({
+  const canResumeSetup = vi.fn(async () => true);
+  expect(await inviteFailure(response, canResumeSetup)).toMatchObject({
     isSuccess: false, formErrors: ["Review Terms"], feedback: { kind: "standing", refusal },
   });
   expect(TelemetryLogger.error).not.toHaveBeenCalled();
+  expect(canResumeSetup).not.toHaveBeenCalled();
 });
 
-it("returns no failure or refusal feedback for an accepted invite", () => {
+it("returns no failure or refusal feedback for an accepted invite", async () => {
   // Act & Assert
-  expect(inviteFailure(ApiResult.success({ id: "42" }))).toBeNull();
+  expect(await inviteFailure(ApiResult.success({ id: "42" }), vi.fn())).toBeNull();
+});
+
+it("offers recovery on a decline only when setup can resume", async () => {
+  const declined = ApiResult.httpStatusError(409, "Invite declined", "invite_declined");
+  expect((await inviteFailure(declined, async () => true))?.feedback?.kind).toBe("setup");
 });

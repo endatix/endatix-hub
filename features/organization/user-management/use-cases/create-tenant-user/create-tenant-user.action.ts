@@ -13,7 +13,7 @@ import { ServerActionState } from "@/lib/utils/zod-error-utils";
 import { stateFromUnexpectedError } from "../server-action-state";
 import { getUnassignableRoleError } from "../role-assignment-rules";
 import { inviteFailure, type inviteFeedback } from "./invite-feedback";
-import { canResumeWorkspaceSetup } from "@/features/onboarding/start-workspace/workspace-api.server";
+import { canResumeWorkspaceSetup } from "@/features/onboarding/server";
 
 const createTenantUserSchema = z.object({
   email: z.email({ error: "Enter a valid email address" }).trim(),
@@ -23,7 +23,7 @@ const createTenantUserSchema = z.object({
 export type CreateTenantUserActionState = ServerActionState<{
   email?: string;
   roles?: string[];
-}> & { feedback?: ReturnType<typeof inviteFeedback> | { kind: "setup" } };
+}> & { feedback?: Awaited<ReturnType<typeof inviteFeedback>> };
 
 type CreateTenantUserPayload =
   | FormData
@@ -59,12 +59,8 @@ export async function createTenantUserAction(
     await requirePermission(Permissions.Tenant.InviteUsers);
 
     const api = new EndatixApi(session?.accessToken);
-    const failure = inviteFailure(await api.users.create(validatedData.data));
-    if (failure) return {
-      ...failure, data: rawData,
-      feedback: failure.feedback?.kind === "declined" && await canResumeWorkspaceSetup()
-        ? { kind: "setup" } : failure.feedback,
-    };
+    const failure = await inviteFailure(await api.users.create(validatedData.data), canResumeWorkspaceSetup);
+    if (failure) return { ...failure, data: rawData };
     revalidatePath("/settings/organization/users");
     return { isSuccess: true, message: "Invite sent." };
   } catch (error) {
