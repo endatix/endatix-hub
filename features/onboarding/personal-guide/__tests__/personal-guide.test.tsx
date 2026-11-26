@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import { Result } from "@/lib/result";
 import { PersonalGuide } from "../personal-guide";
@@ -17,7 +17,9 @@ it("dismisses the guide and reopens it from Help in place", async () => {
   const help = await screen.findByText("Help");
   expect(document.activeElement).toBe(help);
   fireEvent.click(help);
-  fireEvent.click(screen.getByRole("button", { name: "Getting started" }));
+  const reopen = screen.getByRole<HTMLButtonElement>("button", { name: "Getting started" });
+  await waitFor(() => expect(reopen.disabled).toBe(false));
+  fireEvent.click(reopen);
 
   // Assert
   const heading = await screen.findByRole("heading", { name: "Getting started" });
