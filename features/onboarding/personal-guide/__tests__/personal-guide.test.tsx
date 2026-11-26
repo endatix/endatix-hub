@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import { Result } from "@/lib/result";
 import { PersonalGuide } from "../personal-guide";
@@ -6,11 +6,35 @@ import { saveGuide } from "../save-guide.action";
 
 vi.mock("../save-guide.action", () => ({ saveGuide: vi.fn() }));
 
+it("renders a refreshed preference without moving focus out of the editor", () => {
+  // Arrange
+  const view = (dismissed: boolean) => <>
+    <input aria-label="Preview answer" />
+    <PersonalGuide dismissed={dismissed} scope="member" links={[]} />
+  </>;
+  const { rerender } = render(view(false));
+  const answer = screen.getByRole<HTMLInputElement>("textbox");
+  fireEvent.change(answer, { target: { value: "Still editing" } });
+  answer.focus();
+  // Act & Assert
+  rerender(view(true));
+  expect(screen.queryByRole("heading")).toBeNull();
+  expect(screen.getByText("Help")).toBeTruthy();
+  rerender(view(false));
+  expect(screen.getByRole("heading", { name: "Getting started" })).toBeTruthy();
+  expect(document.activeElement).toBe(answer);
+  expect(answer.value).toBe("Still editing");
+  expect(saveGuide).not.toHaveBeenCalled();
+});
+
 it("dismisses the guide and reopens it from Help in place", async () => {
   // Arrange
-  vi.mocked(saveGuide).mockResolvedValueOnce(Result.success(true))
-    .mockResolvedValueOnce(Result.success(false));
-  render(<PersonalGuide dismissed={false} scope="member" links={[]} />);
+  const view = (dismissed: boolean) => <PersonalGuide dismissed={dismissed} scope="member" links={[]} />;
+  const { rerender } = render(view(false));
+  vi.mocked(saveGuide).mockImplementation(async (_, dismissed) => {
+    rerender(view(dismissed));
+    return Result.success(dismissed);
+  });
 
   // Act
   fireEvent.click(screen.getByRole("button", { name: "Dismiss guide" }));
@@ -35,5 +59,23 @@ it("keeps the open guide when a saved preference is refused", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Dismiss guide" }));
   // Assert
   expect((await screen.findByRole("alert")).textContent).toBe("Refresh to try again.");
+  expect(screen.getByRole("heading", { name: "Getting started" })).toBeTruthy();
+});
+
+it("keeps a pending write from replacing a newer read with its old response", async () => {
+  // Arrange
+  const write = Promise.withResolvers<Result<boolean>>();
+  vi.mocked(saveGuide).mockReturnValueOnce(write.promise);
+  const view = (dismissed: boolean) => <PersonalGuide dismissed={dismissed} scope="member" links={[]} />;
+  const { rerender } = render(view(false));
+  // Act
+  fireEvent.click(screen.getByRole("button", { name: "Dismiss guide" }));
+  rerender(view(true));
+  rerender(view(false));
+  // Assert
+  const dismiss = screen.getByRole<HTMLButtonElement>("button", { name: "Dismiss guide" });
+  expect(dismiss.disabled).toBe(true);
+  await act(() => write.resolve(Result.success(true)));
+  await waitFor(() => expect(dismiss.disabled).toBe(false));
   expect(screen.getByRole("heading", { name: "Getting started" })).toBeTruthy();
 });

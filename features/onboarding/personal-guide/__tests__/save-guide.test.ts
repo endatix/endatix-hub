@@ -2,6 +2,8 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { saveGuide } from "../save-guide.action";
 
+const refresh = vi.hoisted(() => vi.fn());
+vi.mock("next/cache", async original => ({ ...(await original<object>()), refresh }));
 const { enabled, management, grant, put, session } = vi.hoisted(() => ({
   enabled: vi.fn(), management: vi.fn(), grant: vi.fn(), put: vi.fn(), session: vi.fn(),
 }));
@@ -42,6 +44,7 @@ it("sends only the signed-in member's desired preference", async () => {
   expect(result).toMatchObject({ value: false });
   expect(grant).toHaveBeenCalledWith("access.apps.hub");
   expect(put).toHaveBeenCalledWith("/onboarding/my-guide", { isDismissed: false });
+  expect(refresh).toHaveBeenCalledOnce();
 });
 
 it.each(["management off", "guide off", "denied", "changed session"])(
@@ -55,5 +58,6 @@ it.each(["management off", "guide off", "denied", "changed session"])(
     // Assert
     expect(result).toMatchObject({ message: expect.stringContaining("unavailable") });
     expect(put).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
   },
 );
