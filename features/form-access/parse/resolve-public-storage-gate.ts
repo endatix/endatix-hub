@@ -1,6 +1,6 @@
 import type { Session } from "next-auth";
 import { Result } from "@/lib/result";
-import type { FormStorageGateInput } from "../types";
+import { optionalPartialCookie, type FormStorageGateInput } from "../types";
 import { validateGateInput } from "./validate-gate-input";
 import {
   resolveStorageGateInput,
@@ -19,4 +19,13 @@ export async function resolvePublicStorageGate(
   });
 
   return validateGateInput(resolvedGate);
+}
+
+/** A personal link selects its submission snapshot; an ordinary resume cookie is optional. */
+export async function resolveAuthoredImageGate(gate: FormStorageGateInput, session: Session | null) {
+  const result = await resolvePublicStorageGate(gate, session, { allowCookieFallback: true });
+  if (Result.isError(result)) return result;
+  if (!session?.accessToken || gate.token || gate.submissionId) return result;
+  if (result.value.tokenType !== "SubmissionToken") return result;
+  return Result.success({ ...result.value, [optionalPartialCookie]: true as const });
 }

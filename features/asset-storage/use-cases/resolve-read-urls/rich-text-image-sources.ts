@@ -40,18 +40,27 @@ function asNode(value: unknown): SurveyNode {
   return value && typeof value === "object" ? (value as SurveyNode) : {};
 }
 
+function collectChoices(choices: unknown[], sources: Set<string>) {
+  for (const choice of choices) {
+    collectLocalized(
+      typeof choice === "string" ? choice : asNode(choice).text,
+      sources,
+    );
+  }
+}
+
 function collectElement(value: unknown, sources: Set<string>) {
   const node = asNode(value);
   elementFields.forEach((key) => collectLocalized(node[key], sources));
   if (node.type === "html") collectLocalized(node.html, sources);
-  for (const choice of [
-    ...items(node.choices),
-    ...items(node.rows),
-    ...items(node.columns),
-  ]) {
-    collectLocalized(
-      typeof choice === "string" ? choice : asNode(choice).text,
-      sources,
+  const columns = items(node.columns);
+  collectChoices(
+    [...items(node.choices), ...items(node.rows), ...columns],
+    sources,
+  );
+  if (node.type === "matrixdropdown" || node.type === "matrixdynamic") {
+    columns.forEach((column) =>
+      collectChoices(items(asNode(column).choices), sources),
     );
   }
   const children = [...items(node.elements), ...items(node.templateElements)];

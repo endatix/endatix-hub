@@ -1,4 +1,5 @@
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
+import { isMissingOptionalSubmission } from "@/lib/endatix-api/submissions/is-missing-optional-submission";
 import { Result } from "@/lib/result";
 import {
   hasTokenPermission,
@@ -12,6 +13,8 @@ import type {
   FormStorageTokenType,
 } from "../../types";
 import type { FormStorageGateRunContext } from "./gate-context";
+import { hubPolicyStrategy } from "./hub-policy.strategy";
+import { optionalPartialCookie } from "../../types";
 
 function resolveTokenType(
   token: string,
@@ -92,6 +95,9 @@ export async function tokenGateStrategy(
     token,
   );
   if (ApiResult.isError(submissionResult)) {
+    if (gate[optionalPartialCookie] && context.hubAccessToken && isMissingOptionalSubmission(submissionResult)) {
+      return hubPolicyStrategy(context);
+    }
     return formAccessForbidden("Form access denied");
   }
 

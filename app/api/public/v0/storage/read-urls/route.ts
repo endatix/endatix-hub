@@ -5,6 +5,7 @@ import { getClientStorageConfig } from "@/features/asset-storage/storage-runtime
 import {
   mapGateResultToResponse,
   parsePublicReadUrlsBody,
+  resolveAuthoredImageGate,
   resolvePublicStorageGate,
 } from "@/features/form-access/server";
 import { resolvePublicReadUrls } from "@/features/asset-storage/use-cases/resolve-read-urls/resolve-read-urls";
@@ -31,9 +32,8 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const session = await auth();
-  const gateResult = await resolvePublicStorageGate(parsed.value.gate, session, {
-    allowCookieFallback: parsed.value.richTextImages,
-  });
+  const resolveGate = parsed.value.richTextImages ? resolveAuthoredImageGate : resolvePublicStorageGate;
+  const gateResult = await resolveGate(parsed.value.gate, session);
   if (Result.isError(gateResult)) {
     return mapGateResultToResponse(gateResult)!;
   }

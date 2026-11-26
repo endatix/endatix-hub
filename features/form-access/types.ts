@@ -6,8 +6,12 @@ export function isFormStorageTokenType(
   return value === "AccessToken" || value === "SubmissionToken";
 }
 
+/** Only the server can mark a token as coming from an optional resume cookie. */
+export const optionalPartialCookie = Symbol("optionalPartialCookie");
+
 /** Gate input resolved from the request body and optional submission cookie. */
 export interface FormStorageGateInput {
+  [optionalPartialCookie]?: true;
   formId: string;
   submissionId?: string;
   token?: string;

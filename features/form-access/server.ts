@@ -24,7 +24,7 @@ export {
   parseHubReadUrlsBody,
   parsePublicReadUrlsBody,
 } from "./parse/parse-read-urls-body";
-export { resolvePublicStorageGate } from "./parse/resolve-public-storage-gate";
+export { resolveAuthoredImageGate, resolvePublicStorageGate } from "./parse/resolve-public-storage-gate";
 export { resolveStorageGateInput } from "./parse/resolve-gate-from-request";
 export type { ResolveStorageGateInputOptions } from "./parse/resolve-gate-from-request";
 export {

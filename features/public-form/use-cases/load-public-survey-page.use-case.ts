@@ -18,12 +18,11 @@ import {
 import { getSubmissionByAccessTokenUseCase } from "@/features/public-submissions/edit/get-submission-by-access-token.use-case";
 import { resolveSubmissionFormDefinition } from "@/features/public-submissions/resolve-submission-form-definition";
 import {
-  ApiErrorType,
   ApiResult,
-  isNotFoundError,
   type Submission,
 } from "@/lib/endatix-api";
 import type { PublicFormAccessResponse } from "@/lib/endatix-api/forms/types";
+import { isMissingOptionalSubmission } from "@/lib/endatix-api/submissions/is-missing-optional-submission";
 import {
   ERROR_CODE,
   REFUSED_TOKEN_CODES,
@@ -420,14 +419,7 @@ async function loadPartialSubmission({
     };
   }
 
-  if (isNotFoundError(partialResult)) {
-    return {
-      kind: "success",
-      value: undefined,
-    };
-  }
-
-  if (partialResult.error.type === ApiErrorType.ValidationError) {
+  if (isMissingOptionalSubmission(partialResult)) {
     return {
       kind: "success",
       value: undefined,
