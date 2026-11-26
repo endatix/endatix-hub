@@ -36,13 +36,8 @@ it("resolves ordinary admission and Terms before reading enrollment", async () =
 });
 
 it("distinguishes absent sign-in intent from an explicit Hub or Auth.js destination", () => {
-  vi.stubEnv("AUTH_URL", "https://hub.example");
-  try {
-    expect(signinDestination({})).toBeUndefined();
-    expect(signinDestination({ returnUrl: "/forms" })).toBe("/forms");
-    expect(signinDestination({ callbackUrl: "https://hub.example/settings/security?tab=security" })).toBe("/settings/security?tab=security");
-    expect(signinDestination({ callbackUrl: "https://outside.example" })).toBe("/forms");
-  } finally {
-    vi.unstubAllEnvs();
-  }
+  expect(signinDestination({})).toBeUndefined();
+  expect(signinDestination({ returnUrl: "/forms", callbackUrl: "/settings/security" })).toBe("/forms");
+  expect(signinDestination({ callbackUrl: "/settings/security" })).toBe("/settings/security");
+  expect(signinDestination({ callbackUrl: "https://unknown.example/settings/security" })).toBe("/forms");
 });

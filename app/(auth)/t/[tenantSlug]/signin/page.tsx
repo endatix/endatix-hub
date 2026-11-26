@@ -9,7 +9,7 @@ import {
 import { AuthLogo } from "@/features/auth/ui/auth-logo";
 import { AuthStatus } from "@/features/auth/ui/auth-status";
 import SigninForm from "@/features/auth/use-cases/signin/ui/signin-form";
-import { signinDestination } from "@/features/auth/use-cases/signin/signin-destination";
+import { signinNavigation } from "@/features/auth/use-cases/signin/signin-navigation.server";
 import { filterTenantAuthProviders } from "@/features/tenants/public-tenant/auth-providers";
 import { getPublicTenantAction } from "@/features/tenants/public-tenant/public-tenant.action";
 import { TenantPublicUnavailable } from "@/features/tenants/public-tenant/ui/tenant-public-unavailable";
@@ -49,7 +49,7 @@ const TenantSignInPage = async ({
   }
 
   const { tenantSlug } = await params;
-  const returnUrl = signinDestination(await searchParams);
+  const navigation = signinNavigation(await searchParams);
   const tenantResult = await getPublicTenantAction(tenantSlug);
   if (!Result.isSuccess(tenantResult)) {
     return <TenantPublicUnavailable error={tenantResult} />;
@@ -84,7 +84,7 @@ const TenantSignInPage = async ({
         externalAuthProviders={filteredProviders.filter(
           (provider) => provider.id !== ENDATIX_AUTH_PROVIDER_ID,
         )}
-        returnUrl={returnUrl}
+        {...navigation}
       />
       {tenant.selfRegistrationEnabled && (
         <div className="mt-4 text-center text-sm">
