@@ -2,10 +2,21 @@ import { expect, it } from "vitest";
 import { resolveTarget } from "../resolve-target";
 
 const pending = {
+  key: "profile.complete",
   resolvePath: "/profile",
   severity: "blocking",
   canResolve: true,
 } as const;
+
+it("sends the return-home blocker to status even on a co-reported personal resolver", () => {
+  const home = {
+    ...pending,
+    key: "saas.legal.return-home",
+    canResolve: false,
+    resolvePath: "/required-actions",
+  };
+  expect(resolveTarget([pending, home], "/profile")).toBe("/required-actions");
+});
 
 it("does not bounce from a resolver back through its settings alias", () => {
   expect(

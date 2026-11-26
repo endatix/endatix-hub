@@ -4,8 +4,17 @@ import type { Route } from "next";
 export const REQUIRED_ACTIONS_PATH = "/required-actions";
 type PendingAction = Pick<
   RequiredAction,
-  "severity" | "resolvePath" | "canResolve"
+  "key" | "severity" | "resolvePath" | "canResolve"
 >;
+
+export function mustReturnHome(actions: readonly PendingAction[]) {
+  return actions.some(
+    (a) =>
+      a.key === "saas.legal.return-home" &&
+      a.severity === "blocking" &&
+      !a.canResolve,
+  );
+}
 
 /** Providers supply an application path, never an origin, redirect query or API URL. */
 export function resolverPath(
@@ -30,6 +39,7 @@ export function resolveTarget(
 ) {
   const path = pathname.replace(/\/+$/, "");
   if (isSignInPath(path) || path === REQUIRED_ACTIONS_PATH) return null;
+  if (mustReturnHome(actions)) return REQUIRED_ACTIONS_PATH;
   const blocking = actions.filter((a) => a.severity === "blocking");
   if (
     !blocking.length ||
