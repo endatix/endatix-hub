@@ -50,7 +50,7 @@ import {
 import "survey-creator-core/i18n";
 import "survey-creator-core/survey-creator-core.css";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
-import { updateTemplateJsonAction } from "../application/update-template-json.action";
+import { updateTemplateJsonAction, type UpdateTemplateJsonResult } from "../application/update-template-json.action";
 import { updateTemplateNameAction } from "../application/update-template-name.action";
 
 registerThemes();
@@ -82,6 +82,18 @@ const TEMPLATE_EXCLUDED_EXTENSION_IDS: ReadonlySet<string> = new Set([
 const TEMPLATE_EXTENSION_IDS = ALL_EXTENSIONS.filter(
   (extension) => !TEMPLATE_EXCLUDED_EXTENSION_IDS.has(extension.id),
 ).map((extension) => extension.id);
+
+function templateSaveSucceeded(result: UpdateTemplateJsonResult | undefined) {
+  if (!result) {
+    toast.error("Could not proceed with updating template JSON");
+    return false;
+  }
+  if (Result.isError(result)) {
+    showActionFailure(result, "Failed to update template JSON");
+    return false;
+  }
+  return true;
+}
 
 function FormTemplateEditorContent({
   templateJson,
@@ -154,7 +166,7 @@ function FormTemplateEditorContent({
     return () => creator.onModified.remove(setAsModified);
   }, [creator, setHasUnsavedChanges]);
 
-  useCreatorJson(creator, templateJson);
+  const saveCanvas = useCreatorJson(creator, templateJson);
 
   const handleNameSave = useCallback(async () => {
     if (name === originalName) return;
@@ -344,24 +356,16 @@ function FormTemplateEditorContent({
       return;
     }
 
-    const creatorJson = jsonResult.value;
-
     setIsSaving(true);
     try {
-      const result = await updateTemplateJsonAction(templateId, creatorJson);
+      const { result, stillSaved } = await saveCanvas(jsonResult.value, definition =>
+        updateTemplateJsonAction(templateId, definition));
+      if (!templateSaveSucceeded(result)) return;
 
-      if (!result) {
-        toast.error("Could not proceed with updating template JSON");
-        return;
+      if (stillSaved(getJsonModel(creator))) {
+        setHasUnsavedChanges(false);
+        setIsJsonModified(false);
       }
-
-      if (Result.isError(result)) {
-        showActionFailure(result, "Failed to update template JSON");
-        return;
-      }
-
-      setHasUnsavedChanges(false);
-      setIsJsonModified(false);
       setShowSavedSuccess(true);
 
       toast.success("Template saved");

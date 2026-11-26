@@ -16,6 +16,7 @@ import { SupportAccessBannerSlot } from "@/features/platform-admin/assume-tenant
 import { NoticeSlot } from "@/features/auth/required-actions/notice-slot";
 import { Suspense } from "react";
 import { workspaceScope } from "@/lib/routes/workspace-scope.server";
+import { PersonalGuideSlot } from "@/features/onboarding/personal-guide/personal-guide-slot";
 
 export async function generateMetadata(): Promise<Metadata> {
   const brand = await getBrand();
@@ -47,18 +48,18 @@ export default async function RootLayout({
       getClientEndatixConfig(),
       getBrand(),
     ]);
-  const defaultSidebarOpen = cookieStore.get("sidebar_state")?.value === "true";
   return (
     <html lang="en" className={getOsClass(requestHeaders)} suppressHydrationWarning>
       <head />
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <AppProvider
           session={session}
-          sidebarDefaultOpen={defaultSidebarOpen}
+          sidebarDefaultOpen={cookieStore.get("sidebar_state")?.value === "true"}
           endatixConfig={endatixConfig}
           brand={brand}
         >
           {nav}
+          <PersonalGuideSlot session={session} />
           <main data-slot="sidebar-inset" data-workspace-scope={workspaceScope(session?.accessToken)}>
             <SupportAccessBannerSlot accessToken={session?.accessToken} />
             <Suspense fallback={null}>

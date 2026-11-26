@@ -311,24 +311,20 @@ function FormEditor({
     [creator],
   );
 
+  const saveCanvas = useCreatorJson(creator, formJson);
   const saveForm = useCallback(async () => {
-    const isDraft = false;
-
     const jsonResult = getJsonModel(creator);
     if (Result.isError(jsonResult)) {
       toast.error(jsonResult.message);
       return;
     }
 
-    const updatedFormJson = jsonResult.value;
     const theme = creator?.theme as StoredTheme;
     let isThemeUpdated = false;
-    let isFormUpdated = false;
 
-    const updateDefinitionResult = await updateFormDefinitionJsonAction(
-      formId,
-      isDraft,
-      updatedFormJson,
+    const { result: updateDefinitionResult, stillSaved } = await saveCanvas(
+      jsonResult.value,
+      definition => updateFormDefinitionJsonAction(formId, false, definition),
     );
 
     if (updateDefinitionResult === undefined) {
@@ -342,8 +338,6 @@ function FormEditor({
       );
       return;
     }
-
-    isFormUpdated = true;
 
     const newThemeId =
       theme?.themeName?.toLowerCase() === DEFAULT_THEME_NAME
@@ -370,11 +364,13 @@ function FormEditor({
       isThemeUpdated = true;
     }
 
-    setHasUnsavedChanges(false);
-    setIsJsonModified(false);
+    if (stillSaved(getJsonModel(creator))) {
+      setHasUnsavedChanges(false);
+      setIsJsonModified(false);
+    }
     toast.success(
       <p>
-        {isFormUpdated && "Form changes saved. "}
+        Form changes saved.{" "}
         {isThemeUpdated && (
           <span>
             Theme set to <b>{theme.themeName}</b>
@@ -384,6 +380,7 @@ function FormEditor({
     );
   }, [
     getJsonModel,
+    saveCanvas,
     creator,
     formId,
     themeId,
@@ -636,8 +633,6 @@ function FormEditor({
 
     return () => creator.onModified.remove(setAsModified);
   }, [creator, setHasUnsavedChanges]);
-
-  useCreatorJson(creator, formJson);
 
   useEffect(() => {
     if (!creator) return;

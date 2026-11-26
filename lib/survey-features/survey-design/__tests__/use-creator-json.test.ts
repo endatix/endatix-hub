@@ -2,6 +2,7 @@
 import { renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { useCreatorJson } from "../ui/use-creator-json";
+import { Result } from "@/lib/result/result";
 
 type FakeCreator = { JSON: object | null };
 type CreatorJsonProps = { creator: FakeCreator; json: object | null };
@@ -9,7 +10,7 @@ type CreatorJsonProps = { creator: FakeCreator; json: object | null };
 const createCreator = (): FakeCreator => ({ JSON: null });
 
 const renderCreatorJson = (initialProps: CreatorJsonProps) =>
-  renderHook<void, CreatorJsonProps>(
+  renderHook(
     ({ creator, json }) => useCreatorJson(creator as never, json),
     { initialProps },
   );
@@ -68,6 +69,77 @@ describe("useCreatorJson", () => {
 
     // Assert
     expect(creator.JSON).toBe(secondTurn);
+  });
+
+  it("preserves an unsaved edit after the preceding save is read back twice", () => {
+    // Arrange
+    const creator = createCreator();
+    const { rerender } = renderCreatorJson({ creator, json: { title: "Original" } });
+    creator.JSON = { title: "Saved" };
+    rerender({ creator, json: { title: "Saved" } });
+    const draft = { title: "Still editing" };
+    creator.JSON = draft;
+    // Act
+    rerender({ creator, json: { title: "Saved" } });
+    // Assert
+    expect(creator.JSON).toBe(draft);
+  });
+
+  it("preserves a newer canvas edit when its earlier save is first read back", async () => {
+    // Arrange
+    const creator = createCreator();
+    const { rerender, result } = renderCreatorJson({ creator, json: { title: "Original" } });
+    creator.JSON = { title: "Saving" };
+    await result.current(creator.JSON, async () => Result.success("saved"));
+    const draft = { title: "Edited while saving" };
+    creator.JSON = draft;
+    // Act
+    rerender({ creator, json: { title: "Original" } });
+    rerender({ creator, json: { title: "Saving" } });
+    // Assert
+    expect(creator.JSON).toBe(draft);
+  });
+
+  it.each(["refused", "empty", "threw"])("applies an external definition after its local save %s", async outcome => {
+    // Arrange
+    const creator = createCreator();
+    const { rerender, result } = renderCreatorJson({ creator, json: { title: "Original" } });
+    const submitted = { title: "Not saved here" };
+    creator.JSON = submitted;
+    const refusal = outcome === "refused" ? Result.error("refused") : undefined;
+    // Act
+    const save = result.current(submitted, async () => {
+      if (outcome === "threw") throw new Error("offline");
+      return refusal;
+    });
+    if (outcome === "threw") await expect(save).rejects.toThrow("offline");
+    else expect((await save).result).toBe(refusal);
+    creator.JSON = { title: "Local draft" };
+    rerender({ creator, json: { ...submitted } });
+    // Assert
+    expect(creator.JSON).toEqual(submitted);
+  });
+
+  it("does not cancel a newer pending attempt for the same object when an older save fails", async () => {
+    // Arrange
+    const creator = createCreator();
+    const { rerender, result } = renderCreatorJson({ creator, json: { title: "Original" } });
+    const submitted = { title: "Retry" };
+    creator.JSON = submitted;
+    const older = Promise.withResolvers<Result<string>>();
+    const newer = Promise.withResolvers<Result<string>>();
+    const first = result.current(submitted, () => older.promise);
+    const second = result.current(submitted, () => newer.promise);
+    const draft = { title: "Edited during retry" };
+    creator.JSON = draft;
+    // Act
+    older.resolve(Result.error("failed"));
+    await first;
+    rerender({ creator, json: { ...submitted } });
+    newer.resolve(Result.success("saved"));
+    // Assert
+    expect((await second).stillSaved(Result.success(creator.JSON))).toBe(false);
+    expect(creator.JSON).toBe(draft);
   });
 
   it("assigns JSON when it arrives after the Creator", () => {
