@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { Result } from "@/lib/result";
+import { workspaceSetupHref } from "@/lib/routes/workspace-path";
 import { workspaceApi, workspaceResult, workspaceStartPath } from "./workspace-api.server";
 
 export async function startBlank(scope: string) {
@@ -19,6 +20,9 @@ async function resumeWorkspace(scope: string, action: "blank" | "retry") {
   if (workspace.scope !== scope)
     return Result.error("Your session has changed. Refresh before starting your survey.");
   const result = workspaceResult(await workspace.api.post<unknown>(`${workspaceStartPath}/${action}`));
-  if (Result.isSuccess(result)) revalidatePath("/forms");
+  if (Result.isSuccess(result)) {
+    revalidatePath("/forms");
+    revalidatePath(workspaceSetupHref);
+  }
   return result;
 }

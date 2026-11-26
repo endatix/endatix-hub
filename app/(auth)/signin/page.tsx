@@ -18,6 +18,7 @@ import {
   RETURN_URL_PARAM,
 } from "@/features/auth/infrastructure";
 import SigninForm from "@/features/auth/use-cases/signin/ui/signin-form";
+import { signinNavigation } from "@/features/auth/use-cases/signin/signin-navigation.server";
 import { DeclinedNotice } from "@/features/legal/operator-contact";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -32,11 +33,12 @@ export async function generateMetadata(): Promise<Metadata> {
 interface SignInPageProps {
   searchParams: Promise<{
     [RETURN_URL_PARAM]: string | undefined;
+    callbackUrl?: string;
   }>;
 }
 
 const SignInPage = async ({ searchParams }: SignInPageProps) => {
-  const { returnUrl } = await searchParams;
+  const navigation = signinNavigation(await searchParams);
   const authSession = await auth();
 
   if (authSession?.user && !authSession.error) {
@@ -68,7 +70,7 @@ const SignInPage = async ({ searchParams }: SignInPageProps) => {
       <SigninForm
         endatixAuthProvider={endatixAuthProvider}
         externalAuthProviders={externalAuthProviders}
-        returnUrl={returnUrl}
+        {...navigation}
       />
       <DeclinedNotice />
     </>

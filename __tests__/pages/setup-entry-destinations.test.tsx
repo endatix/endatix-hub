@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { renderToReadableStream } from "react-dom/server";
 import { expect, it, vi } from "vitest";
 import { Result } from "@/lib/result";
-import { canResumeWorkspaceSetup } from "@/features/onboarding/start-workspace/workspace-api.server";
+import { canResumeWorkspaceSetup, currentWorkspaceStart } from "@/features/onboarding/start-workspace/workspace-api.server";
 import Settings from "@/app/(main)/settings/page";
 import Security from "@/app/(main)/settings/security/page";
 import Folders from "@/app/(main)/folders/page";
@@ -16,7 +16,6 @@ import FormOverview from "@/app/(main)/forms/[formId]/page";
 import FormSettings from "@/app/(main)/forms/[formId]/settings/page";
 import DataLists from "@/app/(main)/data-lists/page";
 import Forms from "@/app/(main)/forms/page";
-import { currentWorkspaceStart } from "@/features/onboarding/start-workspace/workspace-api.server";
 
 vi.mock("@/auth", () => ({ auth: async () => ({ accessToken: "owner" }) }));
 vi.mock("@/features/auth/authorization", async original => ({
@@ -30,7 +29,7 @@ vi.mock("@/features/auth/required-actions/workspace-redirect.server", () => ({
 }));
 vi.mock("@/features/onboarding/start-workspace/workspace-api.server", () => ({
   canResumeWorkspaceSetup: vi.fn(async () => true),
-  currentWorkspaceStart: vi.fn(async () => null),
+  currentWorkspaceStart: vi.fn(async () => ({ result: Result.success({ kind: "offer" }) })),
 }));
 vi.mock("@/lib/feature-flags/flags", async original => ({
   ...(await original<object>()), reportingExportFlag: async () => false,
@@ -99,7 +98,7 @@ it.each([
 ] as const)("retains the product view and the optional setup entry on admitted %s", async (heading, page) => {
   const document = await documentFor(page());
   expect(document).toContain(heading);
-  expect(document).toContain('href="/forms#workspace-setup"');
+  expect(document).toContain('href="/workspace/setup"');
   expect(canResumeWorkspaceSetup).toHaveBeenCalledOnce();
 });
 
@@ -111,7 +110,7 @@ it.each([FormOverview, FormSettings])("waits for ordinary form access before sho
 
   loadForm.mockResolvedValueOnce(Result.success({ id: "42", name: "Survey" }));
   const admitted = await documentFor(page({ params }));
-  expect(admitted).toContain('href="/forms#workspace-setup"');
+  expect(admitted).toContain('href="/workspace/setup"');
   expect(canResumeWorkspaceSetup).toHaveBeenCalledOnce();
 });
 
@@ -123,22 +122,22 @@ it("waits for the streamed data-list load before checking the owner's setup", as
   });
   loadLists.mockRejectedValueOnce(new Error("Access denied"));
   const denied = await documentFor(DataLists({ searchParams }));
-  expect(denied).not.toContain("/forms#workspace-setup");
+  expect(denied).not.toContain("/workspace/setup");
   expect(canResumeWorkspaceSetup).not.toHaveBeenCalled();
 
   loadLists.mockResolvedValueOnce({ items: [] });
   const admitted = await documentFor(DataLists({ searchParams }));
-  expect(admitted).toContain('href="/forms#workspace-setup"');
+  expect(admitted).toContain('href="/workspace/setup"');
   expect(canResumeWorkspaceSetup).toHaveBeenCalledOnce();
 });
 
-it("leaves the Forms anchor in place but reads the receipt only for a successful list", async () => {
+it("offers a compact return to setup only after Forms admits the list", async () => {
   loadForms.mockResolvedValueOnce(Result.error("Forms denied"));
   const denied = await documentFor(Forms({}));
-  expect(denied).toContain('id="workspace-setup"');
+  expect(denied).not.toContain('href="/workspace/setup"');
   expect(currentWorkspaceStart).not.toHaveBeenCalled();
 
   loadForms.mockResolvedValueOnce(Result.success({ items: [] }));
-  await documentFor(Forms({}));
+  expect(await documentFor(Forms({}))).toContain('href="/workspace/setup"');
   expect(currentWorkspaceStart).toHaveBeenCalledOnce();
 });
