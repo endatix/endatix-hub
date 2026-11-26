@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { TelemetryLogger } from "@/features/telemetry";
 import type { EndatixApi } from "@/lib/endatix-api";
 import { normalizePagedResponse, type NormalizedPagedResponse } from "@/lib/endatix-api/shared/paged-response";
 import { appendPagingQueryParams, buildEndpointWithQuery } from "@/lib/endatix-api/shared/query-params";
@@ -18,7 +19,7 @@ const historyPage = z.object({
   const remaining = totalRecords - (page - 1) * pageSize;
   return totalPages === Math.ceil(totalRecords / pageSize)
     && page <= Math.max(1, totalPages)
-    && items.length <= Math.min(pageSize, remaining);
+    && items.length === Math.min(pageSize, remaining);
 });
 
 export function buildVersionHistoryEndpoint(kind: DocumentKind, paging: IPagedRequest) {
@@ -31,7 +32,7 @@ export async function readVersions(api: EndatixApi, kind: DocumentKind, paging: 
   const response = await api.get<unknown>(buildVersionHistoryEndpoint(kind, paging));
   if (!response.success) return toResult<NormalizedPagedResponse<Publication>>(response, options);
   const parsed = historyPage.safeParse(response.data);
-  return parsed.success
-    ? Result.success(normalizePagedResponse(parsed.data))
-    : Result.error<NormalizedPagedResponse<Publication>>("Could not read the document version history.");
+  if (parsed.success) return Result.success(normalizePagedResponse(parsed.data));
+  TelemetryLogger.warn("Unexpected legal version history format.", { kind }, options.loggerName);
+  return Result.error<NormalizedPagedResponse<Publication>>("Could not read the document version history.");
 }

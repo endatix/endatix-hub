@@ -73,7 +73,12 @@ const publication = {
   publishedByUserId: "9007199254740993",
 };
 const emptyPage = { page: 1, pageSize: 10, totalRecords: 0, totalPages: 0, items: [] };
-const historyPage = { page: 2, pageSize: 10, totalRecords: 22, totalPages: 3, items: [publication] };
+const historyPage = {
+  page: 2, pageSize: 10, totalRecords: 22, totalPages: 3,
+  items: Array.from({ length: 10 }, (_, index) => ({
+    ...publication, id: String(25 - index), number: 12 - index,
+  })),
+};
 
 async function renderHistory(data: unknown) {
   const { VersionHistory } = await vi.importActual<
@@ -88,34 +93,39 @@ it("shows the requested read-only history page with its publisher, date and navi
   await renderHistory(historyPage);
   // Assert
   expect(get).toHaveBeenCalledWith("/admin/legal/documents/terms/versions?page=2&pageSize=10");
-  expect(screen.getByText(/published by user 9007199254740993/)).toBeTruthy();
-  expect(screen.getByText(publication.publishedAt).getAttribute("datetime")).toBe(publication.publishedAt);
+  expect(screen.getByText(/Version 12 · minor · published by user 9007199254740993/)).toBeTruthy();
+  expect(screen.getAllByText(publication.publishedAt)[0].getAttribute("datetime")).toBe(publication.publishedAt);
   fireEvent.click(screen.getByRole("button", {name:"Go to next page"}));
   expect(replace).toHaveBeenCalledWith("/admin/legal?kind=terms&page=3",{scroll:false});
   expect(screen.queryByRole("button", {name:/edit|publish|delete/i})).toBeNull();
 });
 
 it("shows the empty state for a genuine empty history page", async () => {
+  // Act & Assert
   await renderHistory(emptyPage);
   expect(screen.getByText("No versions on this page.")).toBeTruthy();
 });
 
 it.each([
   ["null body", null],
+  ["unexpected message envelope", { success: false, message: "Internal diagnostic" }],
   ["missing items", {}],
   ["invalid page", { ...emptyPage, page: 0 }],
   ["missing count", { ...emptyPage, totalRecords: undefined }],
   ["inconsistent totals", { ...emptyPage, totalPages: 1 }],
-  ["invalid row", { ...historyPage, items: [publication, null] }],
+  ["missing publication", { ...historyPage, items: [] }],
+  ["invalid row", { ...historyPage, items: [null, ...historyPage.items.slice(1)] }],
   ...Object.entries({
     id: "9223372036854775808", number: 0, change: "unknown", markdown: null,
     publishedAt: "not a date", publishedByUserId: 123,
-  }).map(([field, value]) => [
-    `invalid ${field}`, { ...historyPage, items: [{ ...publication, [field]: value }] },
+  }).map(([field, value]): [string, unknown] => [
+    `invalid ${field}`, { ...historyPage, items: [{ ...publication, [field]: value }, ...historyPage.items.slice(1)] },
   ]),
 ])("shows a retryable error for %s", async (_label, data) => {
+  // Act & Assert
   await renderHistory(data);
   expect(screen.getByRole("button", { name: "Try Again" })).toBeTruthy();
   expect(screen.queryByText("No versions on this page.")).toBeNull();
   expect(screen.queryByText(/published by user/)).toBeNull();
+  expect(screen.queryByText(/Internal diagnostic/)).toBeNull();
 });
