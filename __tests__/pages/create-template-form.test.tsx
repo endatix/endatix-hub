@@ -69,15 +69,20 @@ it("retains the chosen folder after a refused submission, then opens the created
     }),
   );
   create
-    .mockResolvedValueOnce({
+    .mockImplementationOnce(async (_previous, submitted: FormData) => ({
       isSuccess: false,
-      data: { name: "Example", folderId: "7" },
+      data: {
+        name: submitted.get("name"),
+        folderId: submitted.get("folderId"),
+      },
       formErrors: ["Review the details"],
       errors: { name: ["Choose another name"], folderId: ["Check the folder"] },
-    })
+    }))
     .mockResolvedValueOnce({ isSuccess: true, templateId: "45" });
   render(<CreateTemplateForm />);
-  await screen.findByRole("combobox");
+  Element.prototype.scrollIntoView ??= () => undefined;
+  fireEvent.keyDown(await screen.findByRole("combobox"), { key: "ArrowDown" });
+  fireEvent.click(await screen.findByRole("option", { name: "Templates" }));
 
   // Act
   fireEvent.change(screen.getByLabelText("Name"), {
@@ -87,6 +92,7 @@ it("retains the chosen folder after a refused submission, then opens the created
 
   // Assert
   expect(await screen.findByText("Review the details")).toBeTruthy();
+  expect(create.mock.calls[0][1].get("folderId")).toBe("7");
   expect(screen.getByText("Choose another name")).toBeTruthy();
   expect(screen.getByText("Check the folder")).toBeTruthy();
   expect(router.push).not.toHaveBeenCalled();
