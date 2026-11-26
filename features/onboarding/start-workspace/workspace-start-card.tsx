@@ -19,11 +19,11 @@ interface Props {
 }
 
 export function WorkspaceStartCard(props: Readonly<Props>) {
-  const { panel, rememberAction } = useSetupFocus(props.choice.kind);
+  const { panel, rememberFocus } = useSetupFocus(props.choice.kind);
   return (
     <div className="grid items-start gap-6 min-[861px]:grid-cols-[280px_minmax(0,1fr)] min-[861px]:gap-8">
       <SetupSteps stage={props.choice.kind} />
-      <section ref={panel} tabIndex={-1} onClickCapture={rememberAction} aria-label="Workspace setup choice" className="min-w-0 rounded-[20px] border bg-card p-5 text-card-foreground sm:p-8">
+      <section ref={panel} tabIndex={-1} onFocusCapture={rememberFocus} aria-label="Workspace setup choice" className="min-w-0 rounded-[20px] border bg-card p-5 text-card-foreground sm:p-8">
         <span className="sr-only" aria-live="polite">{stageAnnouncement[props.choice.kind]}</span>
         <p className="mb-3 text-xs font-semibold tracking-widest text-muted-foreground uppercase">
           {props.choice.kind === "complete" ? "Setup complete" : "Workspace setup · Step 2 of 2"}
@@ -45,7 +45,7 @@ function useSetupFocus(stage: WorkspaceChoice["kind"]) {
     previous.current = stage;
     action.current = null;
   }, [stage]);
-  return { panel, rememberAction: () => { action.current = document.activeElement?.closest("button") ?? null; } };
+  return { panel, rememberFocus: () => { action.current = document.activeElement?.closest("button") ?? null; } };
 }
 
 const stageAnnouncement = {
