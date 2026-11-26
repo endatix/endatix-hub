@@ -10,8 +10,8 @@ import {
 } from "@/features/form-templates/application/create-template.action";
 import Link from "next/link";
 import PageTitle from "@/components/headings/page-title";
-import { useActionState, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useRef, useState, type FormEvent } from "react";
+import { unstable_rethrow, useRouter } from "next/navigation";
 import { toast } from "@/components/ui/toast";
 import { Loader2 } from "lucide-react";
 import type { TemplateCreateContext } from "@/features/form-templates/application/get-template-create-context.action";
@@ -29,35 +29,56 @@ import { ServerActionState } from "@/lib/utils/zod-error-utils";
 const NO_FOLDER_ID = "__none__";
 const INITIAL_STATE: CreateTemplateActionState = ServerActionState.emptyState();
 
+function unconfirmedCreation(error: unknown): CreateTemplateActionState {
+  unstable_rethrow(error);
+  return {
+    isSuccess: false,
+    formErrors: ["Could not confirm creation. Check your templates before trying again."],
+  };
+}
+
+async function createAndOpenTemplate(
+  previous: CreateTemplateActionState,
+  data: FormData,
+  router: ReturnType<typeof useRouter>,
+): Promise<CreateTemplateActionState> {
+  const createPath = window.location.pathname;
+  const result = await createTemplateAction(previous, data).catch(unconfirmedCreation);
+  if (result.isSuccess && result.templateId && window.location.pathname === createPath) {
+    toast.success({
+      title: "Form template created successfully",
+      description: "Opening template editor...",
+    });
+    router.push(`/forms/templates/${result.templateId}`);
+  }
+  return result;
+}
+
 function useCreateTemplate() {
   const router = useRouter();
+  const submitting = useRef(false);
   async function submit(previous: CreateTemplateActionState, data: FormData) {
-    // React can queue a second submission before the pending button renders.
-    if (previous.isSuccess && previous.templateId) return previous;
-    const createPath = window.location.pathname;
-    const result = await createTemplateAction(previous, data);
-    if (!result.isSuccess || !result.templateId) return result;
-    if (window.location.pathname === createPath) {
-      toast.success({
-        title: "Form template created successfully",
-        description: "Opening template editor...",
-      });
-      router.push(`/forms/templates/${result.templateId}`);
-    }
+    const result = await createAndOpenTemplate(previous, data, router);
+    submitting.current = Boolean(result.isSuccess && result.templateId);
     return result;
   }
-  return useActionState(submit, INITIAL_STATE);
+  const [state, action, pending] = useActionState(submit, INITIAL_STATE);
+  function onSubmit(event: FormEvent<HTMLFormElement>) {
+    if (submitting.current) event.preventDefault();
+    else submitting.current = true;
+  }
+  return { state, action, pending, onSubmit };
 }
 
 export default function CreateTemplateForm({
   folders,
   requireFolderAssignment,
 }: Readonly<TemplateCreateContext>) {
-  const [state, formAction, isCreating] = useCreateTemplate();
+  const { state, action, pending, onSubmit } = useCreateTemplate();
   const [selectedFolderId, setSelectedFolderId] =
     useState<string>(NO_FOLDER_ID);
   const createdId = state.isSuccess ? state.templateId : undefined;
-  const isPending = isCreating || Boolean(createdId);
+  const isPending = pending || Boolean(createdId);
 
   useEffect(() => {
     if (state?.data?.folderId) {
@@ -72,12 +93,13 @@ export default function CreateTemplateForm({
       <PageTitle title="Create Form Template" />
       <div className="container max-w-2xl py-6">
         <div className="mb-6">
-          <Link
-            href="/forms/templates"
-            className="text-primary hover:underline"
-          >
-            ← Back to templates
-          </Link>
+          {isPending ? (
+            <span aria-disabled="true">← Back to templates</span>
+          ) : (
+            <Link href="/forms/templates" className="text-primary hover:underline">
+              ← Back to templates
+            </Link>
+          )}
         </div>
 
         <div className="rounded-lg border bg-card p-6 shadow-sm">
@@ -89,7 +111,7 @@ export default function CreateTemplateForm({
             multiple times.
           </p>
 
-          <form action={formAction} className="space-y-6">
+          <form action={action} onSubmit={onSubmit} className="space-y-6">
             {state?.formErrors && state.formErrors.length > 0 && (
               <div className="rounded-md bg-destructive/15 p-4">
                 <ErrorMessage message={state.formErrors} />
