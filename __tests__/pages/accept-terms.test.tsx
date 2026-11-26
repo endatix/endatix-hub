@@ -109,13 +109,14 @@ it("redirects a non-resolver without reading the publication", async () => {
   expect(publication).not.toHaveBeenCalled();
 });
 
-it("restores a cleared member's page on a confirmed retry, not an edited or unconfirmed visit", async () => {
+it("restores a cleared member's scoped page on reload or confirmed retry", async () => {
   me.mockResolvedValue(snapshot([]));
   const returnUrl = "/forms/42/settings?tab=details";
   const page = (scope: string | undefined, target: string) => TermsPage({searchParams:Promise.resolve({scope, returnUrl:target})});
   await expect(page(confirmedScope("member", returnUrl), returnUrl)).rejects.toThrow(`redirect:${returnUrl}`);
   await expect(page(confirmedScope("member", returnUrl), "/admin/tenants")).rejects.toThrow("redirect:/forms");
-  await expect(page(workspaceScope("member"), returnUrl)).rejects.toThrow("redirect:/forms");
+  await expect(page(workspaceScope("member"), returnUrl)).rejects.toThrow(`redirect:${returnUrl}`);
+  expect(publication).not.toHaveBeenCalled();
 });
 
 it.each([

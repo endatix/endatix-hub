@@ -1,3 +1,4 @@
+import { resolveWorkspaceAction } from "@/features/auth/required-actions/workspace-redirect.server";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { Loader2 } from "lucide-react";
@@ -24,12 +25,11 @@ export default async function OrganizationOverviewPage() {
   const { requireHubAccess, checkPermission } = await authorization(session);
   await requireHubAccess();
 
-  const canViewSettings = (
-    await checkPermission(Permissions.Tenant.ViewSettings)
-  ).success;
-  if (!canViewSettings) {
+  const viewSettings = await checkPermission(Permissions.Tenant.ViewSettings);
+  if (!viewSettings.success) {
     return <UnauthorizedComponent variant="card" />;
   }
+  await resolveWorkspaceAction();
 
   const api = new EndatixApi(session?.accessToken);
   const storageStatsPromise = api.stats.getStorageStats();

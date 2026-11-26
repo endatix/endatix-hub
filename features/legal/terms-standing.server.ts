@@ -51,13 +51,10 @@ export function pendingTerms({ actions }: Standing) {
 }
 
 export function resumeWorkspace(standing: Standing, journey: Journey): never {
-  const path = scopedDestination(standing, journey);
-  const destination =
-    path.split("?")[0] === "/admin/tenants" && !standing.platformAdmin
-      ? "/forms"
-      : path;
+  const destination = scopedDestination(standing, journey);
   const blocker =
     standing.enforced &&
+    standing.actions.some(action => action.key === "saas.legal.terms" && action.severity === "blocking") &&
     resolveTarget(standing.actions, destination.split("?")[0]);
   redirect(blocker || destination);
 }

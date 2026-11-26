@@ -1,3 +1,4 @@
+import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import PageTitle from "@/components/headings/page-title";
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
@@ -18,7 +19,7 @@ export default async function TemplateFolderSlugPage({ params }: PageProps) {
   const { folderSlug } = await params;
   const session = await auth();
   const { requireHubAccess, checkPermission } = await authorization(session);
-  await requireHubAccess();
+  await admitWorkspacePage(requireHubAccess());
 
   const api = new EndatixApi(session?.accessToken);
   const [createPermission, folderResult] = await Promise.all([

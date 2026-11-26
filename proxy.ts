@@ -1,11 +1,9 @@
 import { auth } from "@/auth";
-import { workspaceRedirect } from "@/features/auth/required-actions/workspace-redirect.server";
+import { WORKSPACE_NAVIGATION } from "@/lib/routes/workspace-navigation";
 import { isMaintenanceMode } from "@/lib/maintenance/maintenance-config";
 import { rewriteToMaintenance } from "@/lib/maintenance/maintenance-response";
 import { toSafeRelativeUrl } from "@/lib/utils/url-utils";
 import { withBasePath } from "@/lib/hosting/base-path";
-import { TERMS_PATH, termsVisit } from "@/lib/routes/terms-journey";
-import { workspaceScope } from "@/lib/routes/workspace-scope.server";
 import { NextRequest, NextResponse } from "next/server";
 import {
   AUTH_ROUTES,
@@ -13,6 +11,7 @@ import {
   SIGNIN_PATH,
   RETURN_URL_PARAM,
   HUB_PATHS,
+  isWorkspacePage,
   isTenantPublicAuthPath,
 } from "@/features/auth/infrastructure/auth-constants";
 
@@ -50,29 +49,12 @@ export default async function proxy(request: NextRequest) {
     return redirectToLogin(request);
   }
 
-  const target =
-    request.method === "GET" &&
-    (await workspaceRedirect(session, request.nextUrl));
-  return target
-    ? redirectToResolver(request, target, session?.accessToken)
-    : NextResponse.next();
-}
-
-function redirectToResolver(
-  request: NextRequest,
-  target: string,
-  token?: string,
-) {
-  const destination = request.nextUrl.clone();
-  const source = destination.pathname + destination.search;
-  destination.pathname = target;
-  destination.search = "";
-  if (target === TERMS_PATH)
-    destination.search = new URL(
-      termsVisit(source, workspaceScope(token)),
-      destination.origin,
-    ).search;
-  return NextResponse.redirect(destination);
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.delete(WORKSPACE_NAVIGATION);
+  if (request.method === "GET" && session?.accessToken && isWorkspacePage(pathname)) {
+    requestHeaders.set(WORKSPACE_NAVIGATION, pathname + request.nextUrl.search);
+  }
+  return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
 /*

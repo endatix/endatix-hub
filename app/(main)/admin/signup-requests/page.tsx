@@ -1,3 +1,4 @@
+import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { SignupRequestsList } from "@/features/platform-admin/list-signup-requests/ui/signup-requests-list";
 import { listSignupRequests } from "@/features/platform-admin/list-signup-requests/list-signup-requests.server";
 import { listSignupReviewers } from "@/features/platform-admin/review-signup-request/list-signup-reviewers.server";
@@ -22,7 +23,7 @@ export default async function SignupRequestsPage({
   }
 
   const [session, resolvedSearchParams] = await Promise.all([
-    requirePlatformAdmin(),
+    admitWorkspacePage(requirePlatformAdmin()),
     searchParams,
   ]);
   const listRequest = parseSignupRequestsListParams(resolvedSearchParams);

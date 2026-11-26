@@ -1,3 +1,4 @@
+import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import {
   getEnvironmentSettings,
   requirePlatformAdmin,
@@ -11,7 +12,7 @@ export const metadata = {
 };
 
 export default async function EnvironmentSettingsPage() {
-  const session = await requirePlatformAdmin();
+  const session = await admitWorkspacePage(requirePlatformAdmin());
   const summary = await getEnvironmentSettings(session);
 
   return (

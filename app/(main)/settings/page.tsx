@@ -1,3 +1,4 @@
+import { resolveWorkspaceAction } from "@/features/auth/required-actions/workspace-redirect.server";
 import Link from "next/link";
 import type { Route } from "next";
 import {
@@ -79,21 +80,14 @@ const SETTINGS_GROUPS = [
 type SettingsItem = (typeof SETTINGS_GROUPS)[number]["items"][number];
 
 export default async function SettingsPage() {
+  await resolveWorkspaceAction();
   const reportingExportEnabled = await reportingExportFlag();
 
   const groups = SETTINGS_GROUPS.map((group) => ({
     ...group,
-    items: group.items.filter((item) => {
-      if (
-        "requiresReportingExport" in item &&
-        item.requiresReportingExport &&
-        !reportingExportEnabled
-      ) {
-        return false;
-      }
-
-      return true;
-    }),
+    items: group.items.filter(
+      (item) => !("requiresReportingExport" in item) || reportingExportEnabled,
+    ),
   }));
 
   return (

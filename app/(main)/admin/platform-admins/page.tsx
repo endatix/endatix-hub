@@ -1,3 +1,4 @@
+import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import {
   listPlatformAdminUsers,
   listPlatformTenants,
@@ -23,7 +24,7 @@ interface PlatformAdminsPageProps {
 export default async function PlatformAdminsPage({
   searchParams,
 }: Readonly<PlatformAdminsPageProps>) {
-  const session = await requirePlatformAdmin();
+  const session = await admitWorkspacePage(requirePlatformAdmin());
   const { getAuthorizationData } = await authorization(session);
   const authorizationData = await getAuthorizationData();
   const request = parsePlatformAdminListParams(await searchParams);

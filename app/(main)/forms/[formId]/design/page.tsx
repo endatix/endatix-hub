@@ -1,3 +1,4 @@
+import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { auth } from "@/auth";
 import { NotFoundComponent } from "@/components/error-handling/not-found";
 import { HubPageLoadError } from "@/components/error-handling/error-page";
@@ -60,7 +61,7 @@ export default async function FormDesignerPage({
 }: Readonly<Params>) {
   const session = await auth();
   const { requireHubAccess, checkPermission } = await authorization(session);
-  await requireHubAccess();
+  await admitWorkspacePage(requireHubAccess());
 
   const { formId } = await params;
   const aiFeaturesEnabled = await aiFeaturesFlag();

@@ -1,3 +1,4 @@
+import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
 import { redirect } from "next/navigation";
@@ -17,7 +18,7 @@ type Params = {
 export default async function FormAnalyticsPage({ params }: Readonly<Params>) {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
-  await requireHubAccess();
+  await admitWorkspacePage(requireHubAccess());
 
   const { formId } = await params;
   const flags = await getFormWorkspaceFlags();

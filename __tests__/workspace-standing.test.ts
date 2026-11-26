@@ -2,6 +2,13 @@ import { NextRequest } from "next/server";
 import { resolverVisit } from "@/lib/routes/optional-resolver";
 import { beforeEach, expect, it, vi } from "vitest";
 import proxy from "@/proxy";
+import { resolveWorkspaceAction } from "@/features/auth/required-actions/workspace-redirect.server";
+import { WORKSPACE_NAVIGATION } from "@/lib/routes/workspace-navigation";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
+import { getURLFromRedirectError } from "next/dist/client/components/redirect";
+
+const { nextHeaders } = vi.hoisted(() => ({ nextHeaders: vi.fn() }));
+vi.mock("next/headers", () => ({ headers: nextHeaders }));
 
 const { me } = vi.hoisted(() => ({ me: vi.fn() }));
 const { exportEnabled } = vi.hoisted(() => ({ exportEnabled: vi.fn() }));
@@ -9,11 +16,13 @@ vi.mock("@/lib/feature-flags/flags", () => ({
   formAnalyticsFlag: async () => false,
   personalizationFlag: async () => false,
   reportingExportFlag: exportEnabled,
+  tenantManagementFlag: async () => true,
 }));
 vi.mock("@/auth", () => ({
-  auth: async () => ({ accessToken: "session-token" }),
+  auth: async () => ({ accessToken: "session-token", user: { id: "42" } }),
 }));
-vi.mock("@/lib/endatix-api", () => ({
+vi.mock("@/lib/endatix-api", async (original) => ({
+  ...(await original<object>()),
   EndatixApi: class {
     auth = { getAuthorizationData: me };
   },
@@ -37,7 +46,16 @@ function snapshot(mode: unknown, actions: object[] = [action]) {
 }
 async function destination(path: string, method = "GET") {
   const outcome = await proxy(new NextRequest(origin + path, { method }));
-  return outcome.headers.get("location");
+  expect(outcome.headers.get("location")).toBeNull();
+  const source = outcome.headers.get(`x-middleware-request-${WORKSPACE_NAVIGATION}`);
+  nextHeaders.mockResolvedValue(new Headers(source ? { [WORKSPACE_NAVIGATION]: source } : {}));
+  try {
+    await resolveWorkspaceAction();
+    return null;
+  } catch (error) {
+    if (!isRedirectError(error)) throw error;
+    return origin + getURLFromRedirectError(error);
+  }
 }
 beforeEach(() => me.mockResolvedValue(snapshot(true)));
 
@@ -84,11 +102,21 @@ it.each([
   "/required-actions",
   "/share/42",
   "/accept-terms",
-  "/admin/legal",
   "/forms-extra",
 ])("does not read standing for %s", async (path) => {
   expect(await destination(path)).toBeNull();
   expect(me).not.toHaveBeenCalled();
+});
+
+it("preserves the tenants page's ordinary denial while a blocker is pending", async () => {
+  const { default: TenantsPage } = await import("@/app/(main)/admin/tenants/page");
+  nextHeaders.mockResolvedValue(new Headers({ [WORKSPACE_NAVIGATION]: "/admin/tenants" }));
+  const standing = snapshot(true);
+  me.mockResolvedValue({ ...standing, data: { ...standing.data, roles: [] } });
+
+  await expect(TenantsPage({})).rejects.toMatchObject({
+    digest: expect.stringContaining(";/unauthorized;"),
+  });
 });
 
 it.each([

@@ -1,3 +1,4 @@
+import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
@@ -36,7 +37,7 @@ export default async function DataListDetailsRoutePage({
 }: Readonly<DataListDetailsRoutePageProps>) {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
-  await requireHubAccess();
+  await admitWorkspacePage(requireHubAccess());
 
   const { dataListId } = await params;
   const raw = await searchParams;

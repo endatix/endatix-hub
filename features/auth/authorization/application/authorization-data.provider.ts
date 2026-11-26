@@ -5,11 +5,13 @@ import {
   GetAuthDataResult,
 } from "../domain/authorization-result";
 import { revalidateTag, unstable_cache } from "next/cache";
+import { headers } from "next/headers";
+import { WORKSPACE_NAVIGATION } from "@/lib/routes/workspace-navigation";
+import { currentAuthorization } from "./current-authorization.server";
 import { TelemetryLogger } from "@/features/telemetry";
 import {
   ApiErrorType,
   ApiResult,
-  EndatixApi,
   isAuthError,
   type ApiError,
 } from "@/lib/endatix-api";
@@ -57,8 +59,7 @@ async function fetchAuthorizationData(
   accessToken: string,
 ): Promise<GetAuthDataResult> {
   try {
-    const endatixApi = new EndatixApi(accessToken);
-    const authorizationData = await endatixApi.auth.getAuthorizationData();
+    const authorizationData = await currentAuthorization(accessToken);
 
     if (ApiResult.isSuccess(authorizationData)) {
       return AuthorizationResult.success(authorizationData.data);
@@ -118,10 +119,10 @@ export function getAuthDataForCurrentUser(session: Session | null) {
       }
 
       // Use the shared cache instance with userId as parameter
-      const authorizationDataResult = await getCachedAuthorizationData(
-        user.id,
-        accessToken,
-      );
+      const read = (await headers()).has(WORKSPACE_NAVIGATION)
+        ? fetchAuthorizationData
+        : getCachedAuthorizationData;
+      const authorizationDataResult = await read(user.id, accessToken);
 
       if (
         !authorizationDataResult.success &&

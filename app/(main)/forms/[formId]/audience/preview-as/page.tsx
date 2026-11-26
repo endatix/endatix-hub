@@ -1,3 +1,4 @@
+import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Permissions } from "@/features/auth/authorization";
@@ -28,7 +29,7 @@ export const metadata: Metadata = { title: "Preview as" };
  * form.
  */
 async function guardPreviewAs(formId: string) {
-  const access = await requireAudienceAccess(PARTICIPANT_PAGE_PERMISSION);
+  const access = await admitWorkspacePage(requireAudienceAccess(PARTICIPANT_PAGE_PERMISSION));
   if (Result.isError(access)) return redirect(`/forms/${formId}`);
   const { api, checkPermission } = access.value;
   const testForms = await checkPermission(Permissions.Forms.Test);

@@ -1,3 +1,4 @@
+import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { Suspense } from "react";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
@@ -47,7 +48,7 @@ export default async function FormsPage({
 }: Readonly<FormsPageProps>) {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
-  await requireHubAccess();
+  await admitWorkspacePage(requireHubAccess());
 
   const resolvedSearchParams = await searchParams;
   const listRequest = parseFormsListParams(resolvedSearchParams, {

@@ -1,3 +1,4 @@
+import { resolveWorkspaceAction } from "@/features/auth/required-actions/workspace-redirect.server";
 import PageTitle from "@/components/headings/page-title";
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
@@ -16,11 +17,11 @@ export default async function OrganizationFormsSettingsPage() {
   const { requireHubAccess, checkPermission } = await authorization(session);
   await requireHubAccess();
 
-  const canManage = (await checkPermission(Permissions.Tenant.ManageSettings))
-    .success;
-  if (!canManage) {
+  const manageSettings = await checkPermission(Permissions.Tenant.ManageSettings);
+  if (!manageSettings.success) {
     return <UnauthorizedComponent variant="card" />;
   }
+  await resolveWorkspaceAction();
 
   const api = new EndatixApi(session?.accessToken);
   const settingsApiResult = await api.tenant.getSettings();

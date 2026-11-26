@@ -1,3 +1,4 @@
+import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { Permissions } from "@/features/auth/authorization";
 import { AudiencePageShell } from "@/features/audience/get-audience-page/ui/audience-page-shell";
 import { audienceListSearch } from "@/features/audience/get-audience-page/audience-return-to";
@@ -130,7 +131,7 @@ async function audienceView(
  * hides the controls an action would refuse instead of letting the action redirect.
  */
 async function guardAudiencePage(formId: string) {
-  const access = await requireAudienceAccess(Permissions.Forms.View);
+  const access = await admitWorkspacePage(requireAudienceAccess(Permissions.Forms.View));
   if (Result.isError(access)) return redirect(`/forms/${formId}`);
   const { api, checkPermission } = access.value;
   const [manageSettings, editForms, testForms, testLinks] = await Promise.all([

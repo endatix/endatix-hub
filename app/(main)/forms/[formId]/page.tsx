@@ -1,3 +1,4 @@
+import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { authorization } from "@/features/auth/authorization";
 import { FormWorkspaceHeader } from "@/features/forms/form-workspace";
 import { loadWorkspaceForm } from "@/features/forms/form-workspace/load-workspace-form.server";
@@ -11,7 +12,7 @@ type Params = { params: Promise<{ formId: string }> };
 /** A form's home: its facts at a glance. Its settings are edited on the Settings page. */
 export default async function FormOverviewPage({ params }: Readonly<Params>) {
   const { requireHubAccess } = await authorization();
-  await requireHubAccess();
+  await admitWorkspacePage(requireHubAccess());
 
   const { formId } = await params;
   const form = await loadWorkspaceForm(formId, "overview");

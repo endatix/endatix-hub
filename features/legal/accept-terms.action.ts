@@ -6,7 +6,7 @@ import { invalidateUserAuthorizationCache } from "@/features/auth/server";
 import { EndatixApi } from "@/lib/endatix-api";
 import { termsAcceptanceEnabled } from "@/lib/feature-flags/flags";
 import { termsVisit } from "@/lib/routes/terms-journey";
-import { confirmedScope } from "@/lib/routes/workspace-scope.server";
+import { confirmedScope, homeScope } from "@/lib/routes/workspace-scope.server";
 import { validateEndatixId } from "@/lib/utils/type-validators";
 import { Result, toResult } from "@/lib/result";
 import {
@@ -26,8 +26,8 @@ export async function acceptTerms(
   const token = await signedInToken();
   const before = await termsStanding(token);
   if (!before) return "Your account status is unavailable. Please retry.";
+  if (!pendingTerms(before)) resumeWorkspace(before, display);
   if (![before.scope, before.homeScope].includes(display.scope)) redirect("/accept-terms");
-  if (!pendingTerms(before)) resumeWorkspace(before, {});
   if (form.get("accept") !== "on")
     return "Select the checkbox to accept the Terms.";
   if (Result.isError(validateEndatixId(display.versionId, "versionId")))
@@ -64,9 +64,12 @@ async function resumeAfterAcceptance(
   display: Journey,
 ) {
   const after = await termsStanding(token);
-  if (!after && accepted) redirect(termsVisit(accepted, confirmedScope(token, accepted)));
+  if (!after && accepted) {
+    const scope = display.scope === homeScope(token) ? display.scope : confirmedScope(token, accepted);
+    redirect(termsVisit(accepted, scope));
+  }
   if (!after)
     return "Could not refresh your account status. Reload to continue.";
-  if (!pendingTerms(after)) resumeWorkspace(after, {returnUrl: accepted, scope: after.scope});
+  if (!pendingTerms(after)) resumeWorkspace(after, display);
   redirect(termsVisit(display.returnUrl ?? "/forms", display.scope, "updated"));
 }

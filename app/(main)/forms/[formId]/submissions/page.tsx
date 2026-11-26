@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { authorization } from "@/features/auth/authorization";
 import {
   buildSubmissionListPath,
@@ -25,14 +25,16 @@ type Params = {
   readonly searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
+async function requireSubmissionPageAccess() {
+  const { requireHubAccess } = await authorization();
+  await requireHubAccess();
+}
+
 export async function generateMetadata(
   { params, searchParams }: Params,
   parent: ResolvingMetadata,
 ): Promise<Metadata> {
-  const session = await auth();
-  const { requireHubAccess } = await authorization(session);
-  await requireHubAccess();
-
+  await requireSubmissionPageAccess();
   const { formId } = await params;
   const formResult = await getWorkspaceForm(formId);
 
@@ -49,6 +51,7 @@ export async function generateMetadata(
 }
 
 export default async function ResponsesPage({ params, searchParams }: Params) {
+  await admitWorkspacePage(requireSubmissionPageAccess());
   const { formId } = await params;
   const sp = await searchParams;
   const legacyGrid = (

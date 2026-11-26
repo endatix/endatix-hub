@@ -1,3 +1,4 @@
+import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { auth } from "@/auth";
 import { RichTextImagePolicy } from "@/components/common/rich-text";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,7 +23,7 @@ type Params = {
 export default async function SubmissionPage({ params, searchParams }: Params) {
   const session = await auth();
   const { requireHubAccess } = await authorization(session);
-  await requireHubAccess();
+  await admitWorkspacePage(requireHubAccess());
 
   const { formId, submissionId } = await params;
   const { format } = await searchParams;

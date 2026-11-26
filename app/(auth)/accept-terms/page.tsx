@@ -32,9 +32,9 @@ export default async function TermsPage({
   const standing = await termsStanding(token);
   if (!standing) return <Unavailable decline={decline} />;
   const params = await searchParams;
-  const recovered = confirmedJourney(params, token);
-  if (!pendingTerms(standing)) resumeWorkspace(standing, recovered ?? {});
-  const returnUrl = scopedDestination(standing, recovered ?? params);
+  const journey = confirmedJourney(params, token) ?? params;
+  if (!pendingTerms(standing)) resumeWorkspace(standing, journey);
+  const returnUrl = scopedDestination(standing, journey);
   const terms = await readPublication("terms");
   if (!terms.document)
     return <Unavailable message={terms.error} decline={decline} />;
