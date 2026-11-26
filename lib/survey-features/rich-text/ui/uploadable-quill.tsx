@@ -27,9 +27,9 @@ export function UploadableQuill({
 }
 
 function TransferStatus({ job }: { job: ImageTransfer }) {
-  return <div role="status">
-    {job.retry ? "Image upload failed. " : "Uploading image… "}
-    {job.retry && <button type="button" onClick={job.retry}>Retry</button>}
-    <button type="button" onClick={job.cancel}>Cancel</button>
+  return <div role="status" className="flex flex-wrap items-center gap-x-2 text-sm">
+    <span>{job.retry ? "Image upload failed." : "Uploading image…"}</span>
+    {job.retry && <button className="underline" type="button" onClick={job.retry}>Retry</button>}
+    <button className="underline" type="button" onClick={job.cancel}>Cancel</button>
   </div>;
 }
