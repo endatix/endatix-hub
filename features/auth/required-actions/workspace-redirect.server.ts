@@ -43,7 +43,7 @@ async function workspaceRedirect(
 export const workspaceActionTarget = cache(async () => {
   const source = (await headers()).get(WORKSPACE_NAVIGATION);
   if (!source) return null;
-  const url = new URL(source, "http://workspace.invalid");
+  const url = new URL(source, "https://workspace.invalid");
   if (url.pathname === "/admin/legal") return null;
   const session = await auth();
   const target = await workspaceRedirect(session, url);
@@ -58,7 +58,7 @@ export async function resolveWorkspaceAction() {
 
 export async function redirectDisabledPage<T extends string>(fallback: Route<T>): Promise<never> {
   const source = (await headers()).get(WORKSPACE_NAVIGATION);
-  const visit = source && new URL(source, "http://workspace.invalid").searchParams.get(RESOLVER_VISIT);
+  const visit = source && new URL(source, "https://workspace.invalid").searchParams.get(RESOLVER_VISIT);
   if (visit === "1") redirect(REQUIRED_ACTIONS_PATH);
   redirect(fallback);
 }
