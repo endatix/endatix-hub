@@ -1,3 +1,4 @@
+import { withWorkspaceSetupAfter } from "@/features/onboarding/server";
 import { resolveWorkspaceAction } from "@/features/auth/required-actions/workspace-redirect.server";
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
@@ -87,7 +88,7 @@ export default async function SettingsOrganizationRolesPage(
     ? getPermissionsPromise(session?.accessToken)
     : Promise.resolve([]);
 
-  return (
+  return withWorkspaceSetupAfter(rolesPromise.then(() => true),
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">

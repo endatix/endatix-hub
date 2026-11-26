@@ -1,3 +1,4 @@
+import { withWorkspaceSetupEntry } from "@/features/onboarding/server";
 import { redirectDisabledPage, resolveWorkspaceAction } from "@/features/auth/required-actions/workspace-redirect.server";
 import type { Metadata } from "next";
 import { Permissions } from "@/features/auth/authorization";
@@ -64,7 +65,7 @@ async function previewAs(guard: Guard, formId: string, query: Query) {
   ]);
   if (Result.isError(form)) return <FormLoadError result={form} />;
   if (Result.isError(preview)) return <FormLoadError result={preview} />;
-  return <PreviewAsView formId={formId} header={HEADER} {...preview.value} />;
+  return withWorkspaceSetupEntry(<PreviewAsView formId={formId} header={HEADER} {...preview.value} />);
 }
 
 export default async function FormPreviewAsPage({

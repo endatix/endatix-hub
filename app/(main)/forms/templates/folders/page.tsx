@@ -1,3 +1,4 @@
+import { withWorkspaceSetupEntry } from "@/features/onboarding/server";
 import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import PageTitle from "@/components/headings/page-title";
 import { auth } from "@/auth";
@@ -17,7 +18,7 @@ export default async function TemplateFoldersPage() {
     return resolvePageError(toDetailPageError(foldersResult));
   const canManage = (await checkPermission(Permissions.Folders.Manage)).success;
 
-  return (
+  return withWorkspaceSetupEntry(
     <div className="flex flex-col gap-6">
       <PageTitle title="Template folders" className="mt-2" />
       <FolderNavigationCards

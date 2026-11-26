@@ -5,6 +5,9 @@ import { Permissions } from "@/features/auth/authorization";
 import { act, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("@/features/onboarding/server", () => ({
+  withWorkspaceSetupAfter: (_admission: unknown, content: React.ReactNode) => content,
+}));
 vi.mock("@/auth", () => ({ auth: vi.fn() }));
 
 vi.mock("next/navigation", () => ({

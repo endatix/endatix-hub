@@ -1,3 +1,4 @@
+import { withWorkspaceSetupEntry } from "@/features/onboarding/server";
 import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import {
   getEnvironmentSettings,
@@ -15,7 +16,7 @@ export default async function EnvironmentSettingsPage() {
   const session = await admitWorkspacePage(requirePlatformAdmin());
   const summary = await getEnvironmentSettings(session);
 
-  return (
+  return withWorkspaceSetupEntry(
     <PlatformAdminShell
       title="Environment"
       description="Review Hub runtime configuration resolved from process environment. Public values are shown in full; Sensitive values shown as Set / Not set only."

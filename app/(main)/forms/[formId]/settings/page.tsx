@@ -1,3 +1,4 @@
+import { withWorkspaceSetupEntry } from "@/features/onboarding/server";
 import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { authorization } from "@/features/auth/authorization";
 import { FormWorkspaceHeader } from "@/features/forms/form-workspace";
@@ -25,7 +26,7 @@ export default async function FormSettingsPage({ params }: Readonly<Params>) {
   const form = await loadWorkspaceForm(formId, "settings");
   if (Result.isError(form)) return <FormLoadError result={form} />;
 
-  return <FormSettings form={form.value} />;
+  return withWorkspaceSetupEntry(<FormSettings form={form.value} />);
 }
 
 function FormSettings({ form }: Readonly<{ form: Form }>) {

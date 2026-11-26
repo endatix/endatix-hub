@@ -1,5 +1,7 @@
 "use server";
 
+import { withWorkspaceSetupEntry } from "@/features/onboarding/server";
+
 import { NotFoundComponent } from "@/components/error-handling/not-found";
 import { AssetStorageProvider } from "@/features/asset-storage/server";
 import {
@@ -50,7 +52,7 @@ async function SubmissionDetails({
   }
   const canOpenParticipant = await viewerCanOpenParticipant(submission);
 
-  return (
+  return withWorkspaceSetupEntry(
     <SubmissionDetailsProvider submissionPromise={submissionPromise}>
       <DesignerRuntimeProvider
         initialState={{

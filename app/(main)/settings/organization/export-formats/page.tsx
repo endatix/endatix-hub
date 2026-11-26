@@ -1,3 +1,4 @@
+import { withWorkspaceSetupAfter } from "@/features/onboarding/server";
 import { redirectDisabledPage, resolveWorkspaceAction } from "@/features/auth/required-actions/workspace-redirect.server";
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
@@ -125,7 +126,7 @@ export default async function SettingsOrganizationExportFormatsPage() {
     session?.accessToken,
   );
 
-  return (
+  return withWorkspaceSetupAfter(Promise.all([formatsPromise, mappingsPromise, capabilitiesPromise, namingConventionsPromise]).then(() => true),
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">

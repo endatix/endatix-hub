@@ -1,4 +1,5 @@
 import { HubPageLoadError } from "@/components/error-handling/error-page";
+import { withWorkspaceSetupEntry } from "@/features/onboarding/server";
 import { getSession } from "@/features/auth";
 import type { Route } from "next";
 import { redirect } from "next/navigation";
@@ -46,7 +47,7 @@ function renderRows(
     case "error":
       return <HubPageLoadError result={outcome.result} />;
     case "ready":
-      return <ReadyRows outcome={outcome} {...props} />;
+      return withWorkspaceSetupEntry(<ReadyRows outcome={outcome} {...props} />);
   }
 }
 

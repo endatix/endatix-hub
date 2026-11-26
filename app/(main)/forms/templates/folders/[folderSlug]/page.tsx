@@ -1,3 +1,4 @@
+import { withWorkspaceSetupAfter } from "@/features/onboarding/server";
 import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import PageTitle from "@/components/headings/page-title";
 import { auth } from "@/auth";
@@ -46,7 +47,7 @@ export default async function TemplateFolderSlugPage({ params }: PageProps) {
     settingsResult.success &&
     settingsResult.data.requireFolderAssignment === true;
 
-  return (
+  return withWorkspaceSetupAfter(templatesApiResult.success,
     <AssetStorageProvider>
       <div className="mt-2 mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <PageTitle title={folder.name} />

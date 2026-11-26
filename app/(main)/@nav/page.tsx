@@ -1,7 +1,6 @@
 import { auth } from "@/auth";
 import { workspaceSlot } from "@/features/auth/server";
 import SidebarNav from "@/components/layout-ui/sidebar/sidebar-nav";
-import { WorkspaceSetupNav } from "@/features/onboarding/start-workspace/workspace-setup-nav";
 import { getFormsHeaderDataCached } from "@/features/folders/view-forms-header";
 import { getAuthorizedNavItemKeys } from "@/features/navigation/filter-nav-by-auth/server";
 
@@ -16,9 +15,7 @@ async function NavSlot() {
     <SidebarNav
       initialFolders={headerData.folders}
       initialNavItemKeys={navItemKeys}
-    >
-      <WorkspaceSetupNav />
-    </SidebarNav>
+    />
   );
 }
 

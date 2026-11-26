@@ -1,3 +1,4 @@
+import { withWorkspaceSetupEntry } from "@/features/onboarding/server";
 import { redirectDisabledPage, resolveWorkspaceAction } from "@/features/auth/required-actions/workspace-redirect.server";
 import { Permissions } from "@/features/auth/authorization";
 import { AudiencePageShell } from "@/features/audience/get-audience-page/ui/audience-page-shell";
@@ -114,7 +115,7 @@ async function audienceView(
   ]);
   if (Result.isError(form)) return <FormLoadError result={form} />;
   if (Result.isError(audience)) return <FormLoadError result={audience} />;
-  return (
+  return withWorkspaceSetupEntry(
     <AudiencePageShell
       formId={request.formId}
       header={<FormWorkspaceHeader title="Participants" />}

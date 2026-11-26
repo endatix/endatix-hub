@@ -1,4 +1,5 @@
 import { HubPageLoadError } from "@/components/error-handling/error-page";
+import { withWorkspaceSetupEntry } from "@/features/onboarding/server";
 import { NotFoundComponent } from "@/components/error-handling/not-found";
 import { Button } from "@/components/ui/button";
 import { getSession } from "@/features/auth";
@@ -44,7 +45,7 @@ export async function SubmissionListSection({
     case "error":
       return <HubPageLoadError result={outcome.result} />;
     case "ready":
-      return (
+      return withWorkspaceSetupEntry(
         <SubmissionsWithFilters
           {...outcome.model}
           exportAccess={exportAccess}

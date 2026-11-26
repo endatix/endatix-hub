@@ -1,3 +1,4 @@
+import { withWorkspaceSetupEntry } from "@/features/onboarding/server";
 import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
@@ -8,5 +9,5 @@ export default async function SettingsAccountPage() {
   const { requireHubAccess } = await authorization(session);
   await admitWorkspacePage(requireHubAccess());
 
-  return <ChangePassword />;
+  return withWorkspaceSetupEntry(<ChangePassword />);
 }

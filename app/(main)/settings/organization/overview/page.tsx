@@ -1,3 +1,4 @@
+import { withWorkspaceSetupAfter } from "@/features/onboarding/server";
 import { resolveWorkspaceAction } from "@/features/auth/required-actions/workspace-redirect.server";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
@@ -34,7 +35,7 @@ export default async function OrganizationOverviewPage() {
   const api = new EndatixApi(session?.accessToken);
   const storageStatsPromise = api.stats.getStorageStats();
 
-  return (
+  return withWorkspaceSetupAfter(storageStatsPromise.then(result => result.success),
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">Overview</h1>

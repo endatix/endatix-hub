@@ -1,3 +1,4 @@
+import { withWorkspaceSetupEntry } from "@/features/onboarding/server";
 import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { auth } from "@/auth";
 import { SIGNIN_PATH } from "@/features/auth";
@@ -22,7 +23,7 @@ export default async function Home() {
 
   const userInfo = await getCurrentUserInfo(session);
 
-  return (
+  return withWorkspaceSetupEntry(
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-bold">Home</h1>

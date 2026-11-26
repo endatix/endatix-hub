@@ -1,3 +1,4 @@
+import { withWorkspaceSetupEntry } from "@/features/onboarding/server";
 import { redirectDisabledPage, resolveWorkspaceAction } from "@/features/auth/required-actions/workspace-redirect.server";
 import { auth } from "@/auth";
 import { authorization } from "@/features/auth/authorization";
@@ -26,7 +27,7 @@ export default async function FormAnalyticsPage({ params }: Readonly<Params>) {
   const form = await loadWorkspaceForm(formId, "analytics");
   if (Result.isError(form)) return <FormLoadError result={form} />;
 
-  return (
+  return withWorkspaceSetupEntry(
     <div className="container py-6">
       <FormWorkspaceHeader
         title="Analytics"

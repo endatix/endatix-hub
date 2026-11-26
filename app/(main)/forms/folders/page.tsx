@@ -1,3 +1,4 @@
+import { withWorkspaceSetupEntry } from "@/features/onboarding/server";
 import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import PageTitle from "@/components/headings/page-title";
 import { auth } from "@/auth";
@@ -43,7 +44,7 @@ export default async function FormFoldersPage() {
   const canManage = (await checkPermission(Permissions.Folders.Manage)).success;
   const folders = foldersResult.value;
 
-  return (
+  return withWorkspaceSetupEntry(
     <>
       <div className="mt-2 mb-4 flex flex-col gap-4 sm:mt-2 sm:flex-row sm:items-center sm:justify-between">
         <PageTitle title="Form folders" />

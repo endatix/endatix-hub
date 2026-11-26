@@ -32,13 +32,11 @@ type SidebarFolder = {
 };
 
 type SidebarNavProps = {
-  children?: React.ReactNode;
   initialFolders?: SidebarFolder[];
   initialNavItemKeys?: string[];
 };
 
 const SidebarNav = ({
-  children,
   initialFolders,
   initialNavItemKeys,
 }: Readonly<SidebarNavProps>) => {
@@ -49,6 +47,11 @@ const SidebarNav = ({
     initialFolders,
     initialNavItemKeys,
     status === "authenticated" && !!session,
+  );
+  const brand = useBrand();
+  const secondaryNavItems = withBrandHelpLinks(
+    SitemapService.getSecondarySitemap(),
+    brand,
   );
   const isLoggedIn = session?.user !== null;
   const currentUserInfo = getCurrentUserInfo(session);
@@ -70,7 +73,20 @@ const SidebarNav = ({
             ))}
           </SidebarMenu>
         </SidebarGroup>
-        <SecondaryNav>{children}</SecondaryNav>
+        <SidebarGroup className="mt-auto">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {secondaryNavItems.map((item) => (
+                <SidebarNavItem
+                  key={item.title}
+                  item={item}
+                  isCollapsed={isSidebarCollapsed}
+                  size="sm"
+                />
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
@@ -109,21 +125,3 @@ const SidebarNav = ({
 };
 
 export default SidebarNav;
-
-function SecondaryNav({ children }: Readonly<{ children?: React.ReactNode }>) {
-  const brand = useBrand();
-  const { state } = useSidebar();
-  const items = withBrandHelpLinks(SitemapService.getSecondarySitemap(), brand);
-  return (
-    <SidebarGroup className="mt-auto">
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {children}
-          {items.map((item) => (
-            <SidebarNavItem key={item.title} item={item} isCollapsed={state === "collapsed"} size="sm" />
-          ))}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
-  );
-}

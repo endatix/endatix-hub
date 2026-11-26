@@ -1,3 +1,4 @@
+import { withWorkspaceSetupEntry } from "@/features/onboarding/server";
 import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
@@ -32,7 +33,7 @@ export default async function FolderDetailsPage({
   const { folder, forms, templates, moveTargetFolders, contentsPreview } =
     pageData.data;
 
-  return (
+  return withWorkspaceSetupEntry(
     <FolderDetailsView
       folder={folder}
       forms={forms}

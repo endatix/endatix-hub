@@ -1,3 +1,4 @@
+import { withWorkspaceSetupAfter } from "@/features/onboarding/server";
 import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import PageTitle from "@/components/headings/page-title";
 import { Suspense } from "react";
@@ -76,7 +77,7 @@ async function FormTemplatesContent({
     settingsResult.success &&
     settingsResult.data.requireFolderAssignment === true;
 
-  return (
+  return withWorkspaceSetupAfter(templatesApiResult.success,
     <AssetStorageProvider>
       <FormTemplatesList
         templatesPromise={Promise.resolve(templatesResult)}

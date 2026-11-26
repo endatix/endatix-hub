@@ -1,3 +1,4 @@
+import { withWorkspaceSetupEntry } from "@/features/onboarding/server";
 import { resolveWorkspaceAction } from "@/features/auth/required-actions/workspace-redirect.server";
 import PageTitle from "@/components/headings/page-title";
 import { auth } from "@/auth";
@@ -78,7 +79,7 @@ export default async function FoldersManagementPage({
   const { action } = await searchParams;
   const openCreateOnLoad = hasValue(action, "create");
 
-  return (
+  return withWorkspaceSetupEntry(
     <div className="flex flex-col gap-6">
       <CreateFolderDialog
         showTrigger={false}

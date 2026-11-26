@@ -1,3 +1,4 @@
+import { withWorkspaceSetupEntry } from "@/features/onboarding/server";
 import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import { authorization } from "@/features/auth/authorization";
 import { FormWorkspaceHeader } from "@/features/forms/form-workspace";
@@ -18,7 +19,7 @@ export default async function FormOverviewPage({ params }: Readonly<Params>) {
   const form = await loadWorkspaceForm(formId, "overview");
   if (Result.isError(form)) return <FormLoadError result={form} />;
 
-  return <FormOverview form={form.value} />;
+  return withWorkspaceSetupEntry(<FormOverview form={form.value} />);
 }
 
 function FormOverview({ form }: Readonly<{ form: Form }>) {

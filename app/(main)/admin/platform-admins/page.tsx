@@ -1,3 +1,4 @@
+import { withWorkspaceSetupAfter } from "@/features/onboarding/server";
 import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
 import {
   listPlatformAdminUsers,
@@ -40,7 +41,7 @@ export default async function PlatformAdminsPage({
   const currentUserId = authorized?.userId ?? session.user?.id;
   const currentTenantId = authorized?.tenantId;
 
-  return (
+  return withWorkspaceSetupAfter(Promise.all([usersPromise, tenantsPromise, approvedAdminTotalPromise]).then(() => true),
     <PlatformAdminShell
       title="Platform Admins"
       description="Grant or revoke local PlatformAdmin approval. External IdP roles alone do not grant platform access."
