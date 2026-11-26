@@ -1,9 +1,10 @@
 import { fireEvent, screen } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
 import { expect, it, vi } from "vitest";
 import { signIn } from "next-auth/react";
 import SignInPage from "@/app/(auth)/signin/page";
 import TenantSignInPage from "@/app/(auth)/t/[tenantSlug]/signin/page";
-import { renderWithBrand } from "@/test/render-with-brand";
+import { BuiltInBrand, renderWithBrand } from "@/test/render-with-brand";
 import { Result } from "@/lib/result";
 
 vi.mock("@/auth", () => ({
@@ -30,6 +31,7 @@ for (const page of [SignInPage, TenantSignInPage]) {
     ["https://hub.example", "https://hub.example", path],
     ["https://hub.example", window.location.origin, "/forms"],
     ["invalid", window.location.origin, "/forms"],
+    ["invalid", "", path],
   ])(`${page.name} checks callback origin (AUTH_URL=%s, callback=%s)`, async (authUrl, callbackOrigin, destination) => {
     vi.stubEnv("AUTH_URL", authUrl);
     const searchParams = Promise.resolve({ callbackUrl: callbackOrigin + path, returnUrl: undefined });
@@ -37,5 +39,17 @@ for (const page of [SignInPage, TenantSignInPage]) {
     expect(new FormData(container.querySelector("form")!).get("returnUrl")).toBe(destination);
     fireEvent.click(screen.getByRole("button", { name: "Organization sign-in" }));
     expect(signIn).toHaveBeenCalledWith("organization", { redirectTo: destination });
+  });
+
+  it(`${page.name} keeps an absolute callback on Forms until hydration verifies the page origin`, async () => {
+    vi.stubEnv("AUTH_URL", undefined);
+    const searchParams = Promise.resolve({ callbackUrl: window.location.origin + path, returnUrl: undefined });
+    const form = await page({ ...tenant, searchParams });
+    const container = document.body.appendChild(document.createElement("div"));
+    container.innerHTML = renderToString(<BuiltInBrand>{form}</BuiltInBrand>);
+    const destination = () => new FormData(container.querySelector("form")!).get("returnUrl");
+    expect(destination()).toBe("/forms");
+    renderWithBrand(form, { container, hydrate: true });
+    expect(destination()).toBe(path);
   });
 }
