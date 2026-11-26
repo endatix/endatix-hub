@@ -229,8 +229,7 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
         return Result.error(UNEXPECTED_ERROR_MESSAGE);
       }
 
-      // On a restored JSON tab, persist the same Ace model that received the edit.
-      const model = activeBuffer.current?.model ?? jsonPlugin.model;
+      const model = jsonPlugin.model;
       if (jsonTabBlocks(model)) {
         return Result.validationError(INVALID_JSON_ERROR_MESSAGE);
       }
@@ -249,7 +248,7 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
         return Result.validationError(MALFORMED_JSON_ERROR_MESSAGE);
       }
     },
-    [activeBuffer],
+    [],
   );
 
   return { registerJsonEditor, getJsonModel, captureJsonSave };

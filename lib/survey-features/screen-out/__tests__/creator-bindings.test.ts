@@ -25,6 +25,20 @@ function triggerTypeChoices(creator: SurveyCreatorModel) {
 }
 
 describe("screen-out Creator bindings", () => {
+  it("keeps the open JSON editor attached when screen-out labels load", async () => {
+    // Arrange
+    const creator = new SurveyCreatorModel({ showJSONEditorTab: true });
+    creator.activeTab = "json";
+    const plugin = creator.getPlugin("json");
+    const openEditor = plugin.model;
+
+    // Act
+    await screenOutExtension.onCreatorReady?.(creator, deps);
+
+    // Assert
+    expect(plugin.model).toBe(openEditor);
+  });
+
   it("keeps a stored screen-out trigger when Creator loads the form", () => {
     // Arrange & Act
     const creator = new SurveyCreatorModel({});

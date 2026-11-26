@@ -37,12 +37,7 @@ async function saveAndReloadJson(page: Page, title: string) {
   await expectCleanEditor(page, title);
 }
 
-async function verifyJsonTabChanges(page: Page) {
-  await expectCleanEditor(page, "Original");
-  await page.getByRole("tab", { name: "Designer", exact: true }).click();
-  await expect(page.getByRole("tabpanel", { name: "Designer" })).toBeVisible();
-  await openJsonTab(page);
-  await expectCleanEditor(page, "Original");
+async function importDefinition(page: Page, title: string) {
   const chooser = page.waitForEvent("filechooser");
   await page.getByRole("button", { name: "Import", exact: true }).click();
   await (
@@ -50,8 +45,20 @@ async function verifyJsonTabChanges(page: Page) {
   ).setFiles({
     name: "form.json",
     mimeType: "application/json",
-    buffer: Buffer.from(definition("Imported")),
+    buffer: Buffer.from(definition(title)),
   });
+}
+
+async function verifyJsonTabChanges(page: Page) {
+  await expectCleanEditor(page, "Original");
+  await page.getByRole("tab", { name: "Designer", exact: true }).click();
+  await expect(page.getByRole("tabpanel", { name: "Designer" })).toBeVisible();
+  await openJsonTab(page);
+  await expectCleanEditor(page, "Original");
+  await importDefinition(page, "First import");
+  await saveAndReloadJson(page, "First import");
+  // The URL restored the JSON tab; import again without switching tabs.
+  await importDefinition(page, "Imported");
   await saveAndReloadJson(page, "Imported");
   // Select the title in Ace; only the browser keypress changes its value.
   await page.locator(".ace_editor").evaluate((root) => {
