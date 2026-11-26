@@ -24,6 +24,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toast";
 import { useTrackEvent } from "@/features/analytics/posthog/client";
 import { SystemRoles } from "@/features/auth/authorization/domain/system-roles";
+import { StandingRefusal } from "@/components/error-handling/standing-refusal";
 import type { RoleListItem } from "@/lib/endatix-api";
 import {
   createTenantUserAction,
@@ -47,6 +48,7 @@ export function CreateTenantUserDialog({
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [state, setState] = useState<CreateTenantUserActionState>(initialState);
   const [pending, startTransition] = useTransition();
+  const draftVersion = useRef(0);
   const { trackEvent } = useTrackEvent();
   const handledSuccessStateRef = useRef<CreateTenantUserActionState | null>(
     null,
@@ -81,6 +83,7 @@ export function CreateTenantUserDialog({
   };
 
   const resetInviteDraft = () => {
+    draftVersion.current++;
     setSelectedRoles([]);
     setState(initialState);
   };
@@ -103,8 +106,10 @@ export function CreateTenantUserDialog({
       roles: getStringFormValues(formData, "roles"),
     };
 
+    const displayed = draftVersion.current;
     startTransition(async () => {
-      setState(await createTenantUserAction(initialState, payload));
+      const result = await createTenantUserAction(initialState, payload);
+      if (displayed === draftVersion.current) setState(result);
     });
   };
 
@@ -238,10 +243,11 @@ function isTenantAdminRole(roleName: string) {
 
 function InviteFeedback({ state }: Readonly<{ state: CreateTenantUserActionState }>) {
   if (!state.feedback) return null;
+  if (state.feedback.kind === "standing") return <StandingRefusal refusal={state.feedback.refusal} />;
   return (
     <Alert role="alert">
       <AlertDescription>
-        {state.feedback === "declined"
+        {state.feedback.kind === "declined"
           ? "This workspace can’t invite teammates yet. You can keep working and try again later."
           : "Invitations are temporarily unavailable. Try sending the invite again."}
       </AlertDescription>

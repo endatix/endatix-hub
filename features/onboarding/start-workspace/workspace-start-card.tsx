@@ -50,7 +50,7 @@ function CompletedChoice({ formId }: Readonly<{ formId: string | null }>) {
       </h2>
       {formId ? (
         <Button asChild>
-          <Link href={getFormDesignHref(formId)}>Open my survey</Link>
+          <Link href={getFormDesignHref(formId, "forms")}>Open my survey</Link>
         </Button>
       ) : (
         <p className="text-muted-foreground">

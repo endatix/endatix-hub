@@ -42,9 +42,25 @@ it("leaves a non-enrolled member in their normal workspace", async () => {
   // Arrange
   get.mockResolvedValueOnce(ApiResult.notFoundError("missing", { statusCode: 404 }));
   // Act & Assert
-  expect(await WorkspaceStartSection()).toBeNull();
+  const { container } = render(await WorkspaceStartSection());
+  expect(container.textContent).toBe("");
   expect(post).not.toHaveBeenCalled();
 });
+
+it.each(["forms.create", "forms.edit", "forms.view", "access.apps.hub"])(
+  "never reads or creates a starter without %s",
+  async (missing) => {
+    // Arrange
+    grant.mockImplementation((permissions: string[]) => ({ success: !permissions.includes(missing) }));
+    // Act
+    expect(await WorkspaceStartSection()).toBeNull();
+    const result = await startBlank(workspaceScope("current")!);
+    // Assert
+    expect(result).toMatchObject({ message: expect.stringContaining("not available") });
+    expect(get).not.toHaveBeenCalled();
+    expect(post).not.toHaveBeenCalled();
+  },
+);
 
 it("keeps the enrolled owner's blank choice reachable after rollout is paused", async () => {
   // Arrange

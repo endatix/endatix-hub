@@ -11,7 +11,7 @@ it("lets the owner open the committed survey without automatically navigating", 
   render(<WorkspaceStartCard choice={{ kind: "complete", formId: "42" }} scope="workspace" />);
   // Assert
   expect(screen.getByRole("link", { name: "Open my survey" }).getAttribute("href")).toBe(
-    "/forms/42/design",
+    "/forms/42/design?from=forms",
   );
   expect(screen.queryByRole("button", { name: "Start blank" })).toBeNull();
 });

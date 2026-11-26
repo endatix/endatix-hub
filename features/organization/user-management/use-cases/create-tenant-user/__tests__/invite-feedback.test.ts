@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
-import { inviteFeedback } from "../invite-feedback";
+import { inviteFailure } from "../invite-feedback";
 
 it.each([
   [409, "invite_declined", "declined"],
@@ -11,5 +11,5 @@ it.each([
   // Arrange
   const response = ApiResult.httpStatusError(status, "Invite response", code);
   // Act & Assert
-  expect(!response.success && inviteFeedback(response)).toBe(expected);
+  expect(inviteFailure(response)?.feedback?.kind).toBe(expected);
 });
