@@ -17,7 +17,7 @@ export default async function PrivacyPage() {
       </>
     );
   return (
-    <section className="max-h-[85dvh] space-y-4 overflow-y-auto px-1">
+    <section tabIndex={0} aria-label="Published Privacy notice" className="max-h-[85dvh] space-y-4 overflow-y-auto px-1">
       <h1 className="text-2xl font-semibold">Privacy notice</h1>
       <LegalMarkdown text={notice.document.markdown} />
     </section>

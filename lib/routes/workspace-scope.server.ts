@@ -11,3 +11,8 @@ export function workspaceScope(token?: string) {
 export function homeScope(token: string) {
   return createHash("sha256").update("home:").update(token).digest("base64url");
 }
+
+/** Issued only after the acceptance endpoint succeeds, for a read-only recovery visit. */
+export function confirmedScope(token: string, destination: string) {
+  return createHash("sha256").update("confirmed\0").update(token).update("\0").update(destination).digest("base64url");
+}

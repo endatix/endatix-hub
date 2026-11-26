@@ -2,7 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AuthLogo } from "@/features/auth/ui/auth-logo";
 import { RetryRequest } from "@/components/error-handling/retry-request";
-import { workspaceScope } from "@/lib/routes/workspace-scope.server";
+import { confirmedScope, workspaceScope } from "@/lib/routes/workspace-scope.server";
+import { workspaceDestination } from "@/lib/routes/terms-journey";
 import { declineTerms } from "@/features/legal/decline-terms.action";
 import { OperatorContact } from "@/features/legal/operator-contact";
 import { Button } from "@/components/ui/button";
@@ -31,7 +32,7 @@ export default async function TermsPage({
   const standing = await termsStanding(token);
   if (!standing) return <Unavailable decline={decline} />;
   const params = await searchParams;
-  if (!pendingTerms(standing)) resumeWorkspace(standing, {});
+  if (!pendingTerms(standing)) resumeWorkspace(standing, confirmedJourney(params, token));
   const returnUrl = scopedDestination(standing, params);
   const terms = await readPublication("terms");
   if (!terms.document)
@@ -39,6 +40,11 @@ export default async function TermsPage({
   const scope = params.scope === standing.homeScope ? standing.homeScope : standing.scope;
   const submit = acceptTerms.bind(null, {versionId: terms.document.versionId, scope, returnUrl});
   return <Reader terms={terms.document} submit={submit} decline={decline} updated={params.updated === "1"} />;
+}
+
+function confirmedJourney(params: Journey, token: string): Journey {
+  const returnUrl = workspaceDestination(params.returnUrl);
+  return params.scope === confirmedScope(token, returnUrl) ? {scope:workspaceScope(token), returnUrl} : {};
 }
 
 interface ReaderProps {

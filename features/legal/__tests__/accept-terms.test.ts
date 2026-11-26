@@ -175,7 +175,7 @@ describe("accepting the displayed publication", () => {
       success: false,
       error: { type: "NetworkError" },
     });
-    expect(await acceptTerms(display, checked)).toMatch(/refresh/);
+    await expect(acceptTerms(display, checked)).rejects.toThrow(/^navigate:\/accept-terms\?returnUrl=/);
   });
   it("does not fetch or submit when the resolver is disabled", async () => {
     enabled.mockResolvedValue(false);

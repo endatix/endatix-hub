@@ -74,9 +74,9 @@ function showFolderChangeFailure(result: ResultError | undefined) {
   });
 }
 
-function showStatusFailure(error: ResultError) {
-  if (error.requiredAction) return showStandingRefusal(error.requiredAction);
-  return toast.error("Failed to update form status. Error: " + error.message);
+function showSettingFailure(error: ResultError | undefined, message: string) {
+  if (error?.requiredAction) return showStandingRefusal(error.requiredAction);
+  return toast.error(`${message}. Error: ${error?.message ?? ""}`);
 }
 
 const FormDetails = ({ form, enableEditing = false }: FormDetailsProps) => {
@@ -192,7 +192,7 @@ const FormDetails = ({ form, enableEditing = false }: FormDetailsProps) => {
 
       if (Result.isError(updateStatusResult)) {
         setIsEnabled(!enabled);
-        showStatusFailure(updateStatusResult);
+        showSettingFailure(updateStatusResult, "Failed to update form status");
         return;
       }
 
@@ -212,9 +212,7 @@ const FormDetails = ({ form, enableEditing = false }: FormDetailsProps) => {
 
       if (Result.isError(result)) {
         setIsPublic(!publicValue);
-        toast.error(
-          "Failed to update form visibility. Error: " + result.message,
-        );
+        showSettingFailure(result, "Failed to update form visibility");
         return;
       }
 
@@ -244,9 +242,7 @@ const FormDetails = ({ form, enableEditing = false }: FormDetailsProps) => {
 
       if (result === undefined || Result.isError(result)) {
         setTokenExpiryHoursInput(previous);
-        toast.error(
-          "Failed to update session expiry. Error: " + errorMessage(result, ""),
-        );
+        showSettingFailure(result, "Failed to update session expiry");
         return;
       }
 
@@ -270,10 +266,7 @@ const FormDetails = ({ form, enableEditing = false }: FormDetailsProps) => {
 
       if (result === undefined || Result.isError(result)) {
         setTokenExpiryHoursInput(previous);
-        toast.error(
-          "Failed to restore session expiry. Error: " +
-            errorMessage(result, ""),
-        );
+        showSettingFailure(result, "Failed to restore session expiry");
         return;
       }
 
@@ -292,7 +285,7 @@ const FormDetails = ({ form, enableEditing = false }: FormDetailsProps) => {
 
       if (result === undefined || Result.isError(result)) {
         setLimitOnePerUser(!checked);
-        if (checked) {
+        if (checked && !result?.requiredAction) {
           setEnableLimitErrorMessage(
             errorMessage(
               result,
@@ -303,10 +296,7 @@ const FormDetails = ({ form, enableEditing = false }: FormDetailsProps) => {
           return;
         }
 
-        toast.error(
-          "Failed to update single-response setting. Error: " +
-            errorMessage(result, ""),
-        );
+        showSettingFailure(result, "Failed to update single-response setting");
         return;
       }
 
@@ -361,9 +351,7 @@ const FormDetails = ({ form, enableEditing = false }: FormDetailsProps) => {
       });
 
       if (result === undefined || Result.isError(result)) {
-        toast.error(
-          "Failed to update metadata. Error: " + errorMessage(result, ""),
-        );
+        showSettingFailure(result, "Failed to update metadata");
         return;
       }
 

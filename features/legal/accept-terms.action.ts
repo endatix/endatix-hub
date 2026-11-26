@@ -6,6 +6,7 @@ import { invalidateUserAuthorizationCache } from "@/features/auth/server";
 import { EndatixApi } from "@/lib/endatix-api";
 import { termsAcceptanceEnabled } from "@/lib/feature-flags/flags";
 import { termsVisit } from "@/lib/routes/terms-journey";
+import { confirmedScope } from "@/lib/routes/workspace-scope.server";
 import { validateEndatixId } from "@/lib/utils/type-validators";
 import { Result, toResult } from "@/lib/result";
 import {
@@ -13,6 +14,7 @@ import {
   pendingTerms,
   resumeWorkspace,
   signedInToken,
+  scopedDestination,
   termsStanding,
 } from "./terms-standing.server";
 
@@ -34,7 +36,7 @@ export async function acceptTerms(
   if (!result.success && result.error.details?.statusCode !== 409)
     return acceptanceFailure(result);
   invalidateUserAuthorizationCache({ userId: before.userId });
-  return resumeAfterAcceptance(token, result.success ? display : {}, display);
+  return resumeAfterAcceptance(token, result.success ? scopedDestination(before, display) : undefined, display);
 }
 
 function acceptanceFailure(result: import("@/lib/endatix-api").ApiError) {
@@ -58,12 +60,13 @@ async function recordAcceptance(token: string, versionId: string) {
 
 async function resumeAfterAcceptance(
   token: string,
-  accepted: Journey,
+  accepted: string | undefined,
   display: Journey,
 ) {
   const after = await termsStanding(token);
+  if (!after && accepted) redirect(termsVisit(accepted, confirmedScope(token, accepted)));
   if (!after)
     return "Could not refresh your account status. Reload to continue.";
-  if (!pendingTerms(after)) resumeWorkspace(after, accepted);
+  if (!pendingTerms(after)) resumeWorkspace(after, {returnUrl: accepted, scope: after.scope});
   redirect(termsVisit(display.returnUrl ?? "/forms", display.scope, "updated"));
 }

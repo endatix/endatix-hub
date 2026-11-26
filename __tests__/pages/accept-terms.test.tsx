@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import TermsPage from "@/app/(auth)/accept-terms/page";
 import PrivacyPage from "@/app/(auth)/accept-terms/privacy/page";
+import { confirmedScope, workspaceScope } from "@/lib/routes/workspace-scope.server";
 
 const { enabled, me, publication } = vi.hoisted(() => ({
   enabled: vi.fn(),
@@ -104,6 +105,15 @@ it("redirects a non-resolver without reading the publication", async () => {
   me.mockResolvedValue(snapshot([{ ...personal, canResolve: false }]));
   await expect(open()).rejects.toThrow("redirect:/required-actions");
   expect(publication).not.toHaveBeenCalled();
+});
+
+it("restores a cleared member's page on a confirmed retry, not an edited or unconfirmed visit", async () => {
+  me.mockResolvedValue(snapshot([]));
+  const returnUrl = "/forms/42/settings?tab=details";
+  const page = (scope: string | undefined, target: string) => TermsPage({searchParams:Promise.resolve({scope, returnUrl:target})});
+  await expect(page(confirmedScope("member", returnUrl), returnUrl)).rejects.toThrow(`redirect:${returnUrl}`);
+  await expect(page(confirmedScope("member", returnUrl), "/admin/tenants")).rejects.toThrow("redirect:/forms");
+  await expect(page(workspaceScope("member"), returnUrl)).rejects.toThrow("redirect:/forms");
 });
 it("renders only the published Privacy notice, with no acceptance", async () => {
   render(await PrivacyPage());
