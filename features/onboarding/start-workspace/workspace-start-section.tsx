@@ -4,6 +4,7 @@ import { Result } from "@/lib/result";
 import { onboardingFlag } from "@/lib/feature-flags/flags";
 import { workspaceApi, workspaceResult, workspaceStartPath } from "./workspace-api.server";
 import { WorkspaceStartCard } from "./workspace-start-card";
+import { workspaceSetupId } from "./workspace-setup-link";
 
 export async function WorkspaceStartSection() {
   const workspace = await workspaceApi();
@@ -14,10 +15,10 @@ export async function WorkspaceStartSection() {
     <WorkspaceStartCard choice={result.value} scope={workspace.scope} key={workspace.scope}
       canRetry={result.value.kind === "retryable" && await workspace.canRetry()} />
   );
-  if (await onboardingFlag()) return card;
+  if (await onboardingFlag()) return <div id={workspaceSetupId}>{card}</div>;
   // Enrollment can be paused after a workspace has received its offer.
   return (
-    <details className="mb-4">
+    <details id={workspaceSetupId} className="mb-4">
       <summary className="mb-2 cursor-pointer text-sm">Workspace setup</summary>
       {card}
     </details>

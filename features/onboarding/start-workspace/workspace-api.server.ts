@@ -38,3 +38,10 @@ export function workspaceResult(response: ApiResult<unknown>): Result<WorkspaceC
     ? Result.success(choice)
     : Result.error("Your workspace setup could not be read. Refresh to try again.");
 }
+
+export async function canResumeWorkspaceSetup() {
+  const workspace = await workspaceApi();
+  if (!workspace) return false;
+  const result = workspaceResult(await workspace.api.get<unknown>(workspaceStartPath));
+  return Result.isSuccess(result) && result.value.kind !== "complete";
+}

@@ -32,11 +32,13 @@ type SidebarFolder = {
 };
 
 type SidebarNavProps = {
+  children?: React.ReactNode;
   initialFolders?: SidebarFolder[];
   initialNavItemKeys?: string[];
 };
 
 const SidebarNav = ({
+  children,
   initialFolders,
   initialNavItemKeys,
 }: Readonly<SidebarNavProps>) => {
@@ -76,6 +78,7 @@ const SidebarNav = ({
         <SidebarGroup className="mt-auto">
           <SidebarGroupContent>
             <SidebarMenu>
+              {children}
               {secondaryNavItems.map((item) => (
                 <SidebarNavItem
                   key={item.title}

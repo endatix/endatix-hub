@@ -3,6 +3,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { workspaceScope } from "@/lib/routes/workspace-scope.server";
 import { WorkspaceStartSection } from "../workspace-start-section";
+import { canResumeWorkspaceSetup } from "../workspace-api.server";
 import { retryPreparation, startBlank } from "../start-blank.action";
 import { readPreparation } from "../preparation-status.action";
 
@@ -37,6 +38,23 @@ beforeEach(() => {
   onboarding.mockResolvedValue(true);
   grant.mockResolvedValue({ success: true });
   get.mockResolvedValue(ApiResult.success({ state: "offered", choices: ["blank"], formId: null }));
+});
+
+it.each([
+  ["offered", true], ["working", true], ["retryable", true], ["ready", false],
+] as const)("offers navigation for incomplete saved setup (%s)", async (state, expected) => {
+  onboarding.mockResolvedValue(false);
+  get.mockResolvedValueOnce(ApiResult.success({ state, choices: ["blank"], formId: null }));
+  expect(await canResumeWorkspaceSetup()).toBe(expected);
+  expect(post).not.toHaveBeenCalled();
+});
+
+it("hides setup navigation without a readable owner receipt", async () => {
+  grant.mockResolvedValueOnce({ success: false });
+  expect(await canResumeWorkspaceSetup()).toBe(false);
+  expect(get).not.toHaveBeenCalled();
+  get.mockResolvedValueOnce(ApiResult.notFoundError("missing", { statusCode: 404 }));
+  expect(await canResumeWorkspaceSetup()).toBe(false);
 });
 
 it.each(["themes.create", "themes.view"])("keeps finish blank available without %s", async (missing) => {
