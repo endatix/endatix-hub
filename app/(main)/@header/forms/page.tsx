@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { workspaceActionTarget } from "@/features/auth/server";
 import MainHeader from "@/components/layout-ui/header/main-header";
 import FormsBreadcrumbNav from "@/components/layout-ui/navigation/forms-breadcrumb-nav";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,6 +19,7 @@ interface FormsHeaderPageProps {
 export default async function FormsHeaderSlot({
   searchParams,
 }: Readonly<FormsHeaderPageProps>) {
+  if (await workspaceActionTarget()) return null;
   const session = await auth();
   const [aiFeatureFlag, resolvedSearchParams] = await Promise.all([
     aiFeaturesFlag(),

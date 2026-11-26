@@ -219,7 +219,6 @@ describe("proxy", () => {
       expect(config.matcher).toBeDefined();
       expect(Array.isArray(config.matcher)).toBe(true);
       expect(config.matcher[0]).toHaveProperty("source");
-      expect(config.matcher[0]).toHaveProperty("missing");
     });
 
     it.each([

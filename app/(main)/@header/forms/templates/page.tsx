@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { workspaceActionTarget } from "@/features/auth/server";
 import MainHeader from "@/components/layout-ui/header/main-header";
 import FormsBreadcrumbNav from "@/components/layout-ui/navigation/forms-breadcrumb-nav";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { Suspense } from "react";
 import type { FormsBreadcrumbItem } from "@/features/folders/types";
 
 export default async function FormTemplatesHeaderSlot() {
+  if (await workspaceActionTarget()) return null;
   const session = await auth();
   const headerDataPromise = getFormsHeaderDataCached(session?.accessToken);
   const breadcrumbItemsPromise = headerDataPromise.then((headerData) =>

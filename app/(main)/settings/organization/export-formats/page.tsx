@@ -1,4 +1,4 @@
-import { resolveWorkspaceAction } from "@/features/auth/required-actions/workspace-redirect.server";
+import { redirectDisabledPage, resolveWorkspaceAction } from "@/features/auth/required-actions/workspace-redirect.server";
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
 import { ExportFormatsSettings } from "@/features/export/manage-export-formats";
@@ -16,7 +16,6 @@ import { normalizeExportNamingConventions } from "@/lib/endatix-api/reporting/no
 import { reportingExportFlag } from "@/lib/feature-flags/flags";
 import { Result } from "@/lib/result";
 import { toResult } from "@/lib/result/map-api-result-to-result";
-import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -110,8 +109,7 @@ export default async function SettingsOrganizationExportFormatsPage() {
 
   const reportingExportEnabled = await reportingExportFlag();
   if (!reportingExportEnabled) {
-    await resolveWorkspaceAction();
-    redirect("/settings");
+    return redirectDisabledPage("/settings");
   }
 
   const manageSettings = await checkPermission(Permissions.Tenant.ManageSettings);

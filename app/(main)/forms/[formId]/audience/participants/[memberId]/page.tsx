@@ -1,6 +1,5 @@
-import { admitWorkspacePage } from "@/features/auth/required-actions/workspace-redirect.server";
+import { redirectDisabledPage, resolveWorkspaceAction } from "@/features/auth/required-actions/workspace-redirect.server";
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { Permissions } from "@/features/auth/authorization";
 import {
   loadParticipantPage,
@@ -26,8 +25,9 @@ export const metadata: Metadata = { title: "Participant" };
  * personalization flag off the page goes back to the form.
  */
 async function guardParticipantPage(formId: string) {
-  const access = await admitWorkspacePage(requireAudienceAccess(PARTICIPANT_PAGE_PERMISSION));
-  if (Result.isError(access)) return redirect(`/forms/${formId}`);
+  const access = await requireAudienceAccess(PARTICIPANT_PAGE_PERMISSION);
+  if (Result.isError(access)) return redirectDisabledPage(`/forms/${formId}`);
+  await resolveWorkspaceAction();
   const { api, checkPermission } = access.value;
   const [testForms, testLinks] = await Promise.all([
     checkPermission(Permissions.Forms.Test),

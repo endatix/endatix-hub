@@ -38,6 +38,10 @@ export function shouldRedirectToLogin(
 }
 
 export default async function proxy(request: NextRequest) {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.delete(WORKSPACE_NAVIGATION);
+  if (request.method === "POST" && request.headers.has("next-action"))
+    return NextResponse.next({ request: { headers: requestHeaders } });
   if (isMaintenanceMode()) {
     return rewriteToMaintenance(request);
   }
@@ -49,8 +53,6 @@ export default async function proxy(request: NextRequest) {
     return redirectToLogin(request);
   }
 
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.delete(WORKSPACE_NAVIGATION);
   if (request.method === "GET" && session?.accessToken && isWorkspacePage(pathname)) {
     requestHeaders.set(WORKSPACE_NAVIGATION, pathname + request.nextUrl.search);
   }
@@ -71,14 +73,12 @@ export default async function proxy(request: NextRequest) {
  * - _next/image (image optimization files)
  * - favicon.ico, sitemap.xml, robots.txt (metadata files)
  * - .well-known (ACME, security.txt, etc.)
- * Note: `missing: [{ type: 'header', key: 'next-action' }]` excludes Server Actions.
  */
 export const config = {
   matcher: [
     {
       source:
         "/((?!api|.swa|ingest|maintenance|share|slack|assets|brand(?:/|$)|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.well-known).*)",
-      missing: [{ type: "header", key: "next-action" }],
     },
   ],
 };

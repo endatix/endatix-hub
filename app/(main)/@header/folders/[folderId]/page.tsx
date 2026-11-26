@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { workspaceActionTarget } from "@/features/auth/server";
 import MainHeader from "@/components/layout-ui/header/main-header";
 import { Button } from "@/components/ui/button";
 import { UNAUTHORIZED_PATH } from "@/features/auth";
@@ -28,6 +29,7 @@ export default async function FolderDetailsHeaderSlot({
   if (!canManageFolders.success) {
     redirect(UNAUTHORIZED_PATH);
   }
+  if (await workspaceActionTarget()) return null;
 
   const detail = await getFolderManagementDetailCached(
     session?.accessToken,

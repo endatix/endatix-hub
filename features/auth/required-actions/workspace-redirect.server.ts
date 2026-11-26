@@ -2,6 +2,8 @@ import type { Session } from "next-auth";
 import { auth } from "@/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { cache } from "react";
+import type { Route } from "next";
 import { WORKSPACE_NAVIGATION } from "@/lib/routes/workspace-navigation";
 import { TERMS_PATH, termsVisit } from "@/lib/routes/terms-journey";
 import { workspaceScope } from "@/lib/routes/workspace-scope.server";
@@ -38,16 +40,25 @@ async function workspaceRedirect(
     : null;
 }
 
-/** Call after the page's ordinary admission checks, before loading its content. */
-export async function resolveWorkspaceAction() {
+export const workspaceActionTarget = cache(async () => {
   const source = (await headers()).get(WORKSPACE_NAVIGATION);
-  if (!source) return;
+  if (!source) return null;
   const url = new URL(source, "http://workspace.invalid");
   const session = await auth();
   const target = await workspaceRedirect(session, url);
-  if (target === TERMS_PATH)
-    redirect(termsVisit(source, workspaceScope(session?.accessToken)));
+  return target === TERMS_PATH ? termsVisit(source, workspaceScope(session?.accessToken)) : target;
+});
+
+/** Call after the page's ordinary admission checks, before loading its content. */
+export async function resolveWorkspaceAction() {
+  const target = await workspaceActionTarget();
   if (target) redirect(target);
+}
+
+export async function redirectDisabledPage(fallback: Route): Promise<never> {
+  const source = (await headers()).get(WORKSPACE_NAVIGATION);
+  const visit = source && new URL(source, "http://workspace.invalid").searchParams.get(RESOLVER_VISIT);
+  redirect(visit === "1" ? REQUIRED_ACTIONS_PATH : fallback);
 }
 
 /** A throwing page guard must finish before deciding whether to show a resolver. */

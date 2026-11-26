@@ -34,7 +34,7 @@ export async function generateMetadata(
   { params, searchParams }: Params,
   parent: ResolvingMetadata,
 ): Promise<Metadata> {
-  await requireSubmissionPageAccess();
+  await admitWorkspacePage(requireSubmissionPageAccess());
   const { formId } = await params;
   const formResult = await getWorkspaceForm(formId);
 
