@@ -26,8 +26,8 @@ export default async function LegalPage({ searchParams }: Readonly<Props>) {
   return (
     <PlatformAdminShell title="Legal documents" description="Manage drafts, publication history and Terms acceptance.">
       <DocumentNav documents={result.value} selected={document.kind} />
-      <DocumentEditor key={`${document.kind}:${document.revision}`} document={document} />
-      <Suspense fallback={<p>Loading version history…</p>}>
+      {result.value.map(item => <DocumentEditor key={item.kind} document={item} active={item.kind === kind} />)}
+      <Suspense key={`${kind}:${page}`} fallback={<p>Loading version history…</p>}>
         <VersionHistory api={api} kind={document.kind} page={page} />
       </Suspense>
     </PlatformAdminShell>

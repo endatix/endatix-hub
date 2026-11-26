@@ -55,4 +55,62 @@ it("keeps local text after a stale save and offers a fresh read without replayin
   await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("The document changed."));
   expect(screen.getByDisplayValue("Synthetic edit")).toBeTruthy();
   expect(screen.getByRole("button", { name: "Reload saved document" }).hasAttribute("disabled")).toBe(false);
+  expect(screen.getByRole("button", { name: "Save draft" }).hasAttribute("disabled")).toBe(true);
+  vi.mocked(previewDraft).mockResolvedValue(
+    Result.success({ ...doc, revision: "8", draftMarkdown: "Server edit" }),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Reload saved document" }));
+  expect(await screen.findByDisplayValue("Server edit")).toBeTruthy();
+  expect(screen.getByText("Synthetic edit")).toBeTruthy();
+  expect(editDocument).toHaveBeenCalledTimes(1);
+});
+
+it("saves local edits against their original revision across a history navigation", async () => {
+  // Arrange
+  vi.mocked(editDocument).mockResolvedValue(Result.error("Changed"));
+  const editor = render(<DocumentEditor document={doc} />);
+  fireEvent.change(screen.getByRole("textbox"), { target: { value: "Local text" } });
+  // Act
+  editor.rerender(<DocumentEditor document={{ ...doc, revision: "8", draftMarkdown: "Concurrent edit" }} />);
+  fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+  // Assert
+  await screen.findByRole("alert");
+  expect(editDocument).toHaveBeenCalledWith({
+    kind: "terms",
+    operation: "draft",
+    revision: "7",
+    markdown: "Local text",
+  });
+});
+
+it("does not open a publish confirmation for a newer saved revision", async () => {
+  // Arrange
+  vi.mocked(previewDraft).mockResolvedValue(Result.success({ ...doc, revision: "8" }));
+  render(<DocumentEditor document={doc} />);
+  // Act
+  fireEvent.click(screen.getByRole("button", { name: "Review and publish" }));
+  // Assert
+  expect((await screen.findByRole("alert")).textContent).toContain("saved draft changed");
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(editDocument).not.toHaveBeenCalled();
+});
+
+it("keeps the reviewed change available after an ordinary publication failure", async () => {
+  // Arrange
+  vi.mocked(previewDraft).mockResolvedValue(Result.success(doc));
+  vi.mocked(editDocument).mockResolvedValue(Result.error("Service is busy."));
+  render(<DocumentEditor document={doc} />);
+  // Act
+  fireEvent.click(screen.getByRole("button", { name: "Review and publish" }));
+  fireEvent.click(await screen.findByLabelText("Material"));
+  fireEvent.click(screen.getByRole("button", { name: "Publish version" }));
+  // Assert
+  expect((await screen.findByRole("alert")).textContent).toContain("Service is busy.");
+  expect(screen.getByRole("dialog").contains(screen.getByRole("alert"))).toBe(true);
+  expect(editDocument).toHaveBeenCalledWith({
+    kind: "terms",
+    revision: "7",
+    operation: "publish",
+    change: "material",
+  });
 });

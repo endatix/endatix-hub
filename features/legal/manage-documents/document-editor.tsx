@@ -5,26 +5,22 @@ import { LegalMarkdown } from "../legal-markdown";
 import { titles, type DocumentState } from "./documents";
 import { PublishDialog } from "./publish-dialog";
 import { useDocumentEditor, type Editor } from "./use-document-editor";
+import { DocumentFailure } from "./document-failure";
 
-export function DocumentEditor({ document }: Readonly<{ document: DocumentState }>) {
+export function DocumentEditor({ document, active = true }: Readonly<{ document: DocumentState; active?: boolean }>) {
   const editor = useDocumentEditor(document);
+  if (!active) return null;
   return (
     <section className="space-y-4" aria-label={titles[document.kind]}>
       <h2 className="text-xl font-semibold">{titles[document.kind]}</h2>
-      <p>{document.publishedNumber ? `Published version ${document.publishedNumber}` : "No published version"}</p>
-      {document.kind === "terms" && <RequiredSetting document={document} editor={editor} />}
+      <p>{editor.base.publishedNumber ? `Published version ${editor.base.publishedNumber}` : "No published version"}</p>
+      {document.kind === "terms" && <RequiredSetting document={editor.base} editor={editor} />}
       <DraftFields editor={editor} />
-      {editor.error && <RetryDocument message={editor.error} />}
+      {!editor.preview && <DocumentFailure editor={editor} />}
+      {editor.previousText && <details><summary>Your previous unsaved text</summary><pre className="whitespace-pre-wrap">{editor.previousText}</pre></details>}
       {editor.preview && <PublishDialog document={editor.preview} editor={editor} />}
     </section>
   );
-}
-
-function RetryDocument({message}: Readonly<{message: string}>) {
-  return <div role="alert" className="space-y-2">
-    <p>{message}</p><p>Copy any edits you want to keep before reloading.</p>
-    <Button variant="outline" onClick={() => window.location.reload()}>Reload saved document</Button>
-  </div>;
 }
 
 interface SettingProps {
@@ -39,7 +35,7 @@ function RequiredSetting({ document, editor }: Readonly<SettingProps>) {
           type="checkbox"
           checked={document.required}
           onChange={editor.toggle}
-          disabled={!document.publishedNumber || editor.pending || editor.dirty}
+          disabled={!document.publishedNumber || editor.locked || editor.dirty}
         />
         Required
       </label>
@@ -72,10 +68,10 @@ function DraftFields({ editor }: Readonly<{ editor: Editor }>) {
 
 function DraftActions({editor}: Readonly<{editor: Editor}>) {
   return <div className="flex flex-wrap gap-2">
-        <Button disabled={!editor.dirty || !editor.text.trim() || editor.pending} onClick={editor.save}>
+        <Button disabled={!editor.dirty || !editor.text.trim() || editor.locked} onClick={editor.save}>
           Save draft
         </Button>
-        <Button variant="outline" disabled={editor.dirty || !editor.text || editor.pending} onClick={editor.review}>
+        <Button variant="outline" disabled={editor.dirty || !editor.text || editor.locked} onClick={editor.review}>
           Review and publish
         </Button>
   </div>;

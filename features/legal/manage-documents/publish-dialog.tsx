@@ -12,6 +12,7 @@ import {
 import { LegalMarkdown } from "../legal-markdown";
 import { titles, type Change, type DocumentState } from "./documents";
 import type { Editor } from "./use-document-editor";
+import { DocumentFailure } from "./document-failure";
 
 interface Props {
   document: DocumentState;
@@ -31,6 +32,7 @@ export function PublishDialog({ document, editor }: Readonly<Props>) {
           <DialogDescription>Review the saved draft. A published version cannot be edited.</DialogDescription>
         </DialogHeader>
         <LegalMarkdown text={document.draftMarkdown ?? ""} />
+        <DocumentFailure editor={editor} />
         <PublishDecision editor={editor} kind={document.kind} />
       </DialogContent>
     </Dialog>
@@ -40,7 +42,7 @@ export function PublishDialog({ document, editor }: Readonly<Props>) {
 const changeDescriptions = {
   terms: {
     material: "A substantive update. For required Terms, people must accept again.",
-    minor: "A clarification. People who accepted the latest material Terms receive a notice.",
+    minor: "A clarification. When Terms are required, people who accepted the latest material Terms receive a notice.",
   },
   privacy: {
     material: "A substantive update to the notice. It does not require acceptance.",
@@ -58,7 +60,7 @@ function PublishDecision({ editor, kind }: Readonly<{ editor: Editor; kind: Docu
     </fieldset>
     <DialogFooter>
       <Button variant="outline" disabled={editor.pending} onClick={editor.close}>Cancel</Button>
-      <Button disabled={!change || editor.pending} onClick={() => change && editor.publish(change)}>
+      <Button disabled={!change || editor.locked} onClick={() => change && editor.publish(change)}>
         Publish version
       </Button>
     </DialogFooter>

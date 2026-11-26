@@ -1,19 +1,10 @@
 import Link from "next/link";
 import type { EndatixApi } from "@/lib/endatix-api";
-import { normalizePagedResponse } from "@/lib/endatix-api/shared/paged-response";
-import { appendPagingQueryParams, buildEndpointWithQuery } from "@/lib/endatix-api/shared/query-params";
-import type { PagedResponse } from "@/lib/endatix-api/shared/types";
-import { Result, toResult } from "@/lib/result";
+import { Result } from "@/lib/result";
 import { HubPageLoadError } from "@/components/error-handling/error-page/hub-page-load-error";
 import { LegalMarkdown } from "../legal-markdown";
-import { documentsPath, options } from "./document-api.server";
+import { readVersions } from "./version-history.server";
 import type { DocumentKind, Publication } from "./documents";
-
-export function buildVersionHistoryEndpoint(kind: DocumentKind, page: number) {
-  const params = new URLSearchParams();
-  appendPagingQueryParams(params, { page, pageSize: 10 });
-  return buildEndpointWithQuery(`${documentsPath}/${kind}/versions`, params);
-}
 
 interface Props {
   api: EndatixApi;
@@ -21,9 +12,9 @@ interface Props {
   page: number;
 }
 export async function VersionHistory({ api, kind, page }: Readonly<Props>) {
-  const result = toResult(await api.get<PagedResponse<Publication>>(buildVersionHistoryEndpoint(kind, page)), options);
+  const result = await readVersions(api, kind, page);
   if (Result.isError(result)) return <HubPageLoadError result={result} />;
-  const versions = normalizePagedResponse(result.value);
+  const versions = result.value;
   return (
     <section className="space-y-4">
       <h2 className="text-xl font-semibold">Version history</h2>
