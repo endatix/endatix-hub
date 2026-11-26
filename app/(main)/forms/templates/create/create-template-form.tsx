@@ -29,12 +29,18 @@ import { ServerActionState } from "@/lib/utils/zod-error-utils";
 const NO_FOLDER_ID = "__none__";
 const INITIAL_STATE: CreateTemplateActionState = ServerActionState.emptyState();
 
+function submitTemplate(previous: CreateTemplateActionState, data: FormData) {
+  // React can queue a second submission before the pending button renders.
+  if (previous.isSuccess && previous.templateId) return Promise.resolve(previous);
+  return createTemplateAction(previous, data);
+}
+
 export default function CreateTemplateForm({
   folders,
   requireFolderAssignment,
 }: Readonly<TemplateCreateContext>) {
   const [state, formAction, isCreating] = useActionState(
-    createTemplateAction,
+    submitTemplate,
     INITIAL_STATE,
   );
   const [selectedFolderId, setSelectedFolderId] =
@@ -180,8 +186,8 @@ export default function CreateTemplateForm({
             </div>
 
             <div className="flex justify-end space-x-2">
-              <Button variant="outline" asChild disabled={isPending}>
-                <Link href="/forms/templates">Cancel</Link>
+              <Button type="button" variant="outline" asChild={!isPending} disabled={isPending}>
+                {isPending ? "Cancel" : <Link href="/forms/templates">Cancel</Link>}
               </Button>
               <Button type="submit" disabled={isPending}>
                 {isPending ? (

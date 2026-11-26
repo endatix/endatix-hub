@@ -1,4 +1,10 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import CreateFormTemplatePage from "@/app/(main)/forms/templates/create/page";
 import { Result } from "@/lib/result";
@@ -42,20 +48,27 @@ function folderContext(requireFolderAssignment: boolean) {
 it.each([
   [403, "You do not have permission to perform this action."],
   [503, "This service is temporarily unavailable."],
-] as const)("shows the %i read failure with a safe retry", async (statusCode, title) => {
-  // Arrange
-  context.mockResolvedValue(Result.error("Read failed", undefined, undefined, { statusCode }));
+] as const)(
+  "shows the %i read failure with a safe retry",
+  async (statusCode, title) => {
+    // Arrange
+    context.mockResolvedValue(
+      Result.error("Read failed", undefined, undefined, { statusCode }),
+    );
 
-  // Act
-  render(await CreateFormTemplatePage());
+    // Act
+    render(await CreateFormTemplatePage());
 
-  // Assert
-  expect(screen.getByRole("heading", { name: title })).toBeTruthy();
-  expect(screen.queryByRole("button", { name: "Create Template" })).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
-  expect(router.refresh).toHaveBeenCalledOnce();
-  expect(create).not.toHaveBeenCalled();
-});
+    // Assert
+    expect(screen.getByRole("heading", { name: title })).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: "Create Template" }),
+    ).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
+    expect(router.refresh).toHaveBeenCalledOnce();
+    expect(create).not.toHaveBeenCalled();
+  },
+);
 
 it("opens the admitted template form without creating anything and explains a missing required folder", async () => {
   // Arrange
@@ -130,25 +143,67 @@ it("retains the chosen folder after a refused submission, then opens the created
   expect(create.mock.calls[1][1].get("folderId")).toBe("7");
 });
 
+function pendingButton(name: string | RegExp) {
+  return screen.getByRole<HTMLButtonElement>("button", { name });
+}
+
 it("locks submission during creation and navigation, but unlocks after a refused write", async () => {
   // Arrange
   context.mockResolvedValue(folderContext(false));
-  const pending = Promise.withResolvers<{ isSuccess: false; data: { name: string } }>();
-  create.mockReturnValueOnce(pending.promise).mockResolvedValueOnce({ isSuccess: true, templateId: "45" });
+  const pending = Promise.withResolvers<{
+    isSuccess: false;
+    data: { name: string };
+  }>();
+  create
+    .mockReturnValueOnce(pending.promise)
+    .mockResolvedValueOnce({ isSuccess: true, templateId: "45" });
   render(await CreateFormTemplatePage());
-  fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Example" } });
+  fireEvent.change(screen.getByLabelText("Name"), {
+    target: { value: "Example" },
+  });
 
   // Act
   fireEvent.click(screen.getByRole("button", { name: "Create Template" }));
-  const busy = screen.getByRole<HTMLButtonElement>("button", { name: /creating/i });
+  const busy = pendingButton(/creating/i);
   fireEvent.click(busy);
 
   // Assert
   expect(busy.disabled).toBe(true);
+  expect(pendingButton("Cancel").disabled).toBe(true);
   expect(create).toHaveBeenCalledTimes(1);
-  await act(async () => pending.resolve({ isSuccess: false, data: { name: "Example" } }));
+  await act(async () =>
+    pending.resolve({ isSuccess: false, data: { name: "Example" } }),
+  );
   fireEvent.click(screen.getByRole("button", { name: "Create Template" }));
-  await waitFor(() => expect(router.push).toHaveBeenCalledWith("/forms/templates/45"));
-  expect(screen.getByRole<HTMLButtonElement>("button", { name: /creating/i }).disabled).toBe(true);
+  await waitFor(() =>
+    expect(router.push).toHaveBeenCalledWith("/forms/templates/45"),
+  );
+  expect(pendingButton(/creating/i).disabled).toBe(true);
+  expect(pendingButton("Cancel").disabled).toBe(true);
   expect(create).toHaveBeenCalledTimes(2);
+});
+
+it("does not create again for a submission queued behind a successful create", async () => {
+  // Arrange
+  context.mockResolvedValue(folderContext(false));
+  const pending = Promise.withResolvers<{
+    isSuccess: true;
+    templateId: string;
+  }>();
+  create.mockReturnValue(pending.promise);
+  render(await CreateFormTemplatePage());
+  const form = screen.getByRole<HTMLButtonElement>("button", {
+    name: "Create Template",
+  }).form!;
+
+  // Act
+  act(() => {
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+  });
+  await act(async () => pending.resolve({ isSuccess: true, templateId: "45" }));
+
+  // Assert
+  expect(create).toHaveBeenCalledOnce();
+  expect(router.push).toHaveBeenCalledWith("/forms/templates/45");
 });
