@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { createEndatixIdSchema } from "@/lib/utils/type-validators";
 
 export const documentKind = z.enum(["terms", "privacy"]);
 export type DocumentKind = z.infer<typeof documentKind>;
@@ -7,7 +8,10 @@ export type Change = "material" | "minor";
 
 const displayed = z.object({
   kind: documentKind,
-  revision: z.string().max(19).regex(/^\d+$/),
+  revision: z.union([
+    z.literal("0"),
+    z.string().max(19).regex(/^\d+$/).pipe(createEndatixIdSchema("revision")),
+  ]),
 });
 export const documentState = displayed.extend({
   required: z.boolean(),

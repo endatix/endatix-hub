@@ -73,13 +73,18 @@ it("publishes only the displayed revision and explicit change", async () => {
   });
 });
 
-it.each([{...saved, revision:"unknown"}, {...saved,kind:"privacy"}, {revision:"9"}])(
+it.each([{...saved, revision:"unknown"}, {...saved, revision:"9223372036854775808"}, {...saved,kind:"privacy"}, {revision:"9"}])(
   "does not confirm publication from an invalid or mismatched document",
   async returned => {
     post.mockResolvedValueOnce({success:true, data: returned});
     expect(Result.isError(await editDocument(edit))).toBe(true);
   },
 );
+
+it.each(["0", "9223372036854775807"])("can preview the saved revision %s", async revision => {
+  get.mockResolvedValueOnce({success:true, data:{...saved, revision}});
+  expect(await previewDraft("terms")).toEqual(Result.success({...saved, revision}));
+});
 
 it("refuses a direct write when legal management is disabled", async () => {
   // Arrange

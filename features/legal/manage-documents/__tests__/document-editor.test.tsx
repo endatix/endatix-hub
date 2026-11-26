@@ -20,6 +20,12 @@ const doc = {
   draftMarkdown: "# Example",
 } as const;
 
+async function clickWhenReady(name: string) {
+  const button = await screen.findByRole("button", {name});
+  await waitFor(() => expect(button.hasAttribute("disabled")).toBe(false));
+  fireEvent.click(button);
+}
+
 it("reviews the saved text and requires an explicit change before publishing", async () => {
   // Arrange
   vi.mocked(previewDraft).mockResolvedValue(Result.success(doc));
@@ -54,18 +60,17 @@ it("keeps local text after a stale save and offers a fresh read without replayin
   // Assert
   await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("The document changed."));
   expect(screen.getByDisplayValue("Synthetic edit")).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Reload saved document" }).hasAttribute("disabled")).toBe(false);
   expect(screen.getByRole("button", { name: "Save draft" }).hasAttribute("disabled")).toBe(true);
   vi.mocked(previewDraft).mockResolvedValue(
     Result.success({ ...doc, revision: "8", draftMarkdown: "Server edit" }),
   );
-  fireEvent.click(screen.getByRole("button", { name: "Reload saved document" }));
+  await clickWhenReady("Reload saved document");
   expect(await screen.findByDisplayValue("Server edit")).toBeTruthy();
   expect(screen.getByText("Synthetic edit")).toBeTruthy();
   expect(editDocument).toHaveBeenCalledTimes(1);
   vi.mocked(previewDraft).mockResolvedValue(Result.success({...doc, revision:"9", draftMarkdown:"New server edit"}));
-  fireEvent.click(screen.getByRole("button",{name:"Review and publish"}));
-  fireEvent.click(await screen.findByRole("button",{name:"Reload saved document"}));
+  await clickWhenReady("Review and publish");
+  await clickWhenReady("Reload saved document");
   expect(await screen.findByDisplayValue("New server edit")).toBeTruthy();
   expect(screen.getByText("Synthetic edit")).toBeTruthy();
 });
