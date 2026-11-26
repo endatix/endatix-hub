@@ -87,7 +87,7 @@ function FormsPageIntro({ hideFolders, headerDataPromise }: Readonly<{
   headerDataPromise: ReturnType<typeof getFormsHeaderDataCached>;
 }>) {
   return <>
-    <div id={workspaceSetupId}>
+    <div id={workspaceSetupId} className="scroll-mt-16">
       <Suspense fallback={null}><WorkspaceStartSection /></Suspense>
     </div>
     <FormsListToolbar variant="root" />
