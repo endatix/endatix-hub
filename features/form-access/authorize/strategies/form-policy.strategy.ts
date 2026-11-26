@@ -5,17 +5,18 @@ import type { FormStorageAccess } from "../../types";
 import { mapPublicFormAccessToStorageAccess } from "../map-policy-to-storage-access";
 import type { FormStorageGateRunContext } from "./gate-context";
 
-/** Hub session + public form access policy for private forms. */
-export async function hubPolicyStrategy(
+function hasStoragePermission(access: FormStorageAccess) {
+  return access.canViewFiles || access.canUploadFiles || access.canDeleteFiles;
+}
+
+/** Public form access policy for the current viewer, with a Hub session when present. */
+export async function formPolicyStrategy(
   context: FormStorageGateRunContext,
 ): Promise<Result<FormStorageAccess>> {
   const { gate, hubAccessToken } = context;
 
-  const policyResult = await new EndatixApi(hubAccessToken!).forms.getPublicFormAccess(
-    gate.formId,
-    {},
-    true,
-  );
+  const { forms } = new EndatixApi(hubAccessToken);
+  const policyResult = await forms.getPublicFormAccess(gate.formId, {}, Boolean(hubAccessToken));
   if (ApiResult.isError(policyResult)) {
     return formAccessForbidden("Form access denied");
   }
@@ -26,13 +27,5 @@ export async function hubPolicyStrategy(
     gate.submissionId,
   );
 
-  if (
-    !access.canViewFiles &&
-    !access.canUploadFiles &&
-    !access.canDeleteFiles
-  ) {
-    return formAccessForbidden("Form access denied");
-  }
-
-  return Result.success(access);
+  return hasStoragePermission(access) ? Result.success(access) : formAccessForbidden("Form access denied");
 }

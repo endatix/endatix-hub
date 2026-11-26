@@ -22,7 +22,7 @@ import {
   type Submission,
 } from "@/lib/endatix-api";
 import type { PublicFormAccessResponse } from "@/lib/endatix-api/forms/types";
-import { isMissingOptionalSubmission } from "@/lib/endatix-api/submissions/is-missing-optional-submission";
+import { optionalSubmissionAbsence } from "@/lib/endatix-api/submissions/optional-submission-absence";
 import {
   ERROR_CODE,
   REFUSED_TOKEN_CODES,
@@ -419,7 +419,7 @@ async function loadPartialSubmission({
     };
   }
 
-  if (isMissingOptionalSubmission(partialResult)) {
+  if (optionalSubmissionAbsence(partialResult)) {
     return {
       kind: "success",
       value: undefined,

@@ -1,5 +1,5 @@
 import { ApiResult, EndatixApi } from "@/lib/endatix-api";
-import { isMissingOptionalSubmission } from "@/lib/endatix-api/submissions/is-missing-optional-submission";
+import { optionalSubmissionAbsence } from "@/lib/endatix-api/submissions/optional-submission-absence";
 import { Result } from "@/lib/result";
 import {
   hasTokenPermission,
@@ -13,7 +13,8 @@ import type {
   FormStorageTokenType,
 } from "../../types";
 import type { FormStorageGateRunContext } from "./gate-context";
-import { hubPolicyStrategy } from "./hub-policy.strategy";
+import { formPolicyStrategy } from "./form-policy.strategy";
+import { anonymousPublicFormStrategy } from "./anonymous-public-form.strategy";
 import { optionalPartialCookie } from "../../types";
 
 function resolveTokenType(
@@ -47,6 +48,13 @@ function assertGateSubmissionMatches(
 function mayChangeAccessTokenFiles(token: string, isComplete: boolean | undefined) {
   return hasTokenPermission(token, TokenPermission.Write) ||
     (hasTokenPermission(token, TokenPermission.Submit) && isComplete === false);
+}
+
+async function authorizeActiveDefinitionRead(context: FormStorageGateRunContext) {
+  const policy = await formPolicyStrategy(context);
+  if (Result.isError(policy)) return policy;
+  if (!policy.value.canViewFiles) return formAccessForbidden<FormStorageAccess>("File view is not permitted");
+  return context.hubAccessToken ? policy : anonymousPublicFormStrategy(context);
 }
 
 /** Submission or access token (body or cookie). */
@@ -95,8 +103,8 @@ export async function tokenGateStrategy(
     token,
   );
   if (ApiResult.isError(submissionResult)) {
-    if (gate[optionalPartialCookie] && context.hubAccessToken && isMissingOptionalSubmission(submissionResult)) {
-      return hubPolicyStrategy(context);
+    if (gate[optionalPartialCookie] && optionalSubmissionAbsence(submissionResult) === "missing") {
+      return authorizeActiveDefinitionRead(context);
     }
     return formAccessForbidden("Form access denied");
   }

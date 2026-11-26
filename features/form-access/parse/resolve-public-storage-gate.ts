@@ -2,6 +2,7 @@ import type { Session } from "next-auth";
 import { Result } from "@/lib/result";
 import { optionalPartialCookie, type FormStorageGateInput } from "../types";
 import { validateGateInput } from "./validate-gate-input";
+import { formAccessForbidden } from "../http/form-access-result";
 import {
   resolveStorageGateInput,
   type ResolveStorageGateInputOptions,
@@ -22,10 +23,22 @@ export async function resolvePublicStorageGate(
 }
 
 /** A personal link selects its submission snapshot; an ordinary resume cookie is optional. */
-export async function resolveAuthoredImageGate(gate: FormStorageGateInput, session: Session | null) {
-  const result = await resolvePublicStorageGate(gate, session, { allowCookieFallback: true });
+export async function resolveAuthoredImageGate(
+  gate: FormStorageGateInput,
+  session: Session | null,
+) {
+  const { tokenType, ...credentialInput } = gate;
+  const result = await resolvePublicStorageGate(credentialInput, session, {
+    allowCookieFallback: true,
+  });
   if (Result.isError(result)) return result;
-  if (!session?.accessToken || gate.token || gate.submissionId) return result;
+  if (gate.token && tokenType && tokenType !== result.value.tokenType) {
+    return formAccessForbidden<FormStorageGateInput>("Form access denied");
+  }
+  if (gate.token || gate.submissionId) return result;
   if (result.value.tokenType !== "SubmissionToken") return result;
-  return Result.success({ ...result.value, [optionalPartialCookie]: true as const });
+  return Result.success({
+    ...result.value,
+    [optionalPartialCookie]: true as const,
+  });
 }
