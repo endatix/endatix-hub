@@ -5,18 +5,16 @@ export type DocumentKind = z.infer<typeof documentKind>;
 export const titles = { terms: "Terms", privacy: "Privacy notice" };
 export type Change = "material" | "minor";
 
-export interface DocumentState {
-  kind: DocumentKind;
-  revision: string;
-  required: boolean;
-  publishedNumber: number;
-  draftMarkdown: string | null;
-}
-
 const displayed = z.object({
   kind: documentKind,
-  revision: z.string().regex(/^\d+$/),
+  revision: z.string().max(19).regex(/^\d+$/),
 });
+export const documentState = displayed.extend({
+  required: z.boolean(),
+  publishedNumber: z.number().int().nonnegative(),
+  draftMarkdown: z.string().nullable(),
+});
+export type DocumentState = z.infer<typeof documentState>;
 export const editSchema = z.discriminatedUnion("operation", [
   displayed.extend({
     operation: z.literal("draft"),

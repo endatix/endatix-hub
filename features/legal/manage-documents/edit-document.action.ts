@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { Result, toResult } from "@/lib/result";
-import { documentApi, documentsPath, options, writeDocument } from "./document-api.server";
+import { Result } from "@/lib/result";
+import { confirmedDocument, documentApi, documentsPath, writeDocument } from "./document-api.server";
 import { documentKind, editSchema, type DocumentKind, type DocumentState, type Edit } from "./documents";
 
 export async function editDocument(input: Edit) {
@@ -9,9 +9,7 @@ export async function editDocument(input: Edit) {
   if (!api) return Result.error<DocumentState>("Legal management is disabled.");
   const edit = editSchema.safeParse(input);
   if (!edit.success) return Result.validationError<DocumentState>("Invalid legal document edit.");
-  const result = toResult(await writeDocument(api, edit.data), options);
-  if (Result.isSuccess(result) && !result.value?.revision)
-    return Result.error<DocumentState>("Could not confirm the saved revision.");
+  const result = confirmedDocument(await writeDocument(api, edit.data), edit.data.kind);
   if (Result.isSuccess(result)) revalidatePath("/admin/legal");
   return result;
 }
@@ -20,5 +18,5 @@ export async function previewDraft(kind: DocumentKind) {
   const api = await documentApi();
   if (!api || !documentKind.safeParse(kind).success)
     return Result.error<DocumentState>("Legal preview is unavailable.");
-  return toResult(await api.get<DocumentState>(`${documentsPath}/${kind}/preview`), options);
+  return confirmedDocument(await api.get<unknown>(`${documentsPath}/${kind}/preview`), kind);
 }

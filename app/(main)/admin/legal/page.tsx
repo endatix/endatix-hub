@@ -6,12 +6,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { listQueryKey } from "@/lib/list-page/list-query-key";
 import { HubPageLoadError } from "@/components/error-handling/error-page/hub-page-load-error";
 import { PlatformAdminShell } from "@/features/platform-admin/ui/platform-admin-shell";
-import { documentApi, documentsPath, options } from "@/features/legal/manage-documents/document-api.server";
+import { documentApi, listDocuments } from "@/features/legal/manage-documents/document-api.server";
 import { DocumentEditor } from "@/features/legal/manage-documents/document-editor";
 import { documentKind, titles, type DocumentState } from "@/features/legal/manage-documents/documents";
 import { VersionHistory } from "@/features/legal/manage-documents/version-history";
 import { parsePagedSearchParams } from "@/lib/list-page/parse-paged-search-params";
-import { Result, toResult } from "@/lib/result";
+import { Result } from "@/lib/result";
 
 interface Props {
   searchParams: Promise<{ kind?: string; page?: string; pageSize?: string }>;
@@ -21,7 +21,7 @@ export default async function LegalPage({ searchParams }: Readonly<Props>) {
   if (!api) notFound();
   const query = await searchParams;
   const kind = parseKind(query.kind);
-  const result = toResult(await api.get<DocumentState[]>(documentsPath), options);
+  const result = await listDocuments(api);
   if (Result.isError(result)) return <HubPageLoadError result={result} />;
   if (!result.value.some((item) => item.kind === kind)) notFound();
   const paging = historyPaging(query);
