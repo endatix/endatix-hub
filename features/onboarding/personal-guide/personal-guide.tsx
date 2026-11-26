@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { Result } from "@/lib/result";
+import { Result } from "@/lib/result/result";
 import { saveGuide } from "./save-guide.action";
 
 type GuideProps = {
@@ -32,13 +32,14 @@ function useGuidePreference({ dismissed, scope }: GuideProps) {
 
 export function PersonalGuide(props: Readonly<GuideProps>) {
   const { hidden, pending, error, update } = useGuidePreference(props);
+  const panel = useGuideFocus(hidden);
   return (
-    <aside aria-label="Personal help" className="fixed right-4 bottom-4 z-40 max-w-[calc(100vw-2rem)] rounded-lg border bg-popover p-2 text-popover-foreground shadow-md">
+    <aside ref={panel} aria-label="Personal help" className="fixed right-4 bottom-4 z-40 max-w-[calc(100vw-2rem)] rounded-lg border bg-popover p-2 text-popover-foreground shadow-md">
       {hidden ? (
         <GuideHelp links={props.links} pending={pending} reopen={() => update(false)} />
       ) : (
         <div className="w-64 max-w-full space-y-2 p-2">
-          <h2 className="font-semibold">Getting started</h2>
+          <h2 tabIndex={-1} className="font-semibold">Getting started</h2>
           <p className="text-sm">Open a form from Forms. In the editor, select a question to edit it, then use Preview to try it as a respondent.</p>
           <Button variant="outline" size="sm" disabled={pending} onClick={() => update(true)}>Dismiss guide</Button>
         </div>
@@ -46,6 +47,18 @@ export function PersonalGuide(props: Readonly<GuideProps>) {
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     </aside>
   );
+}
+
+function useGuideFocus(hidden: boolean) {
+  const panel = useRef<HTMLElement>(null);
+  const previous = useRef(hidden);
+  useEffect(() => {
+    if (previous.current !== hidden) {
+      panel.current?.querySelector<HTMLElement>(hidden ? "summary" : "h2")?.focus();
+      previous.current = hidden;
+    }
+  }, [hidden]);
+  return panel;
 }
 
 function GuideHelp({ links, pending, reopen }: Readonly<{

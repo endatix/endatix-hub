@@ -14,10 +14,24 @@ it("dismisses the guide and reopens it from Help in place", async () => {
 
   // Act
   fireEvent.click(screen.getByRole("button", { name: "Dismiss guide" }));
-  fireEvent.click(await screen.findByText("Help"));
+  const help = await screen.findByText("Help");
+  expect(document.activeElement).toBe(help);
+  fireEvent.click(help);
   fireEvent.click(screen.getByRole("button", { name: "Getting started" }));
 
   // Assert
-  expect(await screen.findByRole("heading", { name: "Getting started" })).toBeTruthy();
+  const heading = await screen.findByRole("heading", { name: "Getting started" });
+  expect(document.activeElement).toBe(heading);
   expect(vi.mocked(saveGuide).mock.calls).toEqual([["member", true], ["member", false]]);
+});
+
+it("keeps the open guide when a saved preference is refused", async () => {
+  // Arrange
+  vi.mocked(saveGuide).mockResolvedValueOnce(Result.error("Refresh to try again."));
+  render(<PersonalGuide dismissed={false} scope="previous" links={[]} />);
+  // Act
+  fireEvent.click(screen.getByRole("button", { name: "Dismiss guide" }));
+  // Assert
+  expect((await screen.findByRole("alert")).textContent).toBe("Refresh to try again.");
+  expect(screen.getByRole("heading", { name: "Getting started" })).toBeTruthy();
 });

@@ -1,25 +1,36 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { ApiResult } from "@/lib/endatix-api/shared/api-result";
-import { workspaceScope } from "@/lib/routes/workspace-scope.server";
 import { saveGuide } from "../save-guide.action";
 
-const { enabled, management, grant, put } = vi.hoisted(() => ({
-  enabled: vi.fn(), management: vi.fn(), grant: vi.fn(), put: vi.fn(),
+const { enabled, management, grant, put, session } = vi.hoisted(() => ({
+  enabled: vi.fn(), management: vi.fn(), grant: vi.fn(), put: vi.fn(), session: vi.fn(),
 }));
-vi.mock("@/auth", () => ({ auth: async () => ({ accessToken: "member" }) }));
+vi.mock("@/auth", () => ({ auth: session }));
 vi.mock("@/features/auth/authorization", async original => ({
-  ...(await original<object>()), authorization: async () => ({ checkPermission: grant }),
+  ...(await original<object>()), authorization: async () => ({
+    checkPermission: grant,
+    getAuthorizationData: async () => ({ success: true, data: { tenantId: "1", userId: "2" } }),
+  }),
 }));
 vi.mock("@/lib/endatix-api", async original => ({
   ...(await original<object>()), EndatixApi: class { put = put; },
 }));
 vi.mock("@/lib/feature-flags/flags", () => ({ onboardingFlag: enabled, saasManagementFlag: management }));
 
-const scope = workspaceScope("member")!;
+const scope = "1:2";
 beforeEach(() => {
+  session.mockResolvedValue({ accessToken: "member" });
   management.mockResolvedValue(true);
   enabled.mockResolvedValue(true);
   grant.mockResolvedValue({ success: true });
+});
+
+it("accepts a refreshed token for the same member and workspace", async () => {
+  // Arrange
+  session.mockResolvedValue({ accessToken: "rotated" });
+  put.mockResolvedValue(ApiResult.success({ isDismissed: true }));
+  // Act & Assert
+  expect(await saveGuide(scope, true)).toMatchObject({ value: true });
 });
 
 it("sends only the signed-in member's desired preference", async () => {

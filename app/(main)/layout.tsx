@@ -48,19 +48,18 @@ export default async function RootLayout({
       getClientEndatixConfig(),
       getBrand(),
     ]);
-  const defaultSidebarOpen = cookieStore.get("sidebar_state")?.value === "true";
   return (
     <html lang="en" className={getOsClass(requestHeaders)} suppressHydrationWarning>
       <head />
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <AppProvider
           session={session}
-          sidebarDefaultOpen={defaultSidebarOpen}
+          sidebarDefaultOpen={cookieStore.get("sidebar_state")?.value === "true"}
           endatixConfig={endatixConfig}
           brand={brand}
         >
           {nav}
-          <PersonalGuideSlot />
+          <PersonalGuideSlot session={session} />
           <main data-slot="sidebar-inset" data-workspace-scope={workspaceScope(session?.accessToken)}>
             <SupportAccessBannerSlot accessToken={session?.accessToken} />
             <Suspense fallback={null}>
