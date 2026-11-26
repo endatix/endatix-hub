@@ -100,6 +100,24 @@ describe("useCreatorJson", () => {
     expect(creator.JSON).toBe(draft);
   });
 
+  it("does not hydrate an echoed JSON-tab submission over a newer editor buffer", async () => {
+    // Arrange
+    const creator = createCreator();
+    const original = { title: "Canvas before JSON edits" };
+    const { result, rerender } = renderCreatorJson({ creator, json: original });
+    const submitted = { title: "Edited in Ace" };
+    const response = Promise.withResolvers<Result<string>>();
+    const save = result.current(submitted, () => response.promise);
+
+    // Act — the readback arrives before the action resolves; Ace still owns the draft.
+    rerender({ creator, json: { ...submitted } });
+    response.resolve(Result.success("saved"));
+    await save;
+
+    // Assert
+    expect(creator.JSON).toBe(original);
+  });
+
   it.each(["refused", "empty", "threw"])("applies an external definition after its local save %s", async outcome => {
     // Arrange
     const creator = createCreator();

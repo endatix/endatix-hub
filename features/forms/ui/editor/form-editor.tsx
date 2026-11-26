@@ -215,7 +215,7 @@ function FormEditor({
     },
     [setHasJsonErrors, setIsOnJsonTab, setIsJsonModified, setHasUnsavedChanges],
   );
-  const { registerJsonEditor, getJsonModel } = useJsonEditor({
+  const { registerJsonEditor, getJsonModel, captureJsonSave } = useJsonEditor({
     onJsonStateChange,
     downloadName: formName,
   });
@@ -250,6 +250,7 @@ function FormEditor({
     creator,
     markFormModified,
   });
+  const saveCanvas = useCreatorJson(creator, formJson);
   useCreatorTabUrl(creator);
 
   const saveCustomQuestion = useCallback(
@@ -311,7 +312,6 @@ function FormEditor({
     [creator],
   );
 
-  const saveCanvas = useCreatorJson(creator, formJson);
   const saveForm = useCallback(async () => {
     const jsonResult = getJsonModel(creator);
     if (Result.isError(jsonResult)) {
@@ -319,6 +319,7 @@ function FormEditor({
       return;
     }
 
+    const acknowledgeJsonSave = captureJsonSave();
     const theme = creator?.theme as StoredTheme;
     let isThemeUpdated = false;
 
@@ -364,7 +365,7 @@ function FormEditor({
       isThemeUpdated = true;
     }
 
-    if (stillSaved(getJsonModel(creator))) {
+    if (acknowledgeJsonSave() && stillSaved(getJsonModel(creator))) {
       setHasUnsavedChanges(false);
       setIsJsonModified(false);
     }
@@ -381,6 +382,7 @@ function FormEditor({
   }, [
     getJsonModel,
     saveCanvas,
+    captureJsonSave,
     creator,
     formId,
     themeId,

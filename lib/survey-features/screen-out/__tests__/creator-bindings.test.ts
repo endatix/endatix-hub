@@ -1,9 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import type { ItemValue, QuestionMatrixDynamicModel } from "survey-core";
 import { SurveyCreatorModel, SurveyLogic } from "survey-creator-core";
 import { SCREEN_OUT_TRIGGER_CLASS } from "../constants";
 import { registerScreenOutCreatorUi } from "../infrastructure/creator-bindings";
 import { screenOutExtension } from "../infrastructure/screen-out.extension";
+import { isolateCreatorRegistration } from "./isolate-creator-registration";
 
 const FORM_JSON = {
   pages: [{ name: "p1", elements: [{ type: "text", name: "age" }] }],
@@ -13,7 +14,6 @@ const FORM_JSON = {
 const deps = { getRuntimeState: () => ({}) };
 
 function triggerTypeChoices(creator: SurveyCreatorModel) {
-  creator.selectElement(creator.survey);
   const matrix = creator.propertyGrid.getQuestionByName(
     "triggers",
   ) as QuestionMatrixDynamicModel;
@@ -25,6 +25,22 @@ function triggerTypeChoices(creator: SurveyCreatorModel) {
 }
 
 describe("screen-out Creator bindings", () => {
+  beforeEach(isolateCreatorRegistration);
+
+  it("keeps the open JSON editor attached when screen-out labels load", async () => {
+    // Arrange
+    const creator = new SurveyCreatorModel({ showJSONEditorTab: true });
+    creator.activeTab = "json";
+    const plugin = creator.getPlugin("json");
+    const openEditor = plugin.model;
+
+    // Act
+    await screenOutExtension.onCreatorReady?.(creator, deps);
+
+    // Assert
+    expect(plugin.model).toBe(openEditor);
+  });
+
   it("keeps a stored screen-out trigger when Creator loads the form", () => {
     // Arrange & Act
     const creator = new SurveyCreatorModel({});
@@ -38,7 +54,11 @@ describe("screen-out Creator bindings", () => {
     // Arrange
     const creator = new SurveyCreatorModel({ showLogicTab: true });
     creator.JSON = FORM_JSON;
-    triggerTypeChoices(creator);
+    creator.selectElement(creator.survey);
+    expect(triggerTypeChoices(creator)).toContainEqual({
+      value: SCREEN_OUT_TRIGGER_CLASS,
+      text: SCREEN_OUT_TRIGGER_CLASS,
+    });
 
     // Act
     await screenOutExtension.onCreatorReady?.(creator, deps);

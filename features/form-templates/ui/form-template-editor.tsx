@@ -130,7 +130,7 @@ function FormTemplateEditorContent({
   const [name, setName] = useState(templateName);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [originalName, setOriginalName] = useState(templateName);
-  const { registerJsonEditor, getJsonModel } = useJsonEditor({
+  const { registerJsonEditor, getJsonModel, captureJsonSave } = useJsonEditor({
     onJsonStateChange: (state) => {
       setHasJsonErrors(state.hasErrors);
       setIsOnJsonTab(state.isOnJsonTab);
@@ -146,6 +146,7 @@ function FormTemplateEditorContent({
   const [isLoading, setIsLoading] = useState(true);
   const [questionClasses, setQuestionClasses] = useState<any[]>([]);
   useRichTextEditing(creator);
+  const saveCanvas = useCreatorJson(creator, templateJson);
   useCreatorTabUrl(creator);
 
   const creatorTheme = useEndatixCreatorTheme();
@@ -165,8 +166,6 @@ function FormTemplateEditorContent({
 
     return () => creator.onModified.remove(setAsModified);
   }, [creator, setHasUnsavedChanges]);
-
-  const saveCanvas = useCreatorJson(creator, templateJson);
 
   const handleNameSave = useCallback(async () => {
     if (name === originalName) return;
@@ -356,13 +355,14 @@ function FormTemplateEditorContent({
       return;
     }
 
+    const acknowledgeJsonSave = captureJsonSave();
     setIsSaving(true);
     try {
       const { result, stillSaved } = await saveCanvas(jsonResult.value, definition =>
         updateTemplateJsonAction(templateId, definition));
       if (!templateSaveSucceeded(result)) return;
 
-      if (stillSaved(getJsonModel(creator))) {
+      if (acknowledgeJsonSave() && stillSaved(getJsonModel(creator))) {
         setHasUnsavedChanges(false);
         setIsJsonModified(false);
       }

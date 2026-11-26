@@ -1,6 +1,17 @@
-import { render, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DesignSurveyProvider } from "@/lib/survey-features/designer/design-survey.context";
+import {
+  DesignSurveyProvider,
+  useSurveyDesigner,
+} from "@/lib/survey-features/designer/design-survey.context";
+import { Result } from "@/lib/result";
+import { updateFormDefinitionJsonAction } from "@/features/forms/application/actions/update-form-definition-json.action";
 
 const surveyCreator = vi.hoisted(() => vi.fn());
 
@@ -60,7 +71,8 @@ vi.mock("@/features/asset-storage/client", () => ({
 vi.mock("@/lib/survey-features/json-editor/use-json-editor.hook", () => ({
   useJsonEditor: () => ({
     registerJsonEditor: () => vi.fn(),
-    getJsonModel: () => null,
+    getJsonModel: () => Result.success({ title: "Edited" }),
+    captureJsonSave: () => () => true,
   }),
 }));
 
@@ -108,9 +120,9 @@ vi.mock("@/lib/survey-features/data-lists", () => ({
   ConvertInlineChoicesDialog: () => null,
 }));
 
-vi.mock("@/lib/survey-features/survey-design/ui", () => ({
+vi.mock("@/lib/survey-features/survey-design/ui", async () => ({
   useCreatorTabUrl: vi.fn(),
-  useCreatorJson: vi.fn(),
+  useCreatorJson: (await import("@/lib/survey-features/survey-design/ui/use-creator-json")).useCreatorJson,
   SurveyDesignSaveButton: () => null,
   SurveyDesignStatusBadge: () => null,
 }));
@@ -156,9 +168,12 @@ vi.mock("../../application/actions/create-custom-question.action", () => ({
   createCustomQuestionAction: vi.fn(),
 }));
 
-vi.mock("../../application/actions/update-form-definition-json.action", () => ({
-  updateFormDefinitionJsonAction: vi.fn(),
-}));
+vi.mock(
+  "@/features/forms/application/actions/update-form-definition-json.action",
+  () => ({
+    updateFormDefinitionJsonAction: vi.fn(),
+  }),
+);
 
 vi.mock("@/features/themes/update-form-theme", () => ({
   updateFormThemeAction: vi.fn(),
@@ -176,6 +191,50 @@ vi.mock(
 
 import FormEditor from "../form-editor";
 import FormTemplateEditor from "@/features/form-templates/ui/form-template-editor";
+
+function EditIndicator() {
+  const { isJsonModified, setIsJsonModified } = useSurveyDesigner();
+  return (
+    <button onClick={() => setIsJsonModified(true)}>
+      {isJsonModified ? "Modified" : "Clean"}
+    </button>
+  );
+}
+
+it("preserves a rejected form edit so the same save can be retried", async () => {
+  // Arrange
+  const ready = vi.fn<(save: () => Promise<void>) => void>();
+  vi.mocked(updateFormDefinitionJsonAction)
+    .mockResolvedValueOnce(Result.error("Save unavailable"))
+    .mockResolvedValueOnce(Result.success("1"));
+  render(
+    <DesignSurveyProvider>
+      <FormEditor
+        formJson={{}}
+        formId="1"
+        formName="Form"
+        themeId="default"
+        onSaveHandlerReady={ready}
+      />
+      <EditIndicator />
+    </DesignSurveyProvider>,
+  );
+  await waitFor(() => expect(surveyCreator).toHaveBeenCalled());
+  fireEvent.click(screen.getByRole("button", { name: "Clean" }));
+  const save = () => act(() => ready.mock.lastCall![0]());
+
+  // Act & Assert
+  await save();
+  expect(screen.getByRole("button", { name: "Modified" })).toBeTruthy();
+  await save();
+  expect(screen.getByRole("button", { name: "Clean" })).toBeTruthy();
+  expect(updateFormDefinitionJsonAction).toHaveBeenNthCalledWith(
+    2,
+    "1",
+    false,
+    { title: "Edited" },
+  );
+});
 
 describe("creator theme settings", () => {
   beforeEach(() => {

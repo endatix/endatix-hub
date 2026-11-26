@@ -50,6 +50,51 @@ export interface UseJsonEditorOptions {
   downloadName?: string;
 }
 
+interface JsonBuffer {
+  model: AceJsonPlugin;
+  savedText: string;
+  modified: boolean;
+}
+
+// Activation and file import both call Ace.setValue(). Only activation
+// clears Creator's pending flag after setValue returns.
+function listenForJsonEdits(buffer: JsonBuffer, onModified: () => void) {
+  const { model } = buffer;
+  const session = model.aceEditor.getSession();
+  let listening = true;
+  const checkEdit = () => {
+    if (!listening || !model.isJSONChanged || buffer.modified) return;
+    if (model.text === buffer.savedText) return;
+    buffer.modified = true;
+    onModified();
+  };
+  const onChange = () => {
+    if (model.isProcessingImmediately) queueMicrotask(checkEdit);
+    else checkEdit();
+  };
+  session.on("change", onChange);
+  return () => {
+    listening = false;
+    session.off("change", onChange);
+  };
+}
+
+function useJsonSaveBuffer() {
+  const activeBuffer = useRef<JsonBuffer | null>(null);
+  const captureJsonSave = useCallback(() => {
+    const buffer = activeBuffer.current;
+    const submitted = buffer?.model.text;
+    return () => {
+      if (activeBuffer.current !== buffer) return false;
+      if (!buffer || submitted === undefined) return true;
+      buffer.savedText = submitted;
+      buffer.modified = buffer.model.text !== submitted;
+      return !buffer.modified;
+    };
+  }, []);
+  return { activeBuffer, captureJsonSave };
+}
+
 /**
  * Registers JSON editor state and change handling with the Survey Creator.
  * Subscribes to the plugin model's onPropertyChanged for hasErrors and aceCanUndo.
@@ -61,6 +106,7 @@ export interface UseJsonEditorOptions {
  */
 export function useJsonEditor(options: UseJsonEditorOptions) {
   const { onJsonStateChange, downloadName = "" } = options;
+  const { activeBuffer, captureJsonSave } = useJsonSaveBuffer();
   const downloadNameRef = useRef(downloadName);
   useEffect(() => {
     downloadNameRef.current = downloadName;
@@ -68,11 +114,10 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
 
   const registerJsonEditor = useCallback(
     (creator: SurveyCreatorModel): (() => void) => {
-      let isJsonModified = false;
       let removeModelListener: (() => void) | undefined;
-      let aceChangedHandler: (() => void) | undefined;
 
       function notify(overrides: Partial<JsonEditorState>) {
+        const isJsonModified = activeBuffer.current?.modified ?? false;
         onJsonStateChange?.(
           createOnJsonTabState({ isJsonModified, ...overrides }),
         );
@@ -81,7 +126,7 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
       function leaveJsonTab() {
         removeModelListener?.();
         removeModelListener = undefined;
-        isJsonModified = false;
+        activeBuffer.current = null;
         notify(NOT_ON_JSON_TAB_STATE);
       }
 
@@ -93,10 +138,14 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
         const hasAceEditor = TabJsonEditorAcePlugin.hasAceEditor();
         if (!model || !hasAceEditor) return;
 
-        let isAceHooked = false;
+        // Reading creator.text after an edit applies the pending buffer to Designer.
+        // Compare with the saved text captured before Ace starts editing instead.
+        const buffer = { model, savedText: creator.text, modified: false };
+        activeBuffer.current = buffer;
+        let unsubscribe: (() => void) | undefined;
 
         const onPropertyChanged = (
-          sender: Base,
+          _sender: Base,
           options: IPropertyValueChangedEvent,
         ) => {
           const { name } = options;
@@ -105,23 +154,10 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
             notify({ hasErrors: jsonTabBlocks(model) });
           }
 
-          const aceInstance = (sender as AceJsonPlugin).aceEditor;
-          if (aceInstance && !isAceHooked) {
-            isAceHooked = true;
-
-            aceChangedHandler = () => {
-              if (!isJsonModified) {
-                const session = aceInstance.getSession();
-                const editorValue = session.$editor.getValue();
-
-                if (editorValue?.length < 1 || editorValue === creator.text)
-                  return;
-
-                isJsonModified = true;
-                notify({ hasErrors: jsonTabBlocks(model) });
-              }
-            };
-            aceInstance.getSession().on("change", aceChangedHandler);
+          if (!unsubscribe && model.aceEditor) {
+            unsubscribe = listenForJsonEdits(buffer, () =>
+              notify({ hasErrors: jsonTabBlocks(model) }),
+            );
           }
         };
 
@@ -138,10 +174,7 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
         removeModelListener = () => {
           model?.onPropertyChanged.remove(onPropertyChanged);
           model.errorList.onPropertyChanged.remove(onErrorListChanged);
-          const aceInstance = model.aceEditor;
-          if (aceInstance && aceChangedHandler) {
-            aceInstance.getSession().off("change", aceChangedHandler);
-          }
+          unsubscribe?.();
         };
 
         notify({ hasErrors: jsonTabBlocks(model) });
@@ -170,9 +203,10 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
         creator.onLintSurvey.remove(warnUnknownReference);
         creator.onActiveTabChanged.remove(onTabChanged);
         removeModelListener?.();
+        activeBuffer.current = null;
       };
     },
-    [onJsonStateChange],
+    [activeBuffer, onJsonStateChange],
   );
 
   const getJsonModel = useCallback(
@@ -195,12 +229,13 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
         return Result.error(UNEXPECTED_ERROR_MESSAGE);
       }
 
-      if (jsonTabBlocks(jsonPlugin.model)) {
+      const model = jsonPlugin.model;
+      if (jsonTabBlocks(model)) {
         return Result.validationError(INVALID_JSON_ERROR_MESSAGE);
       }
 
       try {
-        const resultJson = JSON.parse(jsonPlugin.model.text);
+        const resultJson = JSON.parse(model.text);
         const surveyModel = new Model();
         surveyModel.fromJSON(resultJson);
 
@@ -216,5 +251,5 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
     [],
   );
 
-  return { registerJsonEditor, getJsonModel };
+  return { registerJsonEditor, getJsonModel, captureJsonSave };
 }

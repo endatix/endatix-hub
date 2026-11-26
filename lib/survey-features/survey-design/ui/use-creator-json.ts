@@ -17,14 +17,14 @@ function isSameDefinition(left: object | null, right: object): boolean {
   return Helpers.checkIfValuesEqual(left, right, SAME_DEFINITION);
 }
 
-function useCanvasSubmission(creator: SurveyCreatorModel | null) {
+function useCanvasSubmission() {
   const pending = useRef<{ definition: object } | null>(null);
   const saveCanvas = useCallback(async <T extends Result<unknown> | undefined>(
     submitted: object, write: (definition: object) => Promise<T>,
   ) => {
     const attempt = { definition: submitted };
-    // A JSON-tab submission not yet on the canvas still needs its normal hydration.
-    pending.current = creator && isSameDefinition(creator.JSON, submitted) ? attempt : null;
+    // Reading creator.JSON here would apply the pending Ace buffer to the canvas.
+    pending.current = attempt;
     let confirmed = false;
     try {
       const result = await write(submitted);
@@ -34,7 +34,7 @@ function useCanvasSubmission(creator: SurveyCreatorModel | null) {
     } finally {
       if (!confirmed && pending.current === attempt) pending.current = null;
     }
-  }, [creator]);
+  }, []);
   return { pending, saveCanvas };
 }
 
@@ -44,7 +44,7 @@ export function useCreatorJson(
   json: object | null,
 ) {
   const lastRead = useRef<{ creator: SurveyCreatorModel; json: object } | null>(null);
-  const { pending, saveCanvas } = useCanvasSubmission(creator);
+  const { pending, saveCanvas } = useCanvasSubmission();
 
   useEffect(() => {
     if (!creator || !json) return;
