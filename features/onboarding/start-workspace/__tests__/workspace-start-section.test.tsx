@@ -4,7 +4,7 @@ import { ApiResult } from "@/lib/endatix-api/shared/api-result";
 import { workspaceScope } from "@/lib/routes/workspace-scope.server";
 import { WorkspaceStartSection } from "../workspace-start-section";
 import { retryPreparation, startBlank } from "../start-blank.action";
-import { preparationChanged } from "../preparation-status.action";
+import { readPreparation } from "../preparation-status.action";
 
 const { get, post, grant, enabled, onboarding, revalidate } = vi.hoisted(() => ({
   get: vi.fn(),
@@ -64,16 +64,16 @@ it("retries the saved choice only in the displayed workspace", async () => {
   expect(revalidate).toHaveBeenCalledWith("/forms");
 });
 
-it("retains the recovery controls on a busy status read but refreshes on completion or access change", async () => {
+it("reads the displayed workspace and preserves a busy status separately from completion", async () => {
   // Arrange
   const scope = workspaceScope("current")!;
   get.mockResolvedValueOnce(ApiResult.httpStatusError(503, "Busy"));
   get.mockResolvedValueOnce(ApiResult.success({ state: "ready", choices: [], formId: "42" }));
   // Act & Assert
-  expect(await preparationChanged("another session")).toBe(true);
+  expect(await readPreparation("another session")).toMatchObject({ statusCode: 403 });
   expect(get).not.toHaveBeenCalled();
-  expect(await preparationChanged(scope)).toBe(false);
-  expect(await preparationChanged(scope)).toBe(true);
+  expect(await readPreparation(scope)).toMatchObject({ statusCode: 503 });
+  expect(await readPreparation(scope)).toMatchObject({ value: { kind: "complete", formId: "42" } });
 });
 
 it("leaves a non-enrolled member in their normal workspace", async () => {

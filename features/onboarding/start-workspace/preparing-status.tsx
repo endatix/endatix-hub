@@ -2,7 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { preparationChanged } from "./preparation-status.action";
+import { Result } from "@/lib/result/result";
+import { readPreparation } from "./preparation-status.action";
 
 function watchPreparation(check: () => Promise<boolean>, changed: () => void) {
   let live = true;
@@ -22,9 +23,15 @@ function watchPreparation(check: () => Promise<boolean>, changed: () => void) {
 export function PreparingStatus({ scope }: Readonly<{ scope: string }>) {
   const router = useRouter();
   const status = useRef<HTMLParagraphElement>(null);
-  useEffect(() => watchPreparation(async () => {
-    if (document.hidden || !status.current?.checkVisibility()) return false;
-    return preparationChanged(scope);
-  }, () => router.refresh()), [scope, router]);
+  useEffect(() => {
+    const visible = () => !document.hidden && !!status.current?.checkVisibility();
+    return watchPreparation(async () => visible() && await needsRefresh(scope) && visible(), () => router.refresh());
+  }, [scope, router]);
   return <p role="status" ref={status}>You can leave this page and come back while we prepare your survey.</p>;
+}
+
+async function needsRefresh(scope: string) {
+  const result = await readPreparation(scope);
+  if (Result.isSuccess(result)) return result.value.kind !== "working";
+  return !!result.requiredAction || [401, 403, 404].includes(result.statusCode ?? 0);
 }

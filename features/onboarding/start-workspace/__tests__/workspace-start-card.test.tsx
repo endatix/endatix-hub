@@ -3,24 +3,25 @@ import { expect, it, vi } from "vitest";
 import { Result } from "@/lib/result/result";
 import { retryPreparation, startBlank } from "../start-blank.action";
 import { WorkspaceStartCard } from "../workspace-start-card";
-import { preparationChanged } from "../preparation-status.action";
+import { readPreparation } from "../preparation-status.action";
 
 vi.mock("../start-blank.action", () => ({ startBlank: vi.fn(), retryPreparation: vi.fn() }));
 const router = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
-vi.mock("../preparation-status.action", () => ({ preparationChanged: vi.fn() }));
+vi.mock("../preparation-status.action", () => ({ readPreparation: vi.fn() }));
 
 it("reads only the visible preparation and refreshes Forms once its state changes", async () => {
   // Arrange
   vi.useFakeTimers();
-  vi.mocked(preparationChanged).mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+  vi.mocked(readPreparation).mockResolvedValueOnce(Result.success({kind: "working"}))
+    .mockResolvedValueOnce(Result.success({kind: "complete", formId: "42"}));
   const { unmount } = render(<WorkspaceStartCard choice={{ kind: "working" }} scope="workspace" />);
   const status = screen.getByRole("status");
   status.checkVisibility = () => true;
   try {
     // Act & Assert
     await act(() => vi.advanceTimersByTimeAsync(5000));
-    expect(preparationChanged).toHaveBeenCalledWith("workspace");
+    expect(readPreparation).toHaveBeenCalledWith("workspace");
     expect(router.refresh).not.toHaveBeenCalled();
     await act(() => vi.advanceTimersByTimeAsync(10000));
     expect(router.refresh).toHaveBeenCalledTimes(1);
@@ -41,6 +42,30 @@ it("can finish blank during preparation without retrying or opening the reserved
   expect(screen.queryByRole("button", { name: "Retry preparation" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Finish blank" }));
   await waitFor(() => expect(startBlank).toHaveBeenCalledWith("workspace"));
+});
+
+it("defers a refresh after session expiry until the owner is watching again", async () => {
+  // Arrange
+  vi.useFakeTimers();
+  const { unmount } = render(<WorkspaceStartCard choice={{ kind: "working" }} scope="workspace" />);
+  const status = screen.getByRole("status");
+  const refused = Result.error<never>("Session expired", undefined, undefined, { statusCode: 401 });
+  status.checkVisibility = () => true;
+  vi.mocked(readPreparation).mockImplementationOnce(async () => {
+    status.checkVisibility = () => false;
+    return refused;
+  }).mockResolvedValueOnce(refused);
+  try {
+    // Act & Assert
+    await act(() => vi.advanceTimersByTimeAsync(10000));
+    expect(router.refresh).not.toHaveBeenCalled();
+    status.checkVisibility = () => true;
+    await act(() => vi.advanceTimersByTimeAsync(5000));
+    expect(router.refresh).toHaveBeenCalledTimes(1);
+  } finally {
+    unmount();
+    vi.useRealTimers();
+  }
 });
 
 it("retains both recovery choices after an unconfirmed retry", async () => {
