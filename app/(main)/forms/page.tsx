@@ -31,6 +31,7 @@ import { FileText, SearchX } from "lucide-react";
 import { OpenCreateFormButton } from "@/features/forms/use-cases/create-form/ui/open-create-form-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { WorkspaceStartSection } from "@/features/onboarding/start-workspace/workspace-start-section";
+import { workspaceSetupId } from "@/lib/routes/workspace-path";
 
 interface FormsPageProps {
   searchParams?: Promise<{
@@ -86,7 +87,9 @@ function FormsPageIntro({ hideFolders, headerDataPromise }: Readonly<{
   headerDataPromise: ReturnType<typeof getFormsHeaderDataCached>;
 }>) {
   return <>
-    <Suspense fallback={null}><WorkspaceStartSection /></Suspense>
+    <div id={workspaceSetupId}>
+      <Suspense fallback={null}><WorkspaceStartSection /></Suspense>
+    </div>
     <FormsListToolbar variant="root" />
     {!hideFolders && (
       <Suspense fallback={<FolderCardsSkeleton />}>

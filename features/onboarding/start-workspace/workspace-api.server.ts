@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { auth } from "@/auth";
 import { authorization, Permissions } from "@/features/auth/authorization";
 import { EndatixApi, type ApiResult } from "@/lib/endatix-api";
@@ -39,9 +40,14 @@ export function workspaceResult(response: ApiResult<unknown>): Result<WorkspaceC
     : Result.error("Your workspace setup could not be read. Refresh to try again.");
 }
 
-export async function canResumeWorkspaceSetup() {
+export const currentWorkspaceStart = cache(async () => {
   const workspace = await workspaceApi();
-  if (!workspace) return false;
+  if (!workspace) return null;
   const result = workspaceResult(await workspace.api.get<unknown>(workspaceStartPath));
-  return Result.isSuccess(result) && result.value.kind !== "complete";
+  return { workspace, result };
+});
+
+export async function canResumeWorkspaceSetup() {
+  const current = await currentWorkspaceStart();
+  return !!current && Result.isSuccess(current.result) && current.result.value.kind !== "complete";
 }
