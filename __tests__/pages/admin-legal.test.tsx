@@ -75,9 +75,7 @@ const publication = {
 const emptyPage = { page: 1, pageSize: 10, totalRecords: 0, totalPages: 0, items: [] };
 const historyPage = {
   page: 2, pageSize: 10, totalRecords: 22, totalPages: 3,
-  items: Array.from({ length: 10 }, (_, index) => ({
-    ...publication, id: String(25 - index), number: 12 - index,
-  })),
+  items: [publication],
 };
 
 async function renderHistory(data: unknown) {
@@ -94,7 +92,7 @@ it("shows the requested read-only history page with its publisher, date and navi
   // Assert
   expect(get).toHaveBeenCalledWith("/admin/legal/documents/terms/versions?page=2&pageSize=10");
   expect(screen.getByText(/Version 12 · minor · published by user 9007199254740993/)).toBeTruthy();
-  expect(screen.getAllByText(publication.publishedAt)[0].getAttribute("datetime")).toBe(publication.publishedAt);
+  expect(screen.getByText(publication.publishedAt).getAttribute("datetime")).toBe(publication.publishedAt);
   fireEvent.click(screen.getByRole("button", {name:"Go to next page"}));
   expect(replace).toHaveBeenCalledWith("/admin/legal?kind=terms&page=3",{scroll:false});
   expect(screen.queryByRole("button", {name:/edit|publish|delete/i})).toBeNull();
@@ -108,18 +106,20 @@ it("shows the empty state for a genuine empty history page", async () => {
 
 it.each([
   ["null body", null],
-  ["unexpected message envelope", { success: false, message: "Internal diagnostic" }],
+  ["failed envelope with paging fields", { ...emptyPage, success: false, message: "Internal diagnostic" }],
   ["missing items", {}],
   ["invalid page", { ...emptyPage, page: 0 }],
   ["missing count", { ...emptyPage, totalRecords: undefined }],
   ["inconsistent totals", { ...emptyPage, totalPages: 1 }],
   ["missing publication", { ...historyPage, items: [] }],
-  ["invalid row", { ...historyPage, items: [null, ...historyPage.items.slice(1)] }],
+  ["invalid row", { ...historyPage, items: [publication, null] }],
+  ["blank text", { ...historyPage, items: [{ ...publication, markdown: "  " }] }],
+  ["null character", { ...historyPage, items: [{ ...publication, markdown: "bad\0text" }] }],
   ...Object.entries({
     id: "9223372036854775808", number: 0, change: "unknown", markdown: null,
     publishedAt: "not a date", publishedByUserId: 123,
   }).map(([field, value]): [string, unknown] => [
-    `invalid ${field}`, { ...historyPage, items: [{ ...publication, [field]: value }, ...historyPage.items.slice(1)] },
+    `invalid ${field}`, { ...historyPage, items: [{ ...publication, [field]: value }] },
   ]),
 ])("shows a retryable error for %s", async (_label, data) => {
   // Act & Assert

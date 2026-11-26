@@ -19,7 +19,8 @@ const historyPage = z.object({
   const remaining = totalRecords - (page - 1) * pageSize;
   return totalPages === Math.ceil(totalRecords / pageSize)
     && page <= Math.max(1, totalPages)
-    && items.length === Math.min(pageSize, remaining);
+    && (totalRecords === 0 || items.length > 0)
+    && items.length <= Math.min(pageSize, remaining);
 });
 
 export function buildVersionHistoryEndpoint(kind: DocumentKind, paging: IPagedRequest) {
@@ -30,9 +31,12 @@ export function buildVersionHistoryEndpoint(kind: DocumentKind, paging: IPagedRe
 
 export async function readVersions(api: EndatixApi, kind: DocumentKind, paging: IPagedRequest) {
   const response = await api.get<unknown>(buildVersionHistoryEndpoint(kind, paging));
-  if (!response.success) return toResult<NormalizedPagedResponse<Publication>>(response, options);
-  const parsed = historyPage.safeParse(response.data);
-  if (parsed.success) return Result.success(normalizePagedResponse(parsed.data));
+  const result = toResult(response, options);
+  if (Result.isError(result) && !response.success) return result;
+  if (Result.isSuccess(result)) {
+    const parsed = historyPage.safeParse(result.value);
+    if (parsed.success) return Result.success(normalizePagedResponse(parsed.data));
+  }
   TelemetryLogger.warn("Unexpected legal version history format.", { kind }, options.loggerName);
   return Result.error<NormalizedPagedResponse<Publication>>("Could not read the document version history.");
 }

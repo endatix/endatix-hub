@@ -37,7 +37,7 @@ export const publication = z.object({
   id: createEndatixIdSchema("id"),
   number: z.number().int().positive(),
   change,
-  markdown: z.string().min(1),
+  markdown: z.string().refine((text) => /\S/u.test(text) && !text.includes("\0")),
   publishedByUserId: createEndatixIdSchema("publishedByUserId"),
   publishedAt: z.iso.datetime({ offset: true, local: true }),
 });
