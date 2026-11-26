@@ -1,15 +1,30 @@
 import { expect, test } from "@playwright/test";
 import { SignInPage } from "../../pages/auth/sign-in.page";
 import { openJsonTab, pasteIntoAce } from "../../utils/json-tab";
-import { deleteForm, e2eCredentials, signInE2eApi } from "../../utils/screen-out-api";
+import {
+  deleteForm,
+  e2eCredentials,
+  signInE2eApi,
+} from "../../utils/screen-out-api";
 
 function definition(title: string) {
-  return JSON.stringify({
-    pages: [{ name: "page1", elements: [{ type: "text", name: "question", title }] }],
-  }, null, 2);
+  return JSON.stringify(
+    {
+      pages: [
+        {
+          name: "page1",
+          elements: [{ type: "text", name: "question", title }],
+        },
+      ],
+    },
+    null,
+    2,
+  );
 }
 
-test("saves successive edits without leaving the JSON Editor", async ({ page }) => {
+test("saves successive edits without leaving the JSON Editor", async ({
+  page,
+}) => {
   test.setTimeout(180_000);
   const api = await signInE2eApi();
   const created = await api.forms.create({
@@ -33,7 +48,9 @@ test("saves successive edits without leaving the JSON Editor", async ({ page }) 
       await expect(success).toBeHidden({ timeout: 15_000 });
     }
     await save.click();
-    await expect(page.getByText("Nothing to save", { exact: true })).toBeVisible();
+    await expect(
+      page.getByText("Nothing to save", { exact: true }),
+    ).toBeVisible();
     await page.reload();
     await expect(page.locator(".ace_editor")).toContainText("Second edit");
   } finally {

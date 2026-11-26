@@ -215,7 +215,7 @@ function FormEditor({
     },
     [setHasJsonErrors, setIsOnJsonTab, setIsJsonModified, setHasUnsavedChanges],
   );
-  const { registerJsonEditor, getJsonModel } = useJsonEditor({
+  const { registerJsonEditor, getJsonModel, captureJsonSave } = useJsonEditor({
     onJsonStateChange,
     downloadName: formName,
   });
@@ -250,6 +250,7 @@ function FormEditor({
     creator,
     markFormModified,
   });
+  useCreatorJson(creator, formJson);
   useCreatorTabUrl(creator);
 
   const saveCustomQuestion = useCallback(
@@ -320,15 +321,14 @@ function FormEditor({
       return;
     }
 
-    const updatedFormJson = jsonResult.value;
+    const acknowledgeJsonSave = captureJsonSave();
     const theme = creator?.theme as StoredTheme;
     let isThemeUpdated = false;
-    let isFormUpdated = false;
 
     const updateDefinitionResult = await updateFormDefinitionJsonAction(
       formId,
       isDraft,
-      updatedFormJson,
+      jsonResult.value,
     );
 
     if (updateDefinitionResult === undefined) {
@@ -342,8 +342,6 @@ function FormEditor({
       );
       return;
     }
-
-    isFormUpdated = true;
 
     const newThemeId =
       theme?.themeName?.toLowerCase() === DEFAULT_THEME_NAME
@@ -370,11 +368,13 @@ function FormEditor({
       isThemeUpdated = true;
     }
 
-    setHasUnsavedChanges(false);
-    setIsJsonModified(false);
+    if (acknowledgeJsonSave()) {
+      setHasUnsavedChanges(false);
+      setIsJsonModified(false);
+    }
     toast.success(
       <p>
-        {isFormUpdated && "Form changes saved. "}
+        Form changes saved.{" "}
         {isThemeUpdated && (
           <span>
             Theme set to <b>{theme.themeName}</b>
@@ -384,6 +384,7 @@ function FormEditor({
     );
   }, [
     getJsonModel,
+    captureJsonSave,
     creator,
     formId,
     themeId,
@@ -636,8 +637,6 @@ function FormEditor({
 
     return () => creator.onModified.remove(setAsModified);
   }, [creator, setHasUnsavedChanges]);
-
-  useCreatorJson(creator, formJson);
 
   useEffect(() => {
     if (!creator) return;

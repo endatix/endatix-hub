@@ -117,7 +117,7 @@ function FormTemplateEditorContent({
   const [name, setName] = useState(templateName);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [originalName, setOriginalName] = useState(templateName);
-  const { registerJsonEditor, getJsonModel } = useJsonEditor({
+  const { registerJsonEditor, getJsonModel, captureJsonSave } = useJsonEditor({
     onJsonStateChange: (state) => {
       setHasJsonErrors(state.hasErrors);
       setIsOnJsonTab(state.isOnJsonTab);
@@ -133,6 +133,7 @@ function FormTemplateEditorContent({
   const [isLoading, setIsLoading] = useState(true);
   const [questionClasses, setQuestionClasses] = useState<any[]>([]);
   useRichTextEditing(creator);
+  useCreatorJson(creator, templateJson);
   useCreatorTabUrl(creator);
 
   const creatorTheme = useEndatixCreatorTheme();
@@ -152,8 +153,6 @@ function FormTemplateEditorContent({
 
     return () => creator.onModified.remove(setAsModified);
   }, [creator, setHasUnsavedChanges]);
-
-  useCreatorJson(creator, templateJson);
 
   const handleNameSave = useCallback(async () => {
     if (name === originalName) return;
@@ -345,24 +344,23 @@ function FormTemplateEditorContent({
       return;
     }
 
-    const creatorJson = jsonResult.value;
+    const acknowledgeJsonSave = captureJsonSave();
 
     setIsSaving(true);
     try {
-      const result = await updateTemplateJsonAction(templateId, creatorJson);
-
-      if (!result) {
-        toast.error("Could not proceed with updating template JSON");
-        return;
-      }
+      const result =
+        (await updateTemplateJsonAction(templateId, jsonResult.value)) ??
+        Result.error("Could not proceed with updating template JSON");
 
       if (Result.isError(result)) {
         toast.error(result.message || "Failed to update template JSON");
         return;
       }
 
-      setHasUnsavedChanges(false);
-      setIsJsonModified(false);
+      if (acknowledgeJsonSave()) {
+        setHasUnsavedChanges(false);
+        setIsJsonModified(false);
+      }
       setShowSavedSuccess(true);
 
       toast.success("Template saved");
