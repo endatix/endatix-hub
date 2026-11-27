@@ -17,7 +17,6 @@ import {
   Info,
   Layers,
   FileJson,
-  Image as ImageIcon,
   Lock,
   Zap,
   ListTodo,
@@ -30,6 +29,7 @@ import { ReactElementFactory } from "survey-react-ui";
 import { FormDiagnosticsPlugin } from "../form-diagnostics-plugin";
 import { AudienceFindings, useAudienceFindings } from "./audience-findings";
 import { ConvertLargeChoiceLists } from "./convert-large-choice-lists";
+import { EmbeddedImageCard } from "./embedded-image-card";
 
 interface FormDiagnosticsViewProps {
   model?: FormDiagnosticsPlugin;
@@ -94,18 +94,6 @@ export const FormDiagnosticsView = ({
       });
     }
 
-    if (stats.embeddedImagesCount > 5) {
-      const embeddedImagesSizeText =
-        stats.embeddedImagesSizeBytes > 0
-          ? ` (${formatSize(stats.embeddedImagesSizeBytes)} total).`
-          : ".";
-      list.push({
-        title: "Embedded Images Detected",
-        description: `Found ${formatNumber(stats.embeddedImagesCount)} base64 embedded images${embeddedImagesSizeText} Use external URLs if possible.`,
-        severity: "warning",
-      });
-    }
-
     if (stats.logicConditionsCount > 50) {
       list.push({
         title: "Complex Logic Found",
@@ -143,13 +131,10 @@ export const FormDiagnosticsView = ({
   const maxSingleChoicesThreshold = 50 * 1024;
   const jsonSizeThreshold = 1024 * 1024;
   const questionCountThreshold = 100;
-  const embeddedImagesThreshold = 5;
   const logicConditionsThreshold = 50;
   const largestChoicesThreshold = 200;
   const hasLargeJson = stats.uncompressedSize > jsonSizeThreshold;
   const hasHighQuestionCount = stats.totalQuestions > questionCountThreshold;
-  const hasManyEmbeddedImages =
-    stats.embeddedImagesCount > embeddedImagesThreshold;
   const hasComplexLogic = stats.logicConditionsCount > logicConditionsThreshold;
   const hasLargeChoiceList =
     stats.maxDropdownChoicesCount > largestChoicesThreshold;
@@ -227,19 +212,6 @@ export const FormDiagnosticsView = ({
                 </span>
                 <span className="text-xl font-semibold">
                   {formatNumber(stats.totalQuestions)}
-                </span>
-              </div>
-              <div className={metricCardClass(hasManyEmbeddedImages)}>
-                <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  <ImageIcon className="h-4 w-4" /> Embedded Images
-                </span>
-                <span className="text-xl font-semibold">
-                  {formatNumber(stats.embeddedImagesCount)}
-                  {stats.embeddedImagesSizeBytes > 0 && (
-                    <span className="ml-1 text-sm font-normal text-muted-foreground">
-                      ({formatSize(stats.embeddedImagesSizeBytes)})
-                    </span>
-                  )}
                 </span>
               </div>
               <div className={metricCardClass(hasComplexLogic)}>
@@ -325,11 +297,12 @@ export const FormDiagnosticsView = ({
             </div>
           </div>
 
-          <ConvertLargeChoiceLists
+          <EmbeddedImageCard model={model} />
+          {model.formId && <ConvertLargeChoiceLists
             model={model}
             attentionMessage={converterAttentionMessage}
             attentionClassName={infoAlertClassName}
-          />
+          />}
 
           <AudienceFindings findings={audienceFindings} actions={model} />
 

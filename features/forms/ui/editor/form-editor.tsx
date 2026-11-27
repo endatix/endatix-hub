@@ -4,6 +4,7 @@ import { toast } from "@/components/ui/toast";
 import { TelemetryLogger } from "@/features/telemetry";
 import { customQuestions } from "@/customizations/questions/question-registry";
 import { CreatorImageStorage, useStorageWithCreator } from "@/features/asset-storage/client";
+import { prepareDefinitionSave } from "@/lib/survey-features/form-diagnostics/conversion-session";
 import { useSurveyLicenseKey } from "@/features/config/survey-license-provider";
 import { designerRuntimeDeps } from "./designer-runtime-deps";
 import {
@@ -322,13 +323,18 @@ function FormEditor({
     }
 
     const acknowledgeJsonSave = captureJsonSave();
+    const prepared = prepareDefinitionSave(creator, jsonResult.value);
+    if (Result.isError(prepared)) {
+      toast.error(prepared.message);
+      return;
+    }
     const theme = creator?.theme as StoredTheme;
     let isThemeUpdated = false;
 
     const updateDefinitionResult = await updateFormDefinitionJsonAction(
       formId,
       isDraft,
-      jsonResult.value,
+      prepared.value.payload,
     );
 
     if (updateDefinitionResult === undefined) {
@@ -368,7 +374,7 @@ function FormEditor({
       isThemeUpdated = true;
     }
 
-    if (acknowledgeJsonSave()) {
+    if (acknowledgeJsonSave() && prepared.value.acknowledge()) {
       setHasUnsavedChanges(false);
       setIsJsonModified(false);
     }

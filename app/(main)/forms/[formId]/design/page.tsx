@@ -3,7 +3,7 @@ import { NotFoundComponent } from "@/components/error-handling/not-found";
 import { HubPageLoadError } from "@/components/error-handling/error-page";
 import { Button } from "@/components/ui/button";
 import { AssetStorageProvider } from "@/features/asset-storage/server";
-import { authorization } from "@/features/auth/authorization";
+import { authorization, Permissions } from "@/features/auth/authorization";
 import FormDesignerWrapper, {
   FormDesignerWrapperProps,
 } from "@/features/forms/ui/designer/form-designer-wrapper";
@@ -141,7 +141,9 @@ export default async function FormDesignerPage({
       <Suspense fallback={<FormEditorLoader />}>
         <SurveyLicenseProvider value={getSurveyLicenseKey()}>
           <DesignerRuntimeProvider
+            key={`${formId}:${form.activeDefinitionId}`}
             initialState={{
+              canConvertImages: (await checkPermission(Permissions.Forms.Edit)).success,
               formId,
               formName: form.name,
               folderId: form.folderId,

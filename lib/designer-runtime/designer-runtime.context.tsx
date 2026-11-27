@@ -23,6 +23,7 @@ export type DesignerScope = {
  * The state of the designer runtime.
  */
 export interface DesignerRuntimeState extends DesignerScope {
+  canConvertImages?: boolean;
   formName?: string;
   folderId?: string | null;
   isPublic?: boolean;

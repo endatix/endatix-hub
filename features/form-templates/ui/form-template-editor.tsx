@@ -3,6 +3,8 @@
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { CreatorImageStorage, useStorageWithCreator } from "@/features/asset-storage/client";
+import { prepareDefinitionSave } from "@/lib/survey-features/form-diagnostics/conversion-session";
+import { useFormDiagnostics } from "@/lib/survey-features/form-diagnostics";
 import { TelemetryLogger } from "@/features/telemetry";
 import { useSurveyLicenseKey } from "@/features/config/survey-license-provider";
 import { useDesignerRuntime } from "@/lib/designer-runtime";
@@ -134,6 +136,7 @@ function FormTemplateEditorContent({
   const [questionClasses, setQuestionClasses] = useState<any[]>([]);
   useRichTextEditing(creator);
   useCreatorJson(creator, templateJson);
+  const { initGlobals: initDiagnostics, bindToCreator: bindDiagnostics } = useFormDiagnostics(creator);
   useCreatorTabUrl(creator);
 
   const creatorTheme = useEndatixCreatorTheme();
@@ -210,6 +213,7 @@ function FormTemplateEditorContent({
       }
 
       try {
+        initDiagnostics();
         const newCreator = new SurveyCreator({
           ...(options || defaultCreatorOptions),
           showCreatorThemeSettings: false,
@@ -220,6 +224,7 @@ function FormTemplateEditorContent({
           creatorThemeRef.current,
           document.getElementById("surveyCreatorContainer") ?? undefined,
         );
+        bindDiagnostics(newCreator);
         setCreator(newCreator);
         onCreatorCreated(newCreator);
 
@@ -248,6 +253,8 @@ function FormTemplateEditorContent({
       toast.error("Failed to load custom questions");
     });
   }, [
+    initDiagnostics,
+    bindDiagnostics,
     options,
     slkVal,
     registerStorageHandlers,
@@ -345,11 +352,16 @@ function FormTemplateEditorContent({
     }
 
     const acknowledgeJsonSave = captureJsonSave();
+    const prepared = prepareDefinitionSave(creator, jsonResult.value);
+    if (Result.isError(prepared)) {
+      toast.error(prepared.message);
+      return;
+    }
 
     setIsSaving(true);
     try {
       const result =
-        (await updateTemplateJsonAction(templateId, jsonResult.value)) ??
+        (await updateTemplateJsonAction(templateId, prepared.value.payload)) ??
         Result.error("Could not proceed with updating template JSON");
 
       if (Result.isError(result)) {
@@ -357,7 +369,7 @@ function FormTemplateEditorContent({
         return;
       }
 
-      if (acknowledgeJsonSave()) {
+      if (acknowledgeJsonSave() && prepared.value.acknowledge()) {
         setHasUnsavedChanges(false);
         setIsJsonModified(false);
       }

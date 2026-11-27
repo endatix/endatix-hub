@@ -19,7 +19,7 @@ type Params = {
 
 export default async function FormTemplateEditPage({ params }: Params) {
   const session = await auth();
-  const { requireHubAccess } = await authorization(session);
+  const { requireHubAccess, checkPermission } = await authorization(session);
   await requireHubAccess();
 
   const { templateId } = await params;
@@ -64,7 +64,9 @@ export default async function FormTemplateEditPage({ params }: Params) {
       <Suspense fallback={<FormEditorLoader />}>
         <SurveyLicenseProvider value={getSurveyLicenseKey()}>
           <DesignerRuntimeProvider
+            key={templateId}
             initialState={{
+              canConvertImages: (await checkPermission("templates.edit")).success,
               templateId,
             }}
           >
