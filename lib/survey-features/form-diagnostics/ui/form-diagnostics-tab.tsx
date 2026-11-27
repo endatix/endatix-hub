@@ -37,14 +37,19 @@ function ChoiceTool({ model, check }: ModelProps & { check: ReturnType<typeof ch
 }
 
 function imageStatus(images: ReturnType<typeof useImageConversion>, available: boolean) {
-  if (!available || images.message && !images.review) return "Not available";
-  if (!images.review) return "Checking…";
-  if (images.busy) return "Uploading";
-  if (images.retry || images.stale) return "Review needed";
-  if (images.done) return "Conversion applied";
-  if (images.review.skipped.length) return `${images.review.skipped.length} skipped`;
-  if (!images.review.eligible.length) return "Checked · none embedded";
-  return images.enabled ? "Review available" : "Storage disabled";
+  if (!images.review) return available && !images.message
+    ? { label: "Checking…", notice: "Checking embedded images…" }
+    : { label: "Not available", notice: "Some checks are unavailable" };
+  if (images.busy) return { label: "Uploading", notice: "Conversion in progress" };
+  if (images.retry || images.stale) return { label: "Review needed", notice: "Conversion needs review" };
+  if (images.done) return { label: "Conversion applied", notice: "" };
+  return imageInventoryStatus(images.review, images.enabled);
+}
+
+function imageInventoryStatus(review: NonNullable<ReturnType<typeof useImageConversion>["review"]>, enabled: boolean) {
+  if (review.eligible.length && !enabled) return { label: "Storage disabled", notice: "Image storage is unavailable" };
+  if (review.skipped.length) return { label: `${review.skipped.length} skipped`, notice: "Some image placements need manual review" };
+  return { label: review.eligible.length ? "Review available" : "Checked · none embedded", notice: "" };
 }
 
 function useOverview(model: FormDiagnosticsPlugin) {
@@ -61,19 +66,16 @@ function useOverview(model: FormDiagnosticsPlugin) {
   return { session, images, bytes, check, notes: structureNotes(model.stats, remaining) };
 }
 
-function checkNotice(images: ReturnType<typeof useImageConversion>, audience: ReturnType<typeof useAudienceCheck>, pendingSave: boolean) {
+function checkNotice(status: ReturnType<typeof imageStatus>, audience: ReturnType<typeof useAudienceCheck>, pendingSave: boolean) {
   if (pendingSave) return "Conversion ready to save";
-  if (images.busy) return "Conversion in progress";
-  if (images.retry || images.stale) return "Conversion needs review";
+  if (audience === "failed") return "Some checks are unavailable";
   if (audience === "checking") return "Checking personalization…";
-  if (!images.review || audience === "failed") return "Some checks are unavailable";
-  if (images.review.eligible.length && !images.enabled) return "Image storage is unavailable";
-  if (!images.done && images.review.skipped.length) return "Some image placements need manual review";
-  return "";
+  return status.notice;
 }
 
-function DiagnosticsOverview({ model }: ModelProps) {
-  const { session, images, bytes, check, notes } = useOverview(model);
+function useDiagnosticsOverview(model: FormDiagnosticsPlugin) {
+  const overview = useOverview(model);
+  const { session, images, check, notes } = overview;
   const findings = useAudienceFindings(model);
   const audience = useAudienceCheck(model);
   const upload = model.stats.fileUploadWithoutBlobCount;
@@ -81,19 +83,25 @@ function DiagnosticsOverview({ model }: ModelProps) {
   const imageOpportunity = Boolean(!images.done && images.review?.eligible.length && (images.snapshot?.estimatedSavings ?? 0) > 0);
   const imageAction = imageOpportunity && images.enabled && canEdit;
   const actions = [imageAction, check.recommended, upload > 0, findings.length > 0, notes.length > 0].filter(Boolean).length;
-  const notice = checkNotice(images, audience, Boolean(images.done && session?.lastConversion));
-  return <div className="h-full overflow-y-auto bg-background px-3 py-5 sm:p-8">
+  const status = imageStatus(images, Boolean(session));
+  const notice = checkNotice(status, audience, Boolean(images.done && session?.lastConversion));
+  const noticeText = imageOpportunity && !canEdit && !notice ? "Moving embedded images requires edit access" : notice;
+  return { ...overview, actions, notice: noticeText, findings, upload, status, audience };
+}
+
+function DiagnosticsOverview({ model }: ModelProps) {
+  const { session, images, bytes, check, notes, actions, notice, findings, upload, status, audience } = useDiagnosticsOverview(model);
+  return <div className="h-full w-full min-w-0 flex-1 overflow-y-auto bg-background px-3 py-5 sm:p-8">
     <div className="mx-auto max-w-3xl space-y-4">
       <OverviewHeader actions={actions} notice={notice} bytes={bytes} questions={model.stats.totalQuestions} />
       {upload > 0 && <p className="rounded-lg border p-4 text-sm"><strong>Review file storage.</strong> {upload} upload questions store files in submission JSON. Check their storage settings.</p>}
       {session && <EmbeddedImageCard session={session} controls={images} />}
-      {imageOpportunity && !canEdit && <p className="text-sm text-muted-foreground">An editor can move these images to storage.</p>}
       {findings.length > 0 && <Disclosure title={`Review personalization · ${findings.length} ${findings.length === 1 ? "finding" : "findings"}`}>
         <AudienceFindings findings={findings} actions={model} />
       </Disclosure>}
       {notes.length > 0 && <Disclosure title={`Review form structure · ${notes[0]}`}><ul className="list-inside list-disc text-sm">{notes.map(note => <li key={note}>{note}</li>)}</ul></Disclosure>}
       <ChoiceTool model={model} check={check} />
-      <AllChecks model={model} images={imageStatus(images, Boolean(session))} audience={audience} />
+      <AllChecks model={model} images={status.label} audience={audience} />
     </div>
   </div>;
 }

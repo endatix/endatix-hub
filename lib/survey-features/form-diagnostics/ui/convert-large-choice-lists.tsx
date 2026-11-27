@@ -31,7 +31,6 @@ import {
 } from "@/lib/survey-features/data-lists/utils";
 import { Result } from "@/lib/result";
 import { useCallback, useMemo, useState } from "react";
-import { Info } from "lucide-react";
 import { Model } from "survey-core";
 import { collectReservedDataListNames } from "../collect-reserved-data-list-names";
 import type { FormDiagnosticsPlugin } from "../form-diagnostics-plugin";
@@ -392,14 +391,10 @@ async function mapPool<T, R>(
 
 interface ConvertLargeChoiceListsProps {
   model: FormDiagnosticsPlugin;
-  attentionMessage?: string;
-  attentionClassName?: string;
 }
 
 export function ConvertLargeChoiceLists({
   model,
-  attentionMessage,
-  attentionClassName,
 }: Readonly<ConvertLargeChoiceListsProps>) {
   const [threshold, setThreshold] = useState(10);
   const [phase, setPhase] = useState<Phase>("idle");
@@ -597,14 +592,6 @@ export function ConvertLargeChoiceLists({
         number of inline choices into data lists. The open form is not modified;
         a new copy is created when at least one conversion succeeds.
       </p>
-
-      {attentionMessage ? (
-        <Alert className={`mb-4 ${attentionClassName ?? ""}`.trim()}>
-          <Info className="h-4 w-4" />
-          <AlertTitle>Recommended for this form</AlertTitle>
-          <AlertDescription>{attentionMessage}</AlertDescription>
-        </Alert>
-      ) : null}
 
       <div className="mb-4 flex flex-wrap items-end gap-4">
         <div className="space-y-2">

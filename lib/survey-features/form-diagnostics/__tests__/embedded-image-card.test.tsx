@@ -10,6 +10,10 @@ import {
 import { bindConversionSource } from "../conversion-session";
 import { FormDiagnosticsPlugin } from "../form-diagnostics-plugin";
 import { FormDiagnosticsView } from "../ui/form-diagnostics-tab";
+import { convertChoicesToDataListAction } from "@/features/data-lists/convert-inline-choices/convert-choices-to-data-list.action";
+vi.mock("@/features/data-lists/convert-inline-choices/convert-choices-to-data-list.action", () => ({
+  convertChoicesToDataListAction: vi.fn(),
+}));
 
 function open(canEdit: boolean, store: StoreImage | null) {
   const creator = new SurveyCreatorModel();
@@ -49,6 +53,21 @@ it("shows a compact no-action result and keeps settings behind a keyboard disclo
   expect(details.textContent).toContain("Checked · none embedded");
   expect(details.textContent).toContain("Not available");
   expect(details.textContent).toContain("Disabled");
+});
+
+it("offers a custom threshold for small dropdowns only after inspection, without creating a data list", () => {
+  const creator = new SurveyCreatorModel();
+  const source = { elements: [{ type: "dropdown", name: "region", choices: ["East", "West"] }] };
+  creator.JSON = source;
+  bindConversionSource(creator, source);
+  const plugin = new FormDiagnosticsPlugin(creator);
+  plugin.formId = "12";
+  render(<FormDiagnosticsView model={plugin} />);
+  expect(screen.queryByLabelText("Minimum choices required for conversion")).toBeNull();
+  fireEvent.click(screen.getByText("Optional: create a copy with data lists"));
+  fireEvent.change(screen.getByLabelText("Minimum choices required for conversion"), { target: { value: "2" } });
+  expect(screen.getByText("region")).toBeTruthy();
+  expect(convertChoicesToDataListAction).not.toHaveBeenCalled();
 });
 
 it("reviews a single placement without making an upload", () => {

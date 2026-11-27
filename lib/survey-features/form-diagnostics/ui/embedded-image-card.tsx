@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import { useId } from "react";
 import { useOptionalDesignerRuntime } from "@/lib/designer-runtime";
 import { formatBytes } from "@/lib/utils/formatters";
 import { useSurveyDesigner } from "../../designer/design-survey.context";
@@ -56,40 +57,46 @@ function PlacementList({ review }: Readonly<{ review: ImageReview }>) {
 }
 
 type Controls = ReturnType<typeof useImageConversion>;
-type ActionProps = { controls: Controls; placements: number };
-function ReviewActions({ controls, placements }: Readonly<ActionProps>) {
+type ActionProps = { controls: Controls; placements: number; detailsId: string };
+function reviewButtonLabel(controls: Controls) {
+  if (controls.expanded) return controls.busy ? "Cancel" : "Close";
+  if (controls.done) return "View changes";
+  return controls.stale ? "Review again" : "Review images";
+}
+function ReviewActions({ controls, placements, detailsId }: Readonly<ActionProps>) {
   const canEdit = useOptionalDesignerRuntime()?.stateRef.current.canConvertImages;
-  const reviewLabel = controls.stale ? "Review again" : "Review images";
-  if (!controls.expanded) return <Button variant="outline" onClick={controls.open}>
-    {controls.done ? "View changes" : reviewLabel}
-  </Button>;
   const canConvert = canEdit && !controls.done && controls.enabled && placements > 0;
   return <>
-    {canConvert && <Button disabled={controls.busy} onClick={controls.convert}>{controls.retry ? "Retry conversion" : `Convert ${count(placements, "placement")}`}</Button>}
-    <Button variant="ghost" onClick={controls.close}>{controls.busy ? "Cancel" : "Close"}</Button>
+    <Button variant={!controls.expanded && canConvert ? "default" : "outline"} aria-expanded={controls.expanded} aria-controls={detailsId}
+      onClick={controls.expanded ? controls.close : controls.open}>{reviewButtonLabel(controls)}</Button>
+    {controls.expanded && canConvert && <Button disabled={controls.busy} onClick={controls.convert}>{controls.retry ? "Retry conversion" : `Convert ${count(placements, "placement")}`}</Button>}
   </>;
 }
 
-function Actions({ controls, placements, session }: Readonly<ActionProps & { session: ConversionSession }>) {
+function Actions({ controls, placements, session, detailsId }: Readonly<ActionProps & { session: ConversionSession }>) {
   const { hasUnsavedChanges } = useSurveyDesigner();
   const runtime = useOptionalDesignerRuntime()?.stateRef.current;
   const unsaved = controls.done && hasUnsavedChanges && Boolean(session.lastConversion);
-  return (
-    <>
+  return <>
       <output className="block text-sm">
         {controls.message} {unsaved && `Changes not saved. Use ${runtime?.templateId ? "Save Template" : "Save"} to keep this version.`}
       </output>
       <div className="flex flex-wrap gap-2">
-        <ReviewActions controls={controls} placements={placements} />
-        {controls.done && <Button variant="outline" onClick={() => { session.creator.activeTab = SURVEY_CREATOR_BUILT_IN_TAB.preview; }}>Preview</Button>}
+        <ReviewActions controls={controls} placements={placements} detailsId={detailsId} />
+        {controls.done && <PreviewButton session={session} />}
         {unsaved && runtime?.canConvertImages && (
           <Button variant="outline" onClick={controls.undo}>
             Undo conversion
           </Button>
         )}
       </div>
-    </>
-  );
+    </>;
+}
+
+function PreviewButton({ session }: Readonly<{ session: ConversionSession }>) {
+  const tab = SURVEY_CREATOR_BUILT_IN_TAB.preview;
+  if (!session.creator.tabs.some(item => item.id === tab)) return null;
+  return <Button variant="outline" onClick={() => { session.creator.activeTab = tab; }}>Preview</Button>;
 }
 
 function ImageSummary({ session, controls }: Readonly<{ session: ConversionSession; controls: Controls }>) {
@@ -103,13 +110,15 @@ function ImageSummary({ session, controls }: Readonly<{ session: ConversionSessi
   const estimate = snapshot.estimatedSavings;
   return <div className="space-y-1 text-sm">
     {review.eligible.length > 0 && <p className="font-medium">
-      Estimated definition size: {formatBytes(Math.abs(estimate))} {estimate < 0 ? "larger" : "smaller"} with stored links.
+      {estimate === 0 ? "Estimated definition size: unchanged." :
+        `Estimated definition size: ${formatBytes(Math.abs(estimate))} ${estimate < 0 ? "larger" : "smaller"} with stored links.`}
     </p>}
     <p className="text-muted-foreground">{count(review.eligible.length, "placement")} can change · {count(remaining.length, "file")} to upload ({formatBytes(bytes)}) · {review.skipped.length} skipped.</p>
   </div>;
 }
 
 export function EmbeddedImageCard({ session, controls }: Readonly<{ session: ConversionSession; controls: Controls }>) {
+  const detailsId = useId();
   const { review, message } = controls;
   if (!review) return message && <p role="alert">{message}</p>;
   if (!review.eligible.length && !review.skipped.length && !message) return null;
@@ -118,20 +127,28 @@ export function EmbeddedImageCard({ session, controls }: Readonly<{ session: Con
       aria-label="Embedded images"
       className="space-y-3 rounded-lg border bg-card p-4"
     >
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{controls.done ? "Result" : review.eligible.length ? "Optimization" : "Manual review"}</p>
-      <h3 className="font-semibold">{controls.done ? "Images moved to storage" : "Embedded images"}</h3>
+      <ImageHeading done={controls.done} eligible={review.eligible.length} />
       {controls.done && session.measuredChange ? <MeasuredSize change={session.measuredChange} /> : <ImageSummary session={session} controls={controls} />}
       {!controls.enabled && <p className="text-sm text-muted-foreground">Conversion is unavailable because storage is disabled.</p>}
-      {controls.expanded && <PlacementList review={review} />}
-      <Actions controls={controls} placements={review.eligible.length} session={session} />
+      <div id={detailsId} hidden={!controls.expanded}>{controls.expanded && <PlacementList review={review} />}</div>
+      <Actions controls={controls} placements={review.eligible.length} session={session} detailsId={detailsId} />
     </section>
   );
 }
 
+function ImageHeading({done, eligible}: Readonly<{done: boolean; eligible: number}>) {
+  const label = eligible ? "Optimization" : "Manual review";
+  const title = eligible ? "Move embedded images to storage" : "Images left embedded";
+  return <>
+    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{done ? "Result" : label}</p>
+    <h3 className="font-semibold">{done ? "Images moved to storage" : title}</h3>
+  </>;
+}
 function MeasuredSize({ change }: Readonly<{ change: NonNullable<ConversionSession["measuredChange"]> }>) {
   const direction = change.delta < 0 ? "larger" : "smaller";
+  const difference = change.delta === 0 ? "unchanged" : `${change.percent.toLocaleString(undefined, { maximumFractionDigits: 1 })}% ${direction}`;
   return <p className="text-sm font-medium">
     Definition: {change.before.toLocaleString()} → {change.after.toLocaleString()} bytes
-    {" "}({change.percent.toLocaleString(undefined, { maximumFractionDigits: 1 })}% {direction}).
+    {" "}({difference}).
   </p>;
 }

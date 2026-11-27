@@ -214,6 +214,11 @@ describe("Audience findings in Diagnostics", () => {
     const plugin = await pluginWith(audience);
 
     expect(plugin.audienceFindings).toEqual([]);
+    expect(plugin.audienceCheck).toBe("failed");
+    render(<FormDiagnosticsView model={plugin} />);
+    expect(screen.getByRole("heading", { name: "Some checks are unavailable" })).toBeTruthy();
+    fireEvent.click(screen.getByText("All checks and settings"));
+    expect(screen.getByText("Could not complete check")).toBeTruthy();
   });
 
   it("names a calculated value that collides with a property", async () => {

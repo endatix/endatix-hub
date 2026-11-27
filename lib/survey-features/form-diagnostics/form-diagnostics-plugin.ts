@@ -139,12 +139,7 @@ export class FormDiagnosticsPlugin extends Base implements ICreatorPlugin {
       findings = (await this.audience?.review())?.findings ?? [];
     } catch (error) {
       status = "failed";
-      TelemetryLogger.error(
-        "Personalization review failed.",
-        error,
-        {},
-        LOGGER_NAME,
-      );
+      TelemetryLogger.error("Personalization review failed.", error, {}, LOGGER_NAME);
     }
     if (review === this.latestReview) {
       this.audienceFindings = findings;
@@ -201,12 +196,7 @@ export class FormDiagnosticsPlugin extends Base implements ICreatorPlugin {
       .refresh()
       .then(() => true)
       .catch((error: unknown) => {
-        TelemetryLogger.error(
-          "Personalization refresh failed.",
-          error,
-          {},
-          LOGGER_NAME,
-        );
+        TelemetryLogger.error("Personalization refresh failed.", error, {}, LOGGER_NAME);
         return false;
       })
       .then(refreshed => this.updateAudienceFindings(refreshed));

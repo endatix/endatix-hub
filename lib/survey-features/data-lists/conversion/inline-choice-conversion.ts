@@ -18,9 +18,8 @@ export interface ConvertibleChoiceQuestionRef {
   title: string;
 }
 
-function inlineChoiceCount(element: Record<string, unknown>): number {
-  const choices = element.choices;
-  return Array.isArray(choices) ? choices.length : 0;
+function choiceMetrics(choices: unknown[]) {
+  return { choiceCount: choices.length, choiceBytes: new TextEncoder().encode(JSON.stringify(choices)).length };
 }
 
 function collectConvertibleChoiceQuestions(
@@ -41,19 +40,14 @@ function collectConvertibleChoiceQuestions(
       return;
     }
 
-    const count = inlineChoiceCount(element);
-    if (count <= 0) {
-      return;
-    }
-    if (threshold !== undefined && count < threshold) {
-      return;
-    }
+    const choices = Array.isArray(element.choices) ? element.choices : [];
+    const count = choices.length;
+    if (count < Math.max(1, threshold ?? 1)) return;
 
     out.push({
       name: element.name,
       type: qType,
-      choiceCount: count,
-      choiceBytes: new TextEncoder().encode(JSON.stringify(element.choices)).length,
+      ...choiceMetrics(choices),
       title: resolveLocalizedText(element.title) || element.name || qType,
     });
   });
