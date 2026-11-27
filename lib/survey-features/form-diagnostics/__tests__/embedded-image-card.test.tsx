@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import { SurveyCreatorModel } from "survey-creator-core";
 import { DesignerRuntimeProvider } from "@/lib/designer-runtime";
@@ -66,4 +66,45 @@ it("omits conversion for a read-only author even with storage enabled", () => {
   expect(
     view.queryByRole("button", { name: "Convert 1 placement" }),
   ).toBeNull();
+});
+
+it("identifies the failed placement, retries it, and shows the converted placement for review", async () => {
+  // Arrange
+  const store = vi.fn().mockRejectedValueOnce(new Error("offline"))
+    .mockResolvedValueOnce("https://storage.example/content/f/1/logo.png");
+  const view = open(true, store);
+
+  // Act
+  fireEvent.click(view.getByRole("button", { name: "Convert 1 placement" }));
+  await view.findByText(/Upload failed at Survey · logo\. No changes applied/);
+  fireEvent.click(view.getByRole("button", { name: "Retry conversion" }));
+  fireEvent.click(await view.findByRole("button", { name: "View changes" }));
+
+  // Assert
+  expect(view.getByRole("status").textContent).toContain("1 placement converted using 1 stored image. 0 skipped.");
+  expect(view.getByRole("list", { name: "Image placements" }).textContent).toContain("Survey · logo");
+  expect(view.queryByRole("button", { name: "Retry conversion" })).toBeNull();
+  expect(store).toHaveBeenCalledTimes(2);
+});
+
+it("cancels a pending transfer and lets the editor reuse the confirmed upload", async () => {
+  // Arrange
+  const pending = Promise.withResolvers<string>();
+  const store = vi.fn(() => pending.promise);
+  const view = open(true, store);
+
+  // Act
+  const convert = view.getByRole<HTMLButtonElement>("button", { name: "Convert 1 placement" });
+  fireEvent.click(convert);
+  expect(convert.disabled).toBe(true);
+  fireEvent.click(view.getByRole("button", { name: "Cancel" }));
+  await act(async () => pending.resolve("https://storage.example/content/f/1/logo.png"));
+
+  // Assert
+  expect(view.getByRole("status").textContent).toContain("Cancelled. No changes applied.");
+  fireEvent.click(view.getByRole("button", { name: "Close" }));
+  fireEvent.click(view.getByRole("button", { name: "Review images" }));
+  fireEvent.click(view.getByRole("button", { name: "Convert 1 placement" }));
+  await view.findByRole("button", { name: "View changes" });
+  expect(store).toHaveBeenCalledTimes(1);
 });
