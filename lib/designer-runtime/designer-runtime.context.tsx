@@ -23,6 +23,7 @@ export type DesignerScope = {
  * The state of the designer runtime.
  */
 export interface DesignerRuntimeState extends DesignerScope {
+  definitionId?: string;
   canConvertImages?: boolean;
   formName?: string;
   folderId?: string | null;
@@ -54,7 +55,6 @@ const DesignerRuntimeContext =
  * The props for the designer runtime provider.
  */
 export interface DesignerRuntimeProviderProps {
-  definitionId?: string;
   children: React.ReactNode;
   initialState: DesignerRuntimeState;
 }
@@ -65,7 +65,6 @@ export interface DesignerRuntimeProviderProps {
 export function DesignerRuntimeProvider({
   children,
   initialState,
-  definitionId,
 }: Readonly<DesignerRuntimeProviderProps>) {
   const stateRef = useRef<DesignerRuntimeState>({ ...initialState });
   const [revision, setRevision] = useState(0);
@@ -79,13 +78,8 @@ export function DesignerRuntimeProvider({
   }, []);
 
   const contextValue = useMemo(
-    () => ({
-      definitionId,
-      stateRef,
-      revision,
-      updateState,
-    }),
-    [definitionId, revision, updateState],
+    () => ({ stateRef, revision, updateState, definitionId: initialState.definitionId }),
+    [initialState.definitionId, revision, updateState],
   );
 
   return (

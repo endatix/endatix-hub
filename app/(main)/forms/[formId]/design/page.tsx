@@ -142,7 +142,6 @@ export default async function FormDesignerPage({
         <SurveyLicenseProvider value={getSurveyLicenseKey()}>
           <DesignerRuntimeProvider
             key={formId}
-            definitionId={form.activeDefinitionId ?? undefined}
             initialState={designerScope(form, (await checkPermission(Permissions.Forms.Edit)).success)}
           >
             <AssetStorageProvider>
@@ -163,8 +162,15 @@ export default async function FormDesignerPage({
 }
 
 function designerScope(form: Form, canConvertImages: boolean) {
-  return { formId: form.id, formName: form.name, folderId: form.folderId,
-    isPublic: form.isPublic, formIsEnabled: form.isEnabled, canConvertImages };
+  return {
+    formId: form.id,
+    definitionId: form.activeDefinitionId ?? undefined,
+    formName: form.name,
+    folderId: form.folderId,
+    isPublic: form.isPublic,
+    formIsEnabled: form.isEnabled,
+    canConvertImages,
+  };
 }
 
 /** The variables read with the page, and the form's reads and writes behind Preview as. */
