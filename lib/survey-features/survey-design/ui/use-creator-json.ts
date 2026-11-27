@@ -42,7 +42,9 @@ export function useCreatorJson(
     // Saving an active definition with submissions creates a new version. Its echo must not reset a newer edit.
     if (conversionSession(creator)?.consumeSaveEcho(json)) { last.current = next; return; }
     if (alreadyLoaded(next, last.current)) return;
-    creator.JSON = json;
+    // SurveyJS retains nested locale objects and mutates them as authors type.
+    // The fetched definition remains the source for merging and Save readback.
+    creator.JSON = structuredClone(json);
     bindConversionSource(creator, json);
     last.current = next;
   }, [creator, json, definitionId]);
