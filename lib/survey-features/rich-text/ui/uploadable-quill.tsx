@@ -8,38 +8,46 @@ import {
   type ImageTransfer,
 } from "./quill-image-transfers";
 
-export function UploadableQuill({
-  editorRef,
-  choiceLabel,
-  ...props
-}: ReactQuill.ReactQuillProps & {
+interface Props extends ReactQuill.ReactQuillProps {
   editorRef: RefObject<ReactQuill | null>;
-  choiceLabel: boolean;
-}) {
+  choiceLabel?: boolean;
+}
+
+function useTransfers({ editorRef, choiceLabel = false, bounds }: Props) {
   const store = useContext(ImageUploadContext);
-  const open = useContext(OpenImageSettings);
   const [jobs, setJobs] = useState<ImageTransfer[]>([]);
   useLayoutEffect(() => {
     const editor = editorRef.current?.getEditor();
     if (!editor || (!store && !choiceLabel)) return;
     return bindImageTransfers(editor, store ?? inlineImage, { publish: setJobs, choiceLabel });
-  }, [store, choiceLabel, editorRef, props.bounds]);
+  }, [store, choiceLabel, editorRef, bounds]);
+  return jobs;
+}
+
+function ImageSettingsButton({ editorRef, bounds }: Pick<Props, "editorRef" | "bounds">) {
+  const open = useContext(OpenImageSettings);
   useLayoutEffect(() => {
     const editor = editorRef.current?.getEditor();
-    if (!editor || !open || !choiceLabel || props.readOnly) return;
+    if (!editor || !open) return;
     const click = (event: MouseEvent) => {
       if (event.target instanceof HTMLImageElement) open(quillImageTarget(editor, event.target));
     };
     editor.root.addEventListener("click", click);
     return () => editor.root.removeEventListener("click", click);
-  }, [open, choiceLabel, props.readOnly, editorRef, props.bounds]);
+  }, [open, editorRef, bounds]);
+  if (!open) return null;
+  return <button type="button" onClick={() => {
+    const editor = editorRef.current?.getEditor();
+    if (editor) open(quillImageTarget(editor));
+  }}>Image settings</button>;
+}
+
+export function UploadableQuill({ editorRef, choiceLabel, ...props }: Props) {
+  const jobs = useTransfers({ editorRef, choiceLabel, bounds: props.bounds });
   return (
     <>
       <ReactQuill {...props} ref={editorRef} />
-      {choiceLabel && open && !props.readOnly && <button type="button" onClick={() => {
-        const editor = editorRef.current?.getEditor();
-        if (editor) open(quillImageTarget(editor));
-      }}>Image settings</button>}
+      {choiceLabel && !props.readOnly && <ImageSettingsButton editorRef={editorRef} bounds={props.bounds} />}
       {jobs.map(job => <TransferStatus key={job.id} job={job} />)}
     </>
   );

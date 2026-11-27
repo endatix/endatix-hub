@@ -25,9 +25,8 @@ function rowTarget({ question, row }: GetMatrixRowActionsEvent, creator: SurveyC
   return { images, selected: images.length ? 0 : -1, commit };
 }
 
-export function bindChoiceGridImages(creator: SurveyCreatorModel, open: Open) {
-  let current: SurveyModel | undefined;
-  const action = (_: SurveyModel, event: GetMatrixRowActionsEvent) => {
+function rowAction(creator: SurveyCreatorModel, open: Open) {
+  return (_: SurveyModel, event: GetMatrixRowActionsEvent) => {
     if (event.question.name !== "choices" || creator.readOnly || event.question.isReadOnly) return;
     event.actions.push({ id: "choice-image", title: "Choice image settings", iconName: "icon-image",
       location: "end", showTitle: false, action: () => {
@@ -35,6 +34,11 @@ export function bindChoiceGridImages(creator: SurveyCreatorModel, open: Open) {
         if (target) open(target);
       } });
   };
+}
+
+export function bindChoiceGridImages(creator: SurveyCreatorModel, open: Open) {
+  let current: SurveyModel | undefined;
+  const action = rowAction(creator, open);
   const bind = (survey: SurveyModel) => {
     current?.onGetMatrixRowActions.remove(action);
     current = survey;

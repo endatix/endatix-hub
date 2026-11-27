@@ -100,6 +100,11 @@ export class RichTextEditorComponent extends SurveyQuestionElementBase {
     return { height: this.question.height };
   }
 
+  get isChoiceLabel() {
+    const { name, obj } = this.question;
+    return name === "text" && obj instanceof ItemValue && obj.ownerPropertyName === "choices";
+  }
+
   hasActiveSelection(): boolean {
     return hasActiveSelectionFromEditor(this.quillRef.current?.editor);
   }
@@ -122,16 +127,14 @@ export class RichTextEditorComponent extends SurveyQuestionElementBase {
 
   renderQuill() {
     const isReadOnly = this.question.isReadOnly || this.question.isDesignMode;
-    const hasActiveSelection = this.hasActiveSelection();
     return (
       <div
         id={`rich-text-${this.question.id}`}
         aria-label="Rich text editor"
-        className={`rich-text-editor ${hasActiveSelection ? "rich-text-editor--active" : ""}`}
+        className={`rich-text-editor ${this.hasActiveSelection() ? "rich-text-editor--active" : ""}`}
       >
         <UploadableQuill
-          choiceLabel={this.question.name === "text" && this.question.obj instanceof ItemValue &&
-            this.question.obj.ownerPropertyName === "choices"}
+          choiceLabel={this.isChoiceLabel}
           editorRef={this.quillRef}
           theme="bubble"
           readOnly={isReadOnly}

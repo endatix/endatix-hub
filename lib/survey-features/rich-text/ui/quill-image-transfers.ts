@@ -64,9 +64,7 @@ export function bindImageTransfers(editor: Quill, store: StoreImage, options: Pu
       changed();
     });
   };
-  const unbind = bindImageInputs(editor, store, (range, load) => {
-    start(range, async () => choice ? sizeNewChoiceImages(await load()) : await load());
-  });
+  const unbind = bindImageInputs(editor, store, choice ? insertChoiceImages(start) : start);
   return () => {
     unbind();
     active.forEach((job) => job.cancel());
@@ -74,6 +72,10 @@ export function bindImageTransfers(editor: Quill, store: StoreImage, options: Pu
 }
 
 type Start = (range: Range, load: () => Promise<Delta>) => void;
+
+function insertChoiceImages(start: Start): Start {
+  return (range, load) => start(range, async () => sizeNewChoiceImages(await load()));
+}
 
 function sizeNewChoiceImages(delta: Delta) {
   for (const op of delta.ops) {

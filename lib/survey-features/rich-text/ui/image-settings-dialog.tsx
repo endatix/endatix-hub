@@ -1,5 +1,5 @@
 import { useContext, useEffect, useId, useRef, useState } from "react";
-import { ImageUploadContext } from "./image-upload-context";
+import { ImageUploadContext, type StoreImage } from "./image-upload-context";
 import { imageDraft, inlineImage, type ImageTarget } from "./image-settings-target";
 
 type Settings = { alt: string; width: string; cap: string };
@@ -13,7 +13,8 @@ function settings(image: HTMLImageElement): Settings {
 }
 
 function dimension(value: string) {
-  return /^\d+$/.test(value) ? `${value}px` : value;
+  const size = value.trim();
+  return /^\d+(?:\.\d+)?$/.test(size) ? `${size}px` : size;
 }
 
 function applySettings(image: HTMLImageElement, draft: Settings) {
@@ -54,27 +55,20 @@ function validSize(value: string, saved: string) {
 
 interface EditorProps { target: ImageTarget; index: number; close(): void }
 
-function DraftEditor({ target, index, close }: EditorProps) {
+async function replaceSource(image: HTMLImageElement, store: StoreImage, file: File) {
+  image.src = await store(file);
+  image.removeAttribute("srcset");
+}
+
+function useApplyImage({target, index, close}: EditorProps) {
   const store = useContext(ImageUploadContext) ?? inlineImage;
-  const [draft, change] = useState(() => settings(imageDraft(target, index)));
-  const [file, choose] = useState<File>();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [narrow, setNarrow] = useState(false);
-  const alive = useRef(false);
-  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
-  const url = useLocalPreview(file);
-  const image = imageDraft(target, index);
-  const saved = settings(image);
-  const valid = validSize(draft.width.trim(), saved.width) && validSize(draft.cap.trim(), saved.cap);
-  applySettings(image, draft);
-  async function apply() {
+  const alive = useMounted();
+  async function apply(image: HTMLImageElement, file?: File) {
     setBusy(true);
     try {
-      if (file) {
-        image.src = await store(file);
-        image.removeAttribute("srcset");
-      }
+      if (file) await replaceSource(image, store, file);
       if (!alive.current) return;
       if (target.commit(index, image)) close();
       else setError("The choice changed. Close and reopen image settings.");
@@ -84,22 +78,54 @@ function DraftEditor({ target, index, close }: EditorProps) {
       if (alive.current) setBusy(false);
     }
   }
+  return {apply, busy, error};
+}
+
+function useMounted() {
+  const alive = useRef(false);
+  useEffect(() => {
+    alive.current = true;
+    return () => { alive.current = false; };
+  }, []);
+  return alive;
+}
+
+function ImagePreview({ image, file }: { image: HTMLImageElement; file?: File }) {
+  const url = useLocalPreview(file) || image.getAttribute("src");
+  const [narrow, setNarrow] = useState(false);
+  const width = image.style.width || dimension(image.getAttribute("width") ?? "");
+  const height = image.style.height || dimension(image.getAttribute("height") ?? "");
+  return <>
+    <label><input type="checkbox" checked={narrow} onChange={e => setNarrow(e.target.checked)} /> Narrow preview</label>
+    <div style={{ width: narrow ? 72 : "100%", maxWidth: "100%" }}>
+      {url && <img data-choice-image-preview="" src={url} alt={image.alt} style={{ width, height, maxWidth: image.style.maxWidth }} />}
+    </div>
+  </>;
+}
+
+function useImageDraft({target, index}: EditorProps) {
+  const image = imageDraft(target, index);
+  const saved = settings(image);
+  const [draft, change] = useState(saved);
+  const [file, choose] = useState<File>();
+  const valid = validSize(draft.width.trim(), saved.width) && validSize(draft.cap.trim(), saved.cap);
+  const validFile = file ? file.type.startsWith("image/") : Boolean(image.getAttribute("src"));
+  return { image: applySettings(image, draft), draft, change, file, choose, valid, validFile };
+}
+
+function DraftEditor(props: EditorProps) {
+  const { draft, change, image, file, choose, valid, validFile } = useImageDraft(props);
+  const { apply, busy, error } = useApplyImage(props);
   return <>
     <fieldset disabled={busy}>
       <label>Image file<input type="file" accept="image/*" onChange={e => choose(e.target.files?.[0])} /></label>
       <ImageFields draft={draft} change={change} />
-      <label><input type="checkbox" checked={narrow} onChange={e => setNarrow(e.target.checked)} /> Narrow preview</label>
-      <div style={{ width: narrow ? 72 : "100%", maxWidth: "100%" }}>
-        {(url || image.src) && <img data-choice-image-preview="" src={url || image.src} alt={draft.alt} style={{
-          width: image.style.width || image.getAttribute("width") || undefined,
-          maxWidth: image.style.maxWidth || undefined, height: image.style.height || undefined,
-        }} />}
-      </div>
+      <ImagePreview image={image} file={file}/>
     </fieldset>
     {!valid && <p role="alert">Enter a positive size, or leave the field blank.</p>}
     {error && <p role="alert">{error}</p>}
-    <div className="flex gap-3"><button type="button" disabled={busy || !valid || (!file && !image.src)} onClick={apply}>{busy ? "Applying…" : "Apply"}</button>
-      <button type="button" onClick={close}>Cancel</button></div>
+    <div className="flex gap-3"><button type="button" disabled={busy || !valid || !validFile} onClick={() => apply(image, file)}>{busy ? "Applying…" : "Apply"}</button>
+      <button type="button" onClick={props.close}>Cancel</button></div>
   </>;
 }
 
