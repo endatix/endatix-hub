@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import Quill, { Delta } from "quill";
+import { toast } from "sonner";
 import { describe, expect, it, vi } from "vitest";
 import { insertUploadedContent } from "../ui/insert-uploaded-content";
 import "../ui/responsive-image";
@@ -40,6 +41,28 @@ describe("Quill image insertion", () => {
 const image = new File(["synthetic"], "image.png", { type: "image/png" });
 const canonical = "https://storage.test/content/f/example.png";
 
+it.each([false, true])("matches mixed clipboard bytes to their original occurrences (redundant file: %s)", async redundant => {
+  // Arrange
+  const editor = setupEditor();
+  const first = new File(["first"], "First.png", { type: "image/png" });
+  const second = new File(["second"], "Second.png", { type: "image/png" });
+  const third = new File(["third"], "Third.png", { type: "image/png" });
+  const store = vi.fn(async (file: File) => `https://storage.test/${await file.text()}.png`);
+  const stop = bindImageTransfers(editor, store, () => {});
+
+  // Act
+  paste(editor, 'Before<img src="data:image/png;base64,Zmlyc3Q=">Middle<img src="cid:two"><img src="cid:three">After',
+    redundant ? [first, second, third] : [second, third]);
+
+  // Assert
+  await vi.waitFor(() => expect(editor.root.querySelectorAll("img")).toHaveLength(3));
+  expect(Array.from(editor.root.querySelectorAll("img"), img => img.src)).toEqual([
+    "https://storage.test/first.png", "https://storage.test/second.png", "https://storage.test/third.png",
+  ]);
+  expect(editor.getText()).toBe("Left BeforeMiddleAfterRight\n");
+  stop();
+});
+
 function setupEditor() {
   // jsdom provides DOM ranges but has no layout for Quill's focus scrolling.
   Range.prototype.getBoundingClientRect = () => new DOMRect();
@@ -49,6 +72,26 @@ function setupEditor() {
   editor.setSelection(5, 0, "silent");
   return editor;
 }
+
+it("explains mismatched clipboard files without uploading, inserting, or offering Retry", async () => {
+  // Arrange
+  const editor = setupEditor();
+  const store = vi.fn();
+  const error = vi.spyOn(toast, "error");
+  let jobs: ImageTransfer[] = [];
+  const stop = bindImageTransfers(editor, store, next => { jobs = next; });
+
+  // Act
+  paste(editor, 'Before<img src="data:image/png;base64,Zmlyc3Q="><img src="cid:missing">After',
+    [new File(["first"], "First.png", { type: "image/png" })]);
+
+  // Assert
+  await vi.waitFor(() => expect(error).toHaveBeenCalledWith(expect.stringContaining("Paste them separately")));
+  expect(jobs).toHaveLength(0);
+  expect(store).not.toHaveBeenCalled();
+  expect(editor.getText()).toBe("Left Right\n");
+  stop();
+});
 
 function paste(editor: Quill, html: string, files: File[]) {
   const event = new Event("paste", { bubbles: true, cancelable: true });

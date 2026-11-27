@@ -3,6 +3,8 @@ import type { StoreImage } from "./image-upload-context";
 import { insertUploadedContent } from "./insert-uploaded-content";
 import { pastedImageContent } from "./pasted-image-content";
 import { fileLabel } from "./image-label";
+import { ClipboardImageError } from "./clipboard-image-files";
+import { toast } from "sonner";
 
 export interface ImageTransfer {
   readonly id: string;
@@ -29,8 +31,8 @@ class Transfer implements ImageTransfer {
       while (!signal.aborted) {
         try {
           return await load(signal);
-        } catch {
-          await this.waitForRetry();
+        } catch (error) {
+          await this.handleFailure(error);
         }
       }
       return new Delta();
@@ -38,8 +40,13 @@ class Transfer implements ImageTransfer {
     await insertUploadedContent(editor, range, { signal, load: loadWithRetry });
   }
 
-  private waitForRetry() {
+  private handleFailure(error: unknown) {
     if (this.controller.signal.aborted) return;
+    if (error instanceof ClipboardImageError) {
+      toast.error(error.message);
+      this.cancel();
+      return;
+    }
     return new Promise<void>((resolve) => {
       this.retry = () => {
         this.retry = undefined;
