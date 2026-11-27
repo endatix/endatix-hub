@@ -44,7 +44,10 @@ function localImages(template: HTMLTemplateElement, clipboard: DataTransfer, sto
         const file = await clipboardFile(source, attachment);
         image.src = await store(file);
         const label = fileLabel(attachment?.name ?? file.name);
-        if (label && !image.hasAttribute("alt")) image.alt = label;
+        if (label) {
+          image.dataset.imageLabel = label;
+          if (!image.hasAttribute("alt")) image.alt = label;
+        }
       };
     });
 }

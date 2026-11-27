@@ -27,7 +27,7 @@ function applyEdit(editor: Quill, edit: Delta) {
 
 function retainInlineFormats(editor: Quill, position: number, embed: Delta) {
   const previous = { ...editor.getContents(position, 1).ops[0]?.attributes };
-  for (const key of ["alt", "width", "height", "imageWidth", "imageHeight", "imageCap"]) delete previous[key];
+  for (const key of ["alt", "width", "height", "imageWidth", "imageHeight", "imageCap", "imageLabel"]) delete previous[key];
   embed.ops[0].attributes = { ...previous, ...embed.ops[0].attributes };
 }
 

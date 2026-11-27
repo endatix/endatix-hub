@@ -138,18 +138,24 @@ describe("Quill image input", () => {
     try {
       const event = new MouseEvent("drop", { bubbles: true, cancelable: true });
       Object.defineProperty(event, "dataTransfer", {
-        value: { files: [image] },
+        value: { files: [new File(["pixels"], "River_bank.png", {type:"image/png"})] },
       });
       editor.root.dispatchEvent(event);
-      await vi.waitFor(() =>
-        expect(editor.root.innerHTML).toBe(
-          `<p>Left <img src="${canonical}">Right</p>`,
-        ),
-      );
+      await vi.waitFor(() => expect(editor.root.querySelector("img")?.alt).toBe("River bank"));
+      expect(editor.getContents().ops[0].insert).toBe("Left ");
+      expect(editor.root.querySelector("img")?.src).toBe(canonical);
     } finally {
       stop();
       document.caretRangeFromPoint = original;
     }
+  });
+
+  it("uses the clipboard file name for file-only paste", async () => {
+    const editor = setupEditor();
+    const stop = bindImageTransfers(editor, async () => canonical, () => {});
+    paste(editor, "", [new File(["pixels"], "North-trail.png", {type:"image/png"})]);
+    await vi.waitFor(() => expect(editor.root.querySelector("img")?.alt).toBe("North trail"));
+    stop();
   });
 
   it("retains Quill's inline file paste when storage is disabled", async () => {

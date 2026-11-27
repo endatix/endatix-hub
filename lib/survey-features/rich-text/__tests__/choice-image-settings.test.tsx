@@ -104,7 +104,7 @@ it("keeps a cleared alt decorative across replacement and reopening", async () =
   const image = editor.root.querySelector("img")!;
   expect(image.getAttribute("alt")).toBe("");
   fireEvent.click(image);
-  expect(screen.getByRole("combobox").textContent).toBe("1. replacement");
+  expect(screen.getByRole("combobox").textContent).toBe("1. Harbor view");
   expect(screen.getByLabelText<HTMLInputElement>("Alt text").value).toBe("");
   expect(store).toHaveBeenCalledTimes(1);
 });

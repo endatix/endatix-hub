@@ -45,7 +45,7 @@ const ALLOWED_TAGS = [
 const ALLOWED_ATTRIBUTES: Record<string, AllowedAttribute[]> = {
   "*": ["style", "class", "role", "title"],
   a: ["target", "href", "title", "rel"],
-  img: ["src", "srcset", "alt", "title", "width", "height"],
+  img: ["src", "srcset", "alt", "title", "width", "height", "data-image-label"],
 };
 
 /**

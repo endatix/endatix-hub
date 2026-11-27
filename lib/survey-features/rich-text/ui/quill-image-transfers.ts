@@ -118,7 +118,7 @@ function fileContent(files: File[], store: StoreImage) {
       const url = uploaded.get(file) ?? (await store(file));
       uploaded.set(file, url);
       const alt = fileLabel(file.name);
-      content.insert({ image: url }, alt ? { alt } : undefined);
+      content.insert({ image: url }, alt ? { alt, imageLabel: alt } : undefined);
     }
     return content;
   };

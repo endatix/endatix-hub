@@ -9,6 +9,7 @@ const dimensions = new Map<string, string>([
 class ResponsiveImage extends ImageBlot {
   static formats(node: HTMLImageElement) {
     const formats = super.formats(node);
+    if (node.dataset.imageLabel) formats.imageLabel = node.dataset.imageLabel;
     for (const [format, property] of dimensions) {
       const value = node.style.getPropertyValue(property);
       if (value) formats[format] = value;
@@ -17,6 +18,11 @@ class ResponsiveImage extends ImageBlot {
   }
 
   format(name: string, value: string) {
+    if (name === "imageLabel") {
+      if (value) this.domNode.dataset.imageLabel = value;
+      else delete this.domNode.dataset.imageLabel;
+      return;
+    }
     if (name === "alt" && value === "") {
       this.domNode.alt = "";
       return;

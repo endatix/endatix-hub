@@ -76,6 +76,9 @@ interface EditorProps { target: ImageTarget; index: number; close(): void }
 async function replaceSource(image: HTMLImageElement, store: StoreImage, file: File) {
   image.src = await store(file);
   image.removeAttribute("srcset");
+  const label = fileLabel(file.name);
+  if (label) image.dataset.imageLabel = label;
+  else delete image.dataset.imageLabel;
 }
 
 function useApplyImage({target, index, close}: EditorProps) {
@@ -141,18 +144,30 @@ function useImageDraft({target, index}: EditorProps) {
   return { image: applySettings(image, draft), draft, change, file, choose, valid, validFile };
 }
 
-function DraftEditor(props: Readonly<EditorProps>) {
+interface DraftProps extends EditorProps { children: ReactNode }
+
+function ImageFileField({choose}: Readonly<{choose(file?: File): void}>) {
+  const id = useId();
+  return <div className="grid gap-2">
+    <Label htmlFor={id}>Image file</Label>
+    <Input id={id} type="file" accept="image/*" onChange={e => choose(e.target.files?.[0])} />
+  </div>;
+}
+
+function DraftEditor(props: Readonly<DraftProps>) {
   const { draft, change, image, file, choose, valid, validFile } = useImageDraft(props);
   const { apply, busy, error } = useApplyImage(props);
-  const id = useId();
   return <>
-    <fieldset className="grid min-w-0 gap-4" disabled={busy}>
-      <div className="grid gap-2"><Label htmlFor={id}>Image file</Label><Input id={id} type="file" accept="image/*" onChange={e => choose(e.target.files?.[0])} /></div>
-      <ImageFields draft={draft} change={change} />
-      <ImagePreview image={image} file={file}/>
-    </fieldset>
-    {!valid && <p className="text-sm text-destructive" role="alert">Enter a positive size, or leave the field blank.</p>}
-    {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
+    <div className="grid min-h-0 gap-4 overflow-y-auto p-1">
+      <fieldset className="grid min-w-0 gap-4" disabled={busy}>
+        {props.children}
+        <ImageFileField choose={choose} />
+        <ImageFields draft={draft} change={change} />
+        <ImagePreview image={image} file={file} />
+      </fieldset>
+      {!valid && <p className="text-sm text-destructive" role="alert">Enter a positive size, or leave the field blank.</p>}
+      {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
+    </div>
     <DialogFooter>
       <Button type="button" variant="secondary" onClick={props.close}>Cancel</Button>
       <Button type="button" disabled={busy || !valid || !validFile} onClick={() => apply(image, file)}>{busy ? "Applying…" : "Apply"}</Button>
@@ -180,7 +195,7 @@ export function ImageSettingsDialog({ target, close, PreviewDisplay }: Readonly<
   const [opener] = useState(() => document.activeElement);
   const [index, setIndex] = useState(target.selected);
   return <Dialog open onOpenChange={open => { if (!open) close(); }}>
-    <DialogContent className="max-h-[90dvh] overflow-y-auto" onCloseAutoFocus={event => {
+    <DialogContent className="max-h-[90dvh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden" onOpenAutoFocus={focusApply} onCloseAutoFocus={event => {
       event.preventDefault();
       if (opener instanceof HTMLElement && opener.isConnected) opener.focus({preventScroll:true});
     }}>
@@ -188,8 +203,17 @@ export function ImageSettingsDialog({ target, close, PreviewDisplay }: Readonly<
         <DialogTitle>{target.scope === "choice" ? "Choice image settings" : "Image settings"}</DialogTitle>
         <DialogDescription>Choose an image to edit or add a new one.</DialogDescription>
       </DialogHeader>
-      <ImagePicker target={target} index={index} select={setIndex} />
-      <PreviewDisplay><DraftEditor key={index} index={index} target={target} close={close} /></PreviewDisplay>
+      <PreviewDisplay><DraftEditor key={index} index={index} target={target} close={close}>
+        <ImagePicker target={target} index={index} select={setIndex} />
+      </DraftEditor></PreviewDisplay>
     </DialogContent>
   </Dialog>;
+}
+
+function focusApply(event: Event) {
+  if (!(event.currentTarget instanceof HTMLElement)) return;
+  const apply = event.currentTarget.querySelector<HTMLButtonElement>('button[data-variant="default"]:enabled');
+  if (!apply) return;
+  event.preventDefault();
+  apply.focus();
 }

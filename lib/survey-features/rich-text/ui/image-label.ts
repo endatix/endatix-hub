@@ -4,7 +4,7 @@ const genericName = /^(?:image|img|dsc|dcim|photo|picture|pasted?|clipboard|scre
 export function fileLabel(name: string) {
   if (/[?:#=&%]/.test(name.replace(/^[a-z]:[/\\]/i, ""))) return "";
   const leaf = name.split(/[/\\]/).pop() ?? "";
-  if (opaqueKey.test(leaf)) return "";
+  if (opaqueKey.test(leaf) || leaf.length > 120 || /[a-z\d]{32,}/i.test(leaf)) return "";
   const label = leaf.replace(/\.[^.]+$/, "").replace(/[_.-]+/g, " ").replace(/\s+/g, " ").trim();
   return genericName.test(label) || !/\p{L}/u.test(label) ? "" : label;
 }
@@ -21,6 +21,7 @@ function sourceLabel(source: string) {
 }
 
 export function imageOption(image: HTMLImageElement, index: number) {
-  const label = image.alt.trim() || sourceLabel(image.getAttribute("src") ?? "") || "Unlabeled image";
+  const label = image.alt.trim() || fileLabel(image.dataset.imageLabel ?? "") ||
+    sourceLabel(image.getAttribute("src") ?? "") || "Unlabeled image";
   return `${index + 1}. ${label}`;
 }
