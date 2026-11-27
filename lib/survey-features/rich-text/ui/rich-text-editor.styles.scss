@@ -1,14 +1,3 @@
-/* Quill-Specific Adjustments*/
-.ql-bubble .ql-tooltip,
-.ql-bubble .ql-toolbar {
-  white-space: nowrap !important;
-  z-index: 99999 !important;
-}
-.ql-bubble .ql-tooltip .ql-formats {
-  display: inline-flex;
-  flex-wrap: nowrap;
-}
-
 /*
  * The property grid swaps this editor in for `title` / `description` / `text`, so
  * it must read as one of the `.sd-formbox` inputs beside it: the wrapper mirrors
@@ -17,7 +6,7 @@
  * (endatix-hub#954). DESIGN.md §9 "Hub CSS injected into the Creator" is the rule.
  */
 .rich-text-editor {
-  position: relative; /* Quill anchors its bubble tooltip to `bounds` */
+  position: relative;
   padding: var(--sjs2-layout-component-formbox-medium-padding-vertical)
     var(--sjs2-layout-component-formbox-medium-padding-horizontal);
   background: var(--sjs2-color-component-formbox-default-bg);
@@ -36,16 +25,16 @@
   min-width: 6ch;
 }
 
-.rich-text-editor:has(> .rich-text-image-action) {
+.rich-text-controls {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: start;
   > .quill { grid-area: 1 / 1; }
-  > [role=status] { grid-column: 1 / -1; }
+  > [role=status], > [role=toolbar] { grid-column: 1 / -1; }
 }
 
+.rich-text-format-toggle,
 .rich-text-image-action {
-  grid-area: 1 / 2;
   display: grid;
   place-items: center;
   width: 2rem;
@@ -55,6 +44,30 @@
   &:focus-visible { outline: 2px solid currentColor; }
 }
 
+.rich-text-format-toggle {
+  grid-area: 1 / 2;
+  font-weight: bold;
+  text-decoration: underline;
+}
+.rich-text-image-action { grid-area: 1 / 3; }
+.rich-text-formatting, .rich-text-formatting [role=group] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .25rem;
+}
+.rich-text-formatting {
+  gap: .5rem;
+  padding-block-start: .5rem;
+  [role=group] + [role=group] { border-inline-start: 1px solid var(--sjs2-color-border-basic-secondary); padding-inline-start: .375rem; }
+  button { padding: .25rem; cursor: pointer; }
+  label { display: grid; font-size: .75rem; }
+  input[type=color] { width: 2rem; height: 1rem; cursor: pointer; }
+  button:disabled { opacity: .4; cursor: default; }
+}
+.rich-text-controls [aria-pressed=true], .rich-text-format-toggle[aria-expanded=true] {
+  box-shadow: inset 0 -2px currentColor;
+}
 /* Quill ships its own 13px Helvetica; the grid around it is Open Sans. */
 .rich-text-editor .ql-container {
   font-family: var(--sjs2-typography-font-family-component-input-content);

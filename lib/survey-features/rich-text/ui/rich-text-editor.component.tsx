@@ -1,7 +1,7 @@
 import ReactQuill from "react-quill-new";
 import "./responsive-image";
 import { UploadableQuill } from "./uploadable-quill";
-import "react-quill-new/dist/quill.bubble.css";
+import "quill/dist/quill.core.css";
 import "./rich-text-editor.styles.scss";
 import {
   SurveyQuestionElementBase,
@@ -11,41 +11,9 @@ import React from "react";
 import { ItemValue } from "survey-core";
 import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
 import { RICH_TEXT_EDITOR_TYPE } from "./rich-text-editor.model";
-import {
-  hasActiveSelectionFromEditor,
-  hideTooltipFromEditor,
-} from "./rich-text-editor.utils";
 import { normalizeWhitespace, unwrapSingleParagraph } from "../rich-text-utils";
 
 export const QUILL_USER_EVENT_SOURCE = "user";
-
-/**
- * Toolbar options for the rich text editor.
- */
-const FORMATTING_OPTIONS = {
-  headingsAndFont: [{ header: [1, 2, false] }, { font: [] }],
-  basic: [
-    "bold",
-    "italic",
-    "underline",
-    "strike",
-    { color: [] },
-    { background: [] },
-    "image",
-  ],
-  listsAndIndentation: [
-    { list: "ordered" },
-    { list: "bullet" },
-    { indent: "-1" },
-    { indent: "+1" },
-  ],
-  linksAndImagesAndAlignment: ["link", "image", { align: [] }],
-  clearFormatting: ["clean"],
-};
-
-const modules = {
-  toolbar: [FORMATTING_OPTIONS.basic],
-};
 
 /** Normalizes HTML value for the question (empty -> '', else sanitized). Exported for tests. */
 export function normalizeAndSanitize(value: string): string {
@@ -105,44 +73,21 @@ export class RichTextEditorComponent extends SurveyQuestionElementBase {
     return name === "text" && obj instanceof ItemValue && obj.ownerPropertyName === "choices";
   }
 
-  hasActiveSelection(): boolean {
-    return hasActiveSelectionFromEditor(this.quillRef.current?.editor);
-  }
-
-  hideTooltip(): void {
-    hideTooltipFromEditor(this.quillRef.current?.editor);
-  }
-
-  handleBlur = () => {
-    if (this.hasActiveSelection()) {
-      this.hideTooltip();
-    }
-  };
-
-  handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Escape" && this.hasActiveSelection()) {
-      this.hideTooltip();
-    }
-  };
-
   renderQuill() {
     const isReadOnly = this.question.isReadOnly || this.question.isDesignMode;
     return (
       <div
         id={`rich-text-${this.question.id}`}
         aria-label="Rich text editor"
-        className={`rich-text-editor ${this.hasActiveSelection() ? "rich-text-editor--active" : ""}`}
+        className="rich-text-editor"
       >
         <UploadableQuill
+          key={`${this.question.obj?.uniqueId}:${this.question.obj?.getLocale?.()}`}
           choiceLabel={this.isChoiceLabel}
           editorRef={this.quillRef}
-          theme="bubble"
           readOnly={isReadOnly}
           value={this.value}
           onChange={this.handleValueChange}
-          modules={modules}
-          onBlur={this.handleBlur}
-          onKeyDown={this.handleKeyDown}
           bounds={`#rich-text-${this.question.id}`}
         />
       </div>
