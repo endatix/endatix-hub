@@ -60,7 +60,7 @@ function ColorControl({ formats, apply, name }: Formatting & { name: "color" | "
 
 type Upload = (files: FileList) => void;
 
-function InsertImage({ upload }: { upload: Upload }) {
+function InsertImage({ upload }: Readonly<{ upload: Upload }>) {
   const input = useRef<HTMLInputElement>(null);
   return <span role="group" aria-label="Media">
     <button type="button" aria-label="Insert image" title="Insert image" onClick={() => input.current?.click()}>
@@ -74,7 +74,7 @@ function InsertImage({ upload }: { upload: Upload }) {
   </span>;
 }
 
-export function FormattingToolbar({ editor, id, upload }: { editor: Editor; id: string; upload: Upload }) {
+export function FormattingToolbar({ editor, id, upload }: Readonly<{ editor: Editor; id: string; upload: Upload }>) {
   const formatting = useFormatting(editor);
   return <div id={id} role="toolbar" aria-label="Text formatting" className="rich-text-formatting">
     <MarkButtons {...formatting} />

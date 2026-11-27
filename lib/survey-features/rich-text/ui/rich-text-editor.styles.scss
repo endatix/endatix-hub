@@ -30,7 +30,7 @@
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: start;
   > .rich-text-surface { grid-area: 1 / 1; }
-  > [role=status], > [role=toolbar] { grid-column: 1 / -1; }
+  > output, > [role=toolbar] { grid-column: 1 / -1; }
 }
 
 .rich-text-format-toggle,

@@ -48,6 +48,22 @@ function click(name: string) {
   fireEvent.click(screen.getByRole("button", { name }));
 }
 
+it("opens the selected image's settings with Enter without inserting a paragraph", () => {
+  // Arrange
+  const { editor } = setup();
+  let lastImage = 0;
+  editor.state.doc.descendants((node, pos) => { if (node.type.name === "image") lastImage = pos; });
+  editor.commands.setNodeSelection(lastImage);
+  const original = editor.getHTML();
+
+  // Act
+  fireEvent.keyDown(editor.view.dom, { key: "Enter" });
+
+  // Assert
+  expect(screen.getByLabelText<HTMLInputElement>("Alt text").value).toBe("Two");
+  expect(editor.getHTML()).toBe(original);
+});
+
 it("removes only the second French choice occurrence on Apply and restores it in one Creator undo", () => {
   const { creator, openRow } = setup();
   const choices = () => creator.JSON.pages[0].elements[0].choices;

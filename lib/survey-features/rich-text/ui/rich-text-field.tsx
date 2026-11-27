@@ -1,5 +1,6 @@
 import { useContext, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type RefObject } from "react";
 import type { Editor } from "@tiptap/core";
+import { NodeSelection } from "@tiptap/pm/state";
 import { SvgIcon } from "survey-react-ui";
 import { ImageUploadContext } from "./image-upload-context";
 import { OpenImageSettings, inlineImage } from "./image-settings-target";
@@ -46,11 +47,11 @@ function useExternalValue(editor: Editor | undefined, source: RefObject<FieldSou
 
 function useImageTransfers(editor?: Editor, choiceLabel = false) {
   const store = useContext(ImageUploadContext);
-  const [jobs, publish] = useState<ImageTransfer[]>([]);
+  const [jobs, setJobs] = useState<ImageTransfer[]>([]);
   const transfers = useRef<ReturnType<typeof bindImageTransfers>>(null);
   useLayoutEffect(() => {
     if (!editor) return;
-    const inputs = bindImageTransfers(editor, store ?? inlineImage, { publish, choiceLabel });
+    const inputs = bindImageTransfers(editor, store ?? inlineImage, { publish: setJobs, choiceLabel });
     transfers.current = inputs;
     return () => { inputs.dispose(); transfers.current = null; };
   }, [editor, store, choiceLabel]);
@@ -71,10 +72,33 @@ function useFormattingOptions(editor?: Editor) {
   return { expanded, setExpanded, id, navigate };
 }
 
+function bindSettings(editor: Editor, scope: "choice" | "field", open: NonNullable<React.ContextType<typeof OpenImageSettings>>) {
+  const root = editor.view.dom;
+  const click = (event: MouseEvent) => {
+    if (event.target instanceof HTMLImageElement && event.target.hasAttribute("src")) open(fieldImageTarget(editor, scope, event.target));
+  };
+  const key = (event: globalThis.KeyboardEvent) => {
+    const selection = editor.state.selection;
+    if (event.key !== "Enter" || !(selection instanceof NodeSelection) || selection.node.type.name !== "image") return;
+    const image = editor.view.nodeDOM(selection.from);
+    if (!(image instanceof Element)) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    open(fieldImageTarget(editor, scope, image.querySelector("img") ?? undefined));
+  };
+  root.addEventListener("click", click);
+  root.addEventListener("keydown", key, true);
+  return () => { root.removeEventListener("click", click); root.removeEventListener("keydown", key, true); };
+}
+
 function useSettings(editor: Editor | undefined, props: Readonly<Props>) {
   const open = useContext(OpenImageSettings);
+  const scope = props.choiceLabel ? "choice" : "field";
+  useLayoutEffect(() => {
+    if (editor && !props.readOnly && open) return bindSettings(editor, scope, open);
+  }, [editor, props.readOnly, scope, open]);
   if (!editor || props.readOnly || !open) return;
-  return (image?: HTMLImageElement) => open(fieldImageTarget(editor, props.choiceLabel ? "choice" : "field", image));
+  return (image?: HTMLImageElement) => open(fieldImageTarget(editor, scope, image));
 }
 
 export function RichTextField(props: Readonly<Props>) {
@@ -84,9 +108,7 @@ export function RichTextField(props: Readonly<Props>) {
   const { expanded, setExpanded, id, navigate } = useFormattingOptions(editor);
   return <div className="rich-text-controls" onKeyDownCapture={navigate}
     onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setExpanded(false); }}>
-    <div ref={host} className="rich-text-surface" onClick={event => {
-      if (event.target instanceof HTMLImageElement && event.target.hasAttribute("src")) settings?.(event.target);
-    }} />
+    <div ref={host} className="rich-text-surface" />
     {!props.readOnly && <button type="button" className="rich-text-format-toggle" title="Formatting options"
       aria-label="Formatting options" aria-expanded={expanded} aria-controls={expanded ? id : undefined}
       onClick={event => { event.currentTarget.focus({ preventScroll: true }); setExpanded(!expanded); }}>A</button>}
@@ -97,10 +119,10 @@ export function RichTextField(props: Readonly<Props>) {
   </div>;
 }
 
-function TransferStatus({ job }: { job: ImageTransfer }) {
-  return <div role="status" className="flex flex-wrap items-center gap-x-2 text-sm">
+function TransferStatus({ job }: Readonly<{ job: ImageTransfer }>) {
+  return <output className="flex flex-wrap items-center gap-x-2 text-sm">
     <span>{job.retry ? "Image upload failed." : "Uploading image…"}</span>
     {job.retry && <button className="underline" type="button" onClick={job.retry}>Retry</button>}
     <button className="underline" type="button" onClick={job.cancel}>Cancel</button>
-  </div>;
+  </output>;
 }
