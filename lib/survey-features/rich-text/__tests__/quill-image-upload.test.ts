@@ -158,6 +158,31 @@ describe("Quill image input", () => {
     stop();
   });
 
+  it.each(["cancel drop", "unmount paste", "complete drop"])(
+    "%s schedules only the remaining images still requested",
+    async (action) => {
+      const editor = setupEditor();
+      const first = Promise.withResolvers<string>();
+      const store = vi.fn().mockReturnValueOnce(first.promise).mockResolvedValue(canonical);
+      let jobs: ImageTransfer[] = [];
+      const unmount = bindImageTransfers(editor, store, next => { jobs = next; });
+      const files = [image, new File(["second"], "second.png", { type: "image/png" })];
+      if (action === "unmount paste") {
+        paste(editor, '<img src="cid:1"><img src="cid:2">', files);
+      } else {
+        editor.uploader.upload({ index: 5, length: 0 }, files);
+      }
+      await vi.waitFor(() => expect(store).toHaveBeenCalledTimes(1));
+      if (action === "unmount paste") unmount();
+      if (action === "cancel drop") jobs[0].cancel();
+      first.resolve(canonical);
+      await vi.waitFor(() => expect(jobs).toHaveLength(0));
+      expect(store).toHaveBeenCalledTimes(action === "complete drop" ? 2 : 1);
+      expect(editor.root.querySelectorAll("img")).toHaveLength(action === "complete drop" ? 2 : 0);
+      unmount();
+    },
+  );
+
   it("retains Quill's inline file paste when storage is disabled", async () => {
     const editor = setupEditor();
     paste(editor, "", [image]);
