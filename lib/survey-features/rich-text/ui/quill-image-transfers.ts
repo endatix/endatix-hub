@@ -9,6 +9,8 @@ export interface ImageTransfer {
   retry?: () => void;
 }
 
+type LoadContent = (signal: AbortSignal) => Promise<Delta>;
+
 class Transfer implements ImageTransfer {
   readonly id = crypto.randomUUID();
   private readonly controller = new AbortController();
@@ -20,12 +22,12 @@ class Transfer implements ImageTransfer {
     this.retry?.();
   };
 
-  async submit(editor: Quill, range: Range, load: () => Promise<Delta>) {
+  async submit(editor: Quill, range: Range, load: LoadContent) {
     const signal = this.controller.signal;
     const loadWithRetry = async (): Promise<Delta> => {
       while (!signal.aborted) {
         try {
-          return await load();
+          return await load(signal);
         } catch {
           await this.waitForRetry();
         }
@@ -53,7 +55,7 @@ type Publish = (jobs: ImageTransfer[]) => void;
 export function bindImageTransfers(editor: Quill, store: StoreImage, publish: Publish) {
   const active = new Set<Transfer>();
   const changed = () => publish([...active]);
-  const start = (range: Range, load: () => Promise<Delta>) => {
+  const start: Start = (range, load) => {
     const job = new Transfer(changed);
     active.add(job);
     changed();
@@ -69,7 +71,7 @@ export function bindImageTransfers(editor: Quill, store: StoreImage, publish: Pu
   };
 }
 
-type Start = (range: Range, load: () => Promise<Delta>) => void;
+type Start = (range: Range, load: LoadContent) => void;
 
 function bindImageInputs(editor: Quill, store: StoreImage, start: Start) {
   const original = editor.uploader.upload;
@@ -94,9 +96,10 @@ function bindImageInputs(editor: Quill, store: StoreImage, start: Start) {
 
 function fileContent(files: File[], store: StoreImage) {
   const uploaded = new Map<File, string>();
-  return async () => {
+  return async (signal: AbortSignal) => {
     const content = new Delta();
     for (const file of files) {
+      signal.throwIfAborted();
       const url = uploaded.get(file) ?? (await store(file));
       uploaded.set(file, url);
       content.insert({ image: url });

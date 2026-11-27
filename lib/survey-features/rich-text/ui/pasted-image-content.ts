@@ -25,8 +25,8 @@ export function pastedImageContent(
   const replacements = localImages(template, clipboard, store);
   if (!replacements.length) return;
   const formats = editor.getFormat();
-  return async () => {
-    for (const replace of replacements) await replace();
+  return async (signal: AbortSignal) => {
+    for (const replace of replacements) await replace(signal);
     return editor.clipboard.convert({ html: template.innerHTML }, formats);
   };
 }
@@ -37,8 +37,12 @@ function localImages(template: HTMLTemplateElement, clipboard: DataTransfer, sto
   return images.filter(image => /^(data:image\/|cid:|blob:|file:)/i.test(image.src))
     .map((image, index) => {
       const source = image.src;
-      return async () => {
-        if (image.src === source) image.src = await store(await clipboardFile(source, attachments[index]));
+      return async (signal: AbortSignal) => {
+        if (image.src !== source) return;
+        signal.throwIfAborted();
+        const file = await clipboardFile(source, attachments[index]);
+        signal.throwIfAborted();
+        image.src = await store(file);
       };
     });
 }
