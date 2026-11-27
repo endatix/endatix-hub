@@ -4,6 +4,8 @@ import {
   hasDynamicChoiceSourcesInJson,
 } from "../utils/choice-sources";
 import { resolveLocalizedText } from "../utils/survey-localized-text";
+import { normalizeChoicesToDataListItems } from "../utils/data-list-items";
+import { applyDataListBindingToQuestionJson } from "../utils/question-binding";
 import {
   forEachSurveyJsonNode,
   forEachSurveyJsonRoot,
@@ -15,11 +17,19 @@ export interface ConvertibleChoiceQuestionRef {
   type: "dropdown" | "tagbox";
   choiceCount: number;
   choiceBytes: number;
+  projectedSavings: number | null;
   title: string;
 }
 
-function choiceMetrics(choices: unknown[]) {
-  return { choiceCount: choices.length, choiceBytes: new TextEncoder().encode(JSON.stringify(choices)).length };
+const jsonBytes = (value: unknown) => new TextEncoder().encode(JSON.stringify(value)).length;
+function choiceMetrics(element: Record<string,unknown>, choices: unknown[]) {
+  const choiceBytes = jsonBytes(choices);
+  // SurveyJS turns scalar numeric choices into ItemValue objects before the existing import.
+  const items = choices.map(choice => typeof choice === "number" || typeof choice === "boolean" ? {value:choice} : choice);
+  const copy = { ...element };
+  applyDataListBindingToQuestionJson(copy, "1000000000000000000");
+  const projectedSavings = normalizeChoicesToDataListItems(items).ok ? jsonBytes(element) - jsonBytes(copy) : null;
+  return { choiceCount: choices.length, choiceBytes, projectedSavings };
 }
 
 function collectConvertibleChoiceQuestions(
@@ -47,7 +57,7 @@ function collectConvertibleChoiceQuestions(
     out.push({
       name: element.name,
       type: qType,
-      ...choiceMetrics(choices),
+      ...choiceMetrics(element, choices),
       title: resolveLocalizedText(element.title) || element.name || qType,
     });
   });

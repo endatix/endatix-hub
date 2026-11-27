@@ -17,13 +17,14 @@ it("estimates encoded bytes per placement, including when the stored links would
 });
 
 it("uses only convertible inline lists for size and count recommendations", () => {
-  const choices = Array.from({length: 11}, (_, i) => `${i}${"x".repeat(10 * 1024)}`);
+  const choices = Array.from({length: 1200}, (_, i) => `${i}${"x".repeat(96)}`);
   const question = { type: "radiogroup", name: "pick", choices };
   const check = (elements: object[]) => choiceListCheck({ elements }, true);
   expect(check([question])).toMatchObject({ recommended: false, count: 0 });
   expect(check([question, { type: "dropdown", name: "tiny", choices: ["A"] }])).toMatchObject({ recommended: false, count: 1 });
   expect(check([{ ...question, type: "tagbox" }])).toMatchObject({ recommended: true, count: 1 });
   expect(choiceListCheck({ elements: [{ ...question, type: "dropdown" }] }, false).count).toBe(0);
+  expect(check([{...question,type:"dropdown",choices:Array(220).fill("repeated")}])).toMatchObject({recommended:false,eligible:0,impact:0});
 });
 
 it("models the stored binding and applies the converter's default threshold when comparing actions", () => {
