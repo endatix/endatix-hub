@@ -1,7 +1,4 @@
-import type {
-  SurveyCreatorModel,
-  TabJsonEditorBasePlugin,
-} from "survey-creator-core";
+import type { SurveyCreatorModel } from "survey-creator-core";
 import { Result } from "@/lib/result";
 import { JSON_EDITOR_PLUGIN_NAME } from "../json-editor/json-editor-state";
 import { reviewEmbeddedImages, replaceEmbeddedImages } from "./embedded-images";
@@ -22,10 +19,14 @@ export interface ImageSnapshot {
 const REVIEW_AGAIN = "The definition changed. Review images again.";
 const sessions = new WeakMap<SurveyCreatorModel, ConversionSession>();
 
+interface EditorText {
+  savedText: string;
+  text: string;
+}
+
 export class ConversionSession {
   readonly uploads = new Map<string, string>();
   private readonly transfers = new Map<string, Promise<string>>();
-  private pending = false;
   private submitted?: { payload: object; echoed: boolean };
   private generation = 0;
   private revision = 0;
@@ -82,13 +83,15 @@ export class ConversionSession {
     };
   }
 
-  acceptEditorText(text: string) {
+  private sourceWithBuffer(buffer: EditorText) {
+    const before = JSON.parse(buffer.savedText);
+    const source = sourceWithEdits(this.source, this.baseline, before);
+    return sourceWithEdits(source, before, JSON.parse(buffer.text));
+  }
+
+  acceptEditorText(buffer: EditorText) {
     try {
-      const source = sourceWithEdits(
-        this.source,
-        this.baseline,
-        JSON.parse(text),
-      );
+      const source = this.sourceWithBuffer(buffer);
       this.baseline = this.creator.JSON;
       this.source = source;
       this.ambiguousBuffer = false;
@@ -129,7 +132,6 @@ export class ConversionSession {
       this.source = stored ? source : snapshot.source;
       if (stored) convertedBaseline ??= this.creator.JSON;
       this.baseline = stored ? convertedBaseline : snapshot.projection;
-      this.pending = true;
       this.generation++;
       this.lastConversion = stored ? snapshot : undefined;
       this.measuredChange = stored ? measurement : undefined;
@@ -152,42 +154,36 @@ export class ConversionSession {
     return true;
   }
 
-  prepare(projection: object) {
-    if (this.pending && this.ambiguousBuffer) throw new Error(REVIEW_AGAIN);
-    const payload = this.pending
-      ? sourceWithEdits(this.source, this.baseline, this.validatedEditorInput(projection))
-      : projection;
-    if (this.pending) this.submitted = { payload, echoed: false };
-    const request = { generation: this.generation, converted: this.pending, payload, projection };
+  prepare(projection: object, buffer?: EditorText) {
+    const converted = this.generation > 0;
+    let payload = projection;
+    if (converted) {
+      if (this.ambiguousBuffer || (!buffer && this.creator.activeTab === JSON_EDITOR_PLUGIN_NAME))
+        throw new Error(REVIEW_AGAIN);
+      payload = buffer ? this.sourceWithBuffer(buffer) : sourceWithEdits(this.source, this.baseline, projection);
+      this.submitted = { payload, echoed: false };
+    }
+    const request = { generation: this.generation, submitted: this.submitted, payload, projection };
     return {
       payload,
       acknowledge: () => this.acknowledge(request),
     };
   }
 
-  private acknowledge(request: { generation: number; converted: boolean; payload: object; projection: object }) {
+  private acknowledge(request: { generation: number; submitted?: { payload: object }; payload: object; projection: object }) {
     if (sessions.get(this.creator) !== this || request.generation !== this.generation) return false;
-    if (request.converted && this.submitted?.payload !== request.payload) return false;
+    if (this.submitted !== request.submitted) return false;
     this.source = request.payload;
     this.baseline = request.projection;
-    const unchanged = !request.converted || this.creator.activeTab === JSON_EDITOR_PLUGIN_NAME ||
+    const unchanged = !request.submitted || this.creator.activeTab === JSON_EDITOR_PLUGIN_NAME ||
       equalDefinition(this.creator.JSON, request.projection);
     if (unchanged) {
       this.undoPoint = undefined;
       this.lastConversion = undefined;
-      this.pending = false;
     }
     return unchanged;
   }
 
-  /** getJsonModel already validated this buffer. Its normalized result omits explicit defaults. */
-  private validatedEditorInput(projection: object): object {
-    if (this.creator.activeTab !== JSON_EDITOR_PLUGIN_NAME) return projection;
-    const tab: TabJsonEditorBasePlugin = this.creator.getPlugin(
-      JSON_EDITOR_PLUGIN_NAME,
-    );
-    return JSON.parse(tab.model.text);
-  }
 }
 
 export function bindConversionSource(
@@ -210,10 +206,11 @@ export function conversionSession(creator: SurveyCreatorModel | null) {
 export function prepareDefinitionSave(
   creator: SurveyCreatorModel | null,
   validated: object,
+  buffer?: EditorText,
 ): Result<ReturnType<ConversionSession["prepare"]>> {
   try {
     return Result.success(
-      conversionSession(creator)?.prepare(validated) ?? {
+      conversionSession(creator)?.prepare(validated, buffer) ?? {
         payload: validated,
         acknowledge: () => true,
       },

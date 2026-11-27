@@ -89,6 +89,27 @@ it("keeps edits made while a save was in flight and prepares a fresh retry", asy
   expect(prepare(creator).payload).toEqual({ ...source(url), title: "Newer" });
 });
 
+it("preserves converted source across later saves, including edits during a retry", async () => {
+  // Arrange
+  const { creator, session } = editor();
+  await convertImages(session, session.review(), transfer());
+  expect(prepare(creator).acknowledge()).toBe(true);
+
+  // Act
+  creator.survey.title = "A later edit";
+  const failed = prepare(creator);
+  const retry = prepare(creator);
+  creator.survey.title = "Newer edit";
+
+  // Assert
+  expect(failed.payload).toEqual({ ...source(url), title: "A later edit" });
+  expect(retry.payload).toEqual(failed.payload);
+  expect(retry.acknowledge()).toBe(false);
+  expect(prepare(creator).payload).toEqual({ ...source(url), title: "Newer edit" });
+  creator.survey.title = "";
+  expect(prepare(creator).payload).toEqual(source(url));
+});
+
 it("retains completed transfers when cancelled, without replacing the definition", async () => {
   // Arrange
   const { creator, session } = editor();

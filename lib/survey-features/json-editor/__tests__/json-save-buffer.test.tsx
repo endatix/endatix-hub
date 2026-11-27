@@ -176,3 +176,35 @@ it("submits validated Ace edits on top of an exact converted source and rejects 
   expect(Result.isError(hook.prepareSave(creator))).toBe(true);
   editor.setValue(JSON.stringify(result.value.payload));
 });
+
+it("honors removing an explicit default from a previously saved Ace buffer", () => {
+  // Arrange
+  const { creator, hook, editor } = view;
+  creator.activeTab = "designer";
+  const source = { logo: "data:image/png;base64,iVBORw0KGgo=", title: { default: "Hello" } };
+  creator.JSON = source;
+  bindConversionSource(creator, source);
+  const session = conversionSession(creator)!;
+  const snapshot = session.review();
+  const logo = "https://storage.example/content/f/1/logo.png";
+  session.uploads.set(snapshot.inventory.files[0].key, logo);
+  session.apply(snapshot);
+  creator.activeTab = "json";
+  const tab = creator.getPlugin<TabJsonEditorAcePlugin>("json").model as AceJsonEditorModel;
+  tab.init(editor);
+  const original = JSON.parse(tab.text);
+  editor.setValue(JSON.stringify({ ...original, showTitle: true }));
+  const first = hook.prepareSave(creator);
+  if (Result.isError(first)) throw new Error(first.message);
+  expect(first.value.payload).toMatchObject({ ...source, logo, showTitle: true });
+  expect(first.value.acknowledge()).toBe(true);
+
+  // Act
+  editor.setValue(JSON.stringify(original));
+  const second = hook.prepareSave(creator);
+
+  // Assert
+  if (Result.isError(second)) throw new Error(second.message);
+  expect(second.value.payload).not.toHaveProperty("showTitle");
+  expect(second.value.payload).toMatchObject({ ...source, logo });
+});

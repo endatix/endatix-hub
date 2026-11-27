@@ -77,6 +77,10 @@ interface JsonBuffer {
   modified: boolean;
 }
 
+function editorText(buffer: JsonBuffer) {
+  return { savedText: buffer.savedText, text: buffer.model.text };
+}
+
 // Activation and file import both call Ace.setValue(). Only activation
 // clears Creator's pending flag after setValue returns.
 function listenForJsonEdits(buffer: JsonBuffer, onModified: () => void) {
@@ -102,18 +106,40 @@ function listenForJsonEdits(buffer: JsonBuffer, onModified: () => void) {
 
 function useJsonSaveBuffer() {
   const activeBuffer = useRef<JsonBuffer | null>(null);
+  const latestSave = useRef(0);
   const captureJsonSave = useCallback(() => {
+    const save = ++latestSave.current;
     const buffer = activeBuffer.current;
     const submitted = buffer?.model.text;
     return () => {
-      if (activeBuffer.current !== buffer) return false;
+      if (activeBuffer.current !== buffer || save !== latestSave.current) return false;
       if (!buffer || submitted === undefined) return true;
       buffer.savedText = submitted;
       buffer.modified = buffer.model.text !== submitted;
       return !buffer.modified;
     };
   }, []);
-  return { activeBuffer, captureJsonSave };
+  const prepareSave = usePrepareSave(activeBuffer, captureJsonSave);
+  return { activeBuffer, captureJsonSave, prepareSave };
+}
+
+function usePrepareSave(activeBuffer: React.RefObject<JsonBuffer | null>, captureJsonSave: () => () => boolean) {
+  return useCallback((creator: SurveyCreatorModel | null) => {
+    const validated = getJsonModel(creator);
+    if (Result.isError(validated)) return validated;
+    const buffer = activeBuffer.current;
+    const request = prepareDefinitionSave(creator, validated.value, buffer ? editorText(buffer) : undefined);
+    if (Result.isError(request)) return request;
+    const acknowledgeBuffer = captureJsonSave();
+    return Result.success({
+      payload: request.value.payload,
+      acknowledge: () => {
+        if (activeBuffer.current !== buffer) return false;
+        const saved = request.value.acknowledge();
+        return acknowledgeBuffer() && saved;
+      },
+    });
+  }, [activeBuffer, captureJsonSave]);
 }
 
 /**
@@ -127,7 +153,7 @@ function useJsonSaveBuffer() {
  */
 export function useJsonEditor(options: UseJsonEditorOptions) {
   const { onJsonStateChange, downloadName = "" } = options;
-  const { activeBuffer, captureJsonSave } = useJsonSaveBuffer();
+  const { activeBuffer, captureJsonSave, prepareSave } = useJsonSaveBuffer();
   const downloadNameRef = useRef(downloadName);
   useEffect(() => {
     downloadNameRef.current = downloadName;
@@ -146,7 +172,7 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
 
       function leaveJsonTab() {
         const buffer = activeBuffer.current;
-        if (buffer?.modified) conversionSession(creator)?.acceptEditorText(buffer.model.text);
+        if (buffer?.modified) conversionSession(creator)?.acceptEditorText(editorText(buffer));
         removeModelListener?.();
         removeModelListener = undefined;
         activeBuffer.current = null;
@@ -232,16 +258,5 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
     [activeBuffer, onJsonStateChange],
   );
 
-  const prepareSave = useCallback((creator: SurveyCreatorModel | null) => {
-    const validated = getJsonModel(creator);
-    if (Result.isError(validated)) return validated;
-    const request = prepareDefinitionSave(creator, validated.value);
-    if (Result.isError(request)) return request;
-    const acknowledgeBuffer = captureJsonSave();
-    return Result.success({
-      payload: request.value.payload,
-      acknowledge: () => acknowledgeBuffer() && request.value.acknowledge(),
-    });
-  }, [captureJsonSave]);
   return { registerJsonEditor, getJsonModel, captureJsonSave, prepareSave };
 }
