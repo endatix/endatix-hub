@@ -150,18 +150,16 @@ function DiagnosticsOverview({ model }: ModelProps) {
       <OverviewHeader actions={actions} notice={notice} bytes={bytes} questions={model.stats.totalQuestions} />
       {panels.map(({id,node}, index) => <div key={id} className={id !== lead && index > Number(Boolean(lead)) ? "!mt-0" : ""}>
         {id !== lead && index === Number(Boolean(lead)) && <h3 className="mb-2 text-sm font-semibold">{lead ? "Also worth a look" : "Review findings and options"}</h3>}
-        <div className={panelClass(index, panels.length, lead, id)}>{node}</div>
+        <div className={id === lead ? "" : compactRowClass(index - Number(Boolean(lead)), index === panels.length - 1)}>{node}</div>
       </div>)}
       <AllChecks model={model} image={image} audience={audience} pages={pages} bytes={bytes} choices={check} healthy={!actions && !notice} optional={optional} />
     </div>
   </div>;
 }
 
-function panelClass(index:number, length:number, lead:string | undefined, id:string) {
-  if (id === lead) return "";
-  const first = index === Number(Boolean(lead)) ? "rounded-t-lg border-t" : "";
-  const last = index === length - 1 ? "rounded-b-lg" : "";
-  return `border-x border-b bg-card ${first} ${last}`;
+function compactRowClass(index:number, last:boolean) {
+  const top = index === 0 ? "rounded-t-lg border-t" : "";
+  return `border-x border-b bg-card ${top} ${last ? "rounded-b-lg" : ""}`;
 }
 
 export function FormDiagnosticsView({ model }: Readonly<{ model?: FormDiagnosticsPlugin }>) {
