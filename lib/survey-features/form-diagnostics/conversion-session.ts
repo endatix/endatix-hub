@@ -24,10 +24,16 @@ interface EditorText {
   text: string;
 }
 
+interface SaveEcho {
+  payload: object;
+  echoed: boolean;
+}
+
 export class ConversionSession {
   readonly uploads = new Map<string, string>();
   private readonly transfers = new Map<string, Promise<string>>();
-  private submitted?: { payload: object; echoed: boolean };
+  private submitted?: SaveEcho;
+  private lastSaved?: SaveEcho;
   private generation = 0;
   private revision = 0;
   private ambiguousBuffer = false;
@@ -148,9 +154,12 @@ export class ConversionSession {
   }
 
   consumeSaveEcho(source: object) {
-    const submitted = this.submitted;
-    if (!submitted || submitted.echoed || !equalDefinition(submitted.payload, source)) return false;
-    submitted.echoed = true;
+    // Revalidation of a successful write can arrive after a later Save has started or failed.
+    const echo = [this.lastSaved, this.submitted].find(
+      request => request && !request.echoed && equalDefinition(request.payload, source),
+    );
+    if (!echo) return false;
+    echo.echoed = true;
     return true;
   }
 
@@ -170,9 +179,10 @@ export class ConversionSession {
     };
   }
 
-  private acknowledge(request: { generation: number; submitted?: { payload: object }; payload: object; projection: object }) {
+  private acknowledge(request: { generation: number; submitted?: SaveEcho; payload: object; projection: object }) {
     if (sessions.get(this.creator) !== this || request.generation !== this.generation) return false;
     if (this.submitted !== request.submitted) return false;
+    this.lastSaved = request.submitted;
     this.source = request.payload;
     this.baseline = request.projection;
     const unchanged = !request.submitted || this.creator.activeTab === JSON_EDITOR_PLUGIN_NAME ||

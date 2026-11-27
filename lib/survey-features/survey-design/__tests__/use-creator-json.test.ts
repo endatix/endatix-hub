@@ -17,6 +17,32 @@ const renderCreatorJson = (initialProps: CreatorJsonProps) =>
   );
 
 describe("useCreatorJson", () => {
+  it.each(["form", "template"])("retains %s edits when an acknowledged Save refresh follows a failed Save", owner => {
+    // Arrange
+    const creator = new SurveyCreatorModel();
+    const original: object = { logo: "data:image/png;base64,iVBORw0KGgo=", pages: [{ name: "page", visible: true }] };
+    const { rerender } = renderHook(({ source, version }: { source: object; version?: string }) =>
+      useCreatorJson(creator, source, version), { initialProps: { source: original, version: owner === "form" ? "1" : undefined } });
+    const session = conversionSession(creator)!;
+    const review = session.review();
+    const logo = "https://storage.example/content/image.png";
+    session.uploads.set(review.inventory.files[0].key, logo);
+    session.apply(review);
+    const saved = session.prepare(creator.JSON);
+    expect(saved.acknowledge()).toBe(true);
+
+    // Act: the later request fails, then the successful request's readback arrives.
+    creator.survey.title = "Keep this edit";
+    session.prepare(creator.JSON);
+    rerender({ source: saved.payload, version: owner === "form" ? "2" : undefined });
+
+    // Assert
+    expect(creator.survey.title).toBe("Keep this edit");
+    expect(conversionSession(creator)?.prepare(creator.JSON).payload).toEqual({
+      ...original, logo, title: "Keep this edit",
+    });
+    creator.dispose();
+  });
   it("keeps a newer canvas edit when saving a conversion creates a new active version", () => {
     // Arrange
     const creator = new SurveyCreatorModel();
