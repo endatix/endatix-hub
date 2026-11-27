@@ -160,69 +160,39 @@ export interface ContentUploadConfig {
  * @returns The content upload handler.
  */
 export function createContentUpload(config: ContentUploadConfig) {
-  const { itemId, itemType, questionName, isResizeEnabled } = config;
-
   return async function handleContentUpload(
     _sender: unknown,
     options: UploadFileEvent,
   ): Promise<void> {
     const files = options.files ?? [];
     if (files.length === 0) return;
-
-    const resizeUrl = isResizeEnabled ? CONTENT_RESIZE_URL : undefined;
-
-    const prepared = await Promise.all(
-      files.map((file) => prepareUploadBytes(file, resizeUrl)),
-    );
-
-    const { fileTypes, fileStates } = buildPerFileMaps(prepared);
-
-    const sasResult = await fetchUploadUrls(CONTENT_UPLOAD_URLS, {
-      itemId,
-      itemType,
-      fileNames: files.map((f) => f.name),
-      questionName,
-      fileTypes,
-      fileStates,
-    });
-
-    if (Result.isError(sasResult)) {
-      options.callback("error", sasResult.message);
-      return;
-    }
-
-    const uploadUrlsData: UploadUrlsData = sasResult.value;
-
-    const uploadResults = await Promise.all(
-      prepared.map(
-        async ({
-          file,
-          buffer,
-        }): Promise<ResultType<ProcessAndUploadSuccess>> => {
-          const entry = uploadUrlsData.uploads[file.name];
-          if (!entry) {
-            return Result.error(`No upload URL for ${file.name}`);
-          }
-          if ("error" in entry) {
-            return Result.error(entry.error);
-          }
-
-          const descriptor: UploadUrlDescriptor = entry;
-
-          return processAndUploadFile(file, descriptor, buffer);
-        },
-      ),
-    );
-
-    const firstError = uploadResults.find((result) => Result.isError(result));
-    if (firstError && Result.isError(firstError)) {
-      options.callback("error", firstError.message);
-      return;
-    }
-
-    const successes = uploadResults
-      .filter((result) => Result.isSuccess(result))
-      .map((r) => r.value);
-    options.callback("success", successes[0]?.url ?? "");
+    const result = await uploadContentFiles(config, files);
+    if (Result.isError(result)) options.callback("error", result.message);
+    else options.callback("success", result.value[0]?.url ?? "");
   };
+}
+
+export async function uploadContentFiles(config: ContentUploadConfig, files: File[]) {
+  const { itemId, itemType, questionName, isResizeEnabled } = config;
+  const resizeUrl = isResizeEnabled ? CONTENT_RESIZE_URL : undefined;
+  const prepared = await Promise.all(files.map(file => prepareUploadBytes(file, resizeUrl)));
+  const grants = await fetchUploadUrls(CONTENT_UPLOAD_URLS, {
+    itemId,
+    itemType,
+    fileNames: files.map(file => file.name),
+    questionName,
+    ...buildPerFileMaps(prepared),
+  });
+  if (Result.isError(grants)) return grants;
+  const uploads = await Promise.all(prepared.map(file => putContentFile(file, grants.value)));
+  const error = uploads.find(upload => Result.isError(upload));
+  if (error && Result.isError(error)) return error;
+  return Result.success(uploads.filter(upload => Result.isSuccess(upload)).map(upload => upload.value));
+}
+
+async function putContentFile({ file, buffer }: PreparedUploadBytes, grants: UploadUrlsData) {
+  const entry = grants.uploads[file.name];
+  if (!entry) return Result.error<ProcessAndUploadSuccess>(`No upload URL for ${file.name}`);
+  if ("error" in entry) return Result.error<ProcessAndUploadSuccess>(entry.error);
+  return processAndUploadFile(file, entry, buffer);
 }

@@ -1,4 +1,5 @@
 import ReactQuill from "react-quill-new";
+import { UploadableQuill } from "./uploadable-quill";
 import "react-quill-new/dist/quill.bubble.css";
 import "./rich-text-editor.styles.scss";
 import {
@@ -56,8 +57,8 @@ export function normalizeAndSanitize(value: string): string {
 }
 
 export class RichTextEditorComponent extends SurveyQuestionElementBase {
-  wrapperRef = React.createRef<HTMLDivElement>();
   quillRef = React.createRef<ReactQuill>();
+  private lastUserEdit?: { html: string; value: string };
 
   constructor(props: unknown) {
     super(props);
@@ -69,7 +70,11 @@ export class RichTextEditorComponent extends SurveyQuestionElementBase {
   }
 
   get value() {
-    return this.question.value;
+    const value = this.question.value;
+    // Quill wraps paragraphs; SurveyJS stores sanitized inline HTML. Echoing the
+    // latter back on each keystroke resets Quill's selection and undo history.
+    if (this.lastUserEdit && this.lastUserEdit.value === value) return this.lastUserEdit.html;
+    return value;
   }
 
   handleValueChange = (val: string, _: any, source: string) => {
@@ -78,6 +83,7 @@ export class RichTextEditorComponent extends SurveyQuestionElementBase {
     }
 
     const normalizedNewValue = normalizeAndSanitize(val);
+    this.lastUserEdit = { html: val, value: normalizedNewValue };
 
     const normalizedCurrentValue = this.question.value
       ? normalizeAndSanitize(this.question.value)
@@ -117,12 +123,12 @@ export class RichTextEditorComponent extends SurveyQuestionElementBase {
     const hasActiveSelection = this.hasActiveSelection();
     return (
       <div
-        ref={this.wrapperRef}
+        id={`rich-text-${this.question.id}`}
         aria-label="Rich text editor"
         className={`rich-text-editor ${hasActiveSelection ? "rich-text-editor--active" : ""}`}
       >
-        <ReactQuill
-          ref={this.quillRef}
+        <UploadableQuill
+          editorRef={this.quillRef}
           theme="bubble"
           readOnly={isReadOnly}
           value={this.value}
@@ -130,7 +136,7 @@ export class RichTextEditorComponent extends SurveyQuestionElementBase {
           modules={modules}
           onBlur={this.handleBlur}
           onKeyDown={this.handleKeyDown}
-          bounds={this.wrapperRef.current ?? undefined}
+          bounds={`#rich-text-${this.question.id}`}
         />
       </div>
     );
