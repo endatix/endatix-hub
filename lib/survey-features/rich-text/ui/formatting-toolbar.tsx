@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Editor } from "@tiptap/core";
-import { Bold, Italic, Underline, Strikethrough, ImagePlus, RotateCcw } from "lucide-react";
+import { Bold, Italic, Underline, Strikethrough, ImagePlus, RotateCcw, Baseline, Highlighter } from "lucide-react";
 
 const marks = [
   { name: "bold", label: "Bold", Icon: Bold },
@@ -49,12 +49,14 @@ function ColorControl({ formats, apply, name }: Formatting & { name: "color" | "
   const label = name === "color" ? "Text color" : "Highlight";
   const defaultColor = name === "color" ? "#000000" : "#ffffff";
   const value = formats[name];
+  const Icon = name === "color" ? Baseline : Highlighter;
   return <span role="group" aria-label={label}>
-    <label title={label}>{label}<input type="color" aria-label={label}
+    <label className="rich-text-color" title={label}><Icon size={15} aria-hidden />
+      <input type="color" aria-label={label}
       value={typeof value === "string" ? value : defaultColor}
       onChange={event => apply(name, event.target.value)} /></label>
-    <button type="button" aria-label={`Reset ${label.toLowerCase()}`} title={`Reset ${label.toLowerCase()}`}
-      disabled={!value} onClick={() => apply(name, false)}><RotateCcw size={14} /></button>
+    {Boolean(value) && <button type="button" aria-label={`Reset ${label.toLowerCase()}`} title={`Reset ${label.toLowerCase()}`}
+      onClick={() => apply(name, false)}><RotateCcw size={14} /></button>}
   </span>;
 }
 
@@ -74,12 +76,16 @@ function InsertImage({ upload }: Readonly<{ upload: Upload }>) {
   </span>;
 }
 
-export function FormattingToolbar({ editor, id, upload }: Readonly<{ editor: Editor; id: string; upload: Upload }>) {
+type ToolbarProps = { editor: Editor; id: string; upload: Upload; openSettings?: () => void };
+
+export function FormattingToolbar({ editor, id, upload, openSettings }: Readonly<ToolbarProps>) {
   const formatting = useFormatting(editor);
-  return <div id={id} role="toolbar" aria-label="Text formatting" className="rich-text-formatting">
+  return <div id={id} className="rich-text-formatting-commands">
     <MarkButtons {...formatting} />
     <ColorControl {...formatting} name="color" />
     <ColorControl {...formatting} name="background" />
-    <InsertImage upload={upload} />
+    {openSettings
+      ? <button type="button" aria-label="Image settings" title="Image settings" onClick={openSettings}><ImagePlus size={16} /></button>
+      : <InsertImage upload={upload} />}
   </div>;
 }

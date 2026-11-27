@@ -1,7 +1,7 @@
 import { useContext, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type RefObject } from "react";
 import type { Editor } from "@tiptap/core";
 import { NodeSelection } from "@tiptap/pm/state";
-import { SvgIcon } from "survey-react-ui";
+import { X } from "lucide-react";
 import { ImageUploadContext } from "./image-upload-context";
 import { OpenImageSettings, inlineImage } from "./image-settings-target";
 import { fieldImageTarget } from "./field-image-target";
@@ -98,23 +98,47 @@ function useSettings(editor: Editor | undefined, props: Readonly<Props>) {
     if (editor && !props.readOnly && open) return bindSettings(editor, scope, open);
   }, [editor, props.readOnly, scope, open]);
   if (!editor || props.readOnly || !open) return;
-  return (image?: HTMLImageElement) => open(fieldImageTarget(editor, scope, image));
+  return () => {
+    editor.view.focus();
+    const selection = editor.state.selection;
+    const node = selection instanceof NodeSelection ? editor.view.nodeDOM(selection.from) : null;
+    const image = node instanceof Element ? node.querySelector("img[src]") : null;
+    open(fieldImageTarget(editor, scope, image instanceof HTMLImageElement ? image : undefined));
+  };
+}
+
+type OptionsProps = {
+  options: ReturnType<typeof useFormattingOptions>;
+  editor?: Editor;
+  upload: (files: FileList) => void;
+  openSettings?: () => void;
+};
+
+function FormattingOptions({ options, editor, upload, openSettings }: Readonly<OptionsProps>) {
+  const { expanded, setExpanded, id } = options;
+  const label = expanded ? "Close formatting options" : "Formatting options";
+  return <div role={expanded ? "toolbar" : undefined} aria-label={expanded ? "Text formatting" : undefined}
+    className={expanded ? "rich-text-formatting" : "rich-text-trigger"}>
+    <button type="button" className="rich-text-format-toggle" title={label}
+      aria-label={label} aria-expanded={expanded} aria-controls={expanded ? id : undefined}
+      onClick={event => {
+        if (expanded) editor?.view.focus();
+        else event.currentTarget.focus({ preventScroll: true });
+        setExpanded(!expanded);
+      }}>{expanded ? <X size={14} /> : <u>A</u>}</button>
+    {expanded && editor && <FormattingToolbar id={id} editor={editor} upload={upload} openSettings={openSettings} />}
+  </div>;
 }
 
 export function RichTextField(props: Readonly<Props>) {
   const { editor, host } = useFieldEditor(props);
   const { jobs, upload } = useImageTransfers(editor, props.choiceLabel);
   const settings = useSettings(editor, props);
-  const { expanded, setExpanded, id, navigate } = useFormattingOptions(editor);
-  return <div className="rich-text-controls" onKeyDownCapture={navigate}
-    onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setExpanded(false); }}>
+  const options = useFormattingOptions(editor);
+  return <div className="rich-text-controls" onKeyDownCapture={options.navigate}
+    onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) options.setExpanded(false); }}>
     <div ref={host} className="rich-text-surface" />
-    {!props.readOnly && <button type="button" className="rich-text-format-toggle" title="Formatting options"
-      aria-label="Formatting options" aria-expanded={expanded} aria-controls={expanded ? id : undefined}
-      onClick={event => { event.currentTarget.focus({ preventScroll: true }); setExpanded(!expanded); }}>A</button>}
-    {expanded && editor && <FormattingToolbar id={id} editor={editor} upload={upload} />}
-    {settings && !props.choiceLabel && <button type="button" className="rich-text-image-action"
-      title="Image settings" aria-label="Image settings" onClick={() => settings()}><SvgIcon iconName="icon-image" size={20} /></button>}
+    {!props.readOnly && <FormattingOptions editor={editor} options={options} upload={upload} openSettings={settings} />}
     {jobs.map(job => <TransferStatus key={job.id} job={job} />)}
   </div>;
 }

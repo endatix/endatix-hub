@@ -64,6 +64,44 @@ it("opens the selected image's settings with Enter without inserting a paragraph
   expect(editor.getHTML()).toBe(original);
 });
 
+function openImageTools() {
+  click("Formatting options");
+  click("Image settings");
+}
+
+it("opens the selected Tiptap image from the compact choice toolbar and returns focus", async () => {
+  // Arrange
+  const { editor } = setup();
+  let selectedImage = 0;
+  editor.state.doc.descendants((node, pos) => { if (node.type.name === "image") selectedImage = pos; });
+  editor.commands.setNodeSelection(selectedImage);
+
+  // Act
+  openImageTools();
+
+  // Assert
+  expect(screen.getByLabelText<HTMLInputElement>("Alt text").value).toBe("Two");
+  click("Cancel");
+  await waitFor(() => expect(document.activeElement).toBe(editor.view.dom));
+  expect(editor.state.selection.from).toBe(selectedImage);
+});
+
+it.each([true, false])("keeps only Formatting options visible until requested (choice: %s)", choiceLabel => {
+  // Arrange
+  setup(null, { choiceLabel, readOnly: false });
+  expect(screen.queryByRole("button", { name: "Image settings" })).toBeNull();
+
+  // Act
+  click("Formatting options");
+  const toolbar = screen.getByRole("toolbar");
+
+  // Assert
+  expect(toolbar.contains(screen.getByRole("button", { name: "Image settings" }))).toBe(true);
+  expect(screen.queryByRole("button", { name: "Insert image" })).toBeNull();
+  click("Image settings");
+  expect(screen.getByRole("dialog", { name: choiceLabel ? "Choice image settings" : "Image settings" })).toBeTruthy();
+});
+
 it("removes only the second French choice occurrence on Apply and restores it in one Creator undo", () => {
   const { creator, openRow } = setup();
   const choices = () => creator.JSON.pages[0].elements[0].choices;
@@ -88,7 +126,7 @@ it("shows the last image selected, stages removal reversibly and offers addition
   const { editor } = setup(null, {choiceLabel:false,readOnly:false});
   editor.commands.setContent(`<img alt="Harbor" src="${source}">`);
   const before = editor.getJSON();
-  click("Image settings");
+  openImageTools();
   expect(screen.getByRole("radio", {name:"1. Harbor"}).getAttribute("aria-checked")).toBe("true");
   expect(screen.getByRole("button",{name:"Add image"})).toBeTruthy();
   expect(screen.queryByRole("status")).toBeNull();
@@ -99,7 +137,7 @@ it("shows the last image selected, stages removal reversibly and offers addition
   click("Remove selected image from this field");
   click("Apply");
   expect(editor.view.dom.querySelector<HTMLImageElement>("img[src]")).toBeNull();
-  click("Image settings");
+  openImageTools();
   expect(screen.queryByRole("radio")).toBeNull();
   expect(screen.queryByRole("button",{name:"Remove selected image from this field"})).toBeNull();
   expect(screen.getByLabelText("New image file")).toBeTruthy();
@@ -216,15 +254,13 @@ it("uses only the row action for a choice label, while a click selects the exact
 it("opens field settings by icon and image, preserving an uncapped image when changing its alt", async () => {
   const store = vi.fn<StoreImage>();
   const { editor } = setup(store, { choiceLabel: false, readOnly: false });
-  const opener = screen.getByRole("button", { name: "Image settings" });
-  opener.focus();
-  click("Image settings");
+  openImageTools();
   expect(screen.getByRole("radio", {name:"1. One"}).getAttribute("aria-checked")).toBe("true");
   click("Add image");
   expect(screen.getByLabelText<HTMLInputElement>("Maximum width").value).toBe("");
   screen.getByRole("button", { name: "Cancel" }).focus();
   click("Cancel");
-  await waitFor(() => expect(document.activeElement).toBe(opener));
+  await waitFor(() => expect(document.activeElement).toBe(editor.view.dom));
   fireEvent.click(editor.view.dom.querySelector<HTMLImageElement>("img[src]")!);
   change("Alt text", "Large image");
   click("Apply");
