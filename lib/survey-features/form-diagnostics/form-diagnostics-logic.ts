@@ -1,16 +1,9 @@
 import { JsonObject, type Question, type SurveyModel } from "survey-core";
-import { parseScalarString } from "@/lib/utils/type-parsers";
-
-const DATA_URL_PREFIX = "data:image/";
-const BASE64_MARKER = ";base64,";
 
 export interface FormDiagnosticsStats {
   /** UTF-8 byte size of the serialized survey JSON. */
   uncompressedSize: number;
   totalQuestions: number;
-  embeddedImagesCount: number;
-  /** Total byte size of embedded base64 images (decoded). */
-  embeddedImagesSizeBytes: number;
   logicConditionsCount: number;
   invisibleLogicItemsCount: number;
   dropdownCount: number;
@@ -28,8 +21,6 @@ export interface FormDiagnosticsStats {
 const emptyStats = (): FormDiagnosticsStats => ({
   uncompressedSize: 0,
   totalQuestions: 0,
-  embeddedImagesCount: 0,
-  embeddedImagesSizeBytes: 0,
   logicConditionsCount: 0,
   invisibleLogicItemsCount: 0,
   dropdownCount: 0,
@@ -44,81 +35,6 @@ const emptyStats = (): FormDiagnosticsStats => ({
 
 function getUtf8ByteLength(text: string): number {
   return new TextEncoder().encode(text).length;
-}
-
-function extractBase64ImagesFromString(text: string | undefined): {
-  count: number;
-  sizeBytes: number;
-} {
-  if (!text || typeof text !== "string") return { count: 0, sizeBytes: 0 };
-  let count = 0;
-  let sizeBytes = 0;
-  let idx = 0;
-  while (true) {
-    const start = text.indexOf(DATA_URL_PREFIX, idx);
-    if (start === -1) break;
-    const comma = text.indexOf(BASE64_MARKER, start);
-    if (comma === -1) break;
-    const payloadStart = comma + BASE64_MARKER.length;
-    let end = text.indexOf('"', payloadStart);
-    if (end === -1) end = text.indexOf("'", payloadStart);
-    if (end === -1) end = text.length;
-    const payload = text.slice(payloadStart, end).replace(/\s/g, "");
-    count += 1;
-    sizeBytes += Math.floor((payload.length * 3) / 4);
-    idx = payloadStart + payload.length;
-  }
-  return { count, sizeBytes };
-}
-
-function extractBase64ImagesFromValue(value: unknown): {
-  count: number;
-  sizeBytes: number;
-} {
-  if (typeof value === "string") {
-    return extractBase64ImagesFromString(value);
-  }
-
-  if (Array.isArray(value)) {
-    return value.reduce(
-      (acc, item) => {
-        const result = extractBase64ImagesFromValue(item);
-        return {
-          count: acc.count + result.count,
-          sizeBytes: acc.sizeBytes + result.sizeBytes,
-        };
-      },
-      { count: 0, sizeBytes: 0 },
-    );
-  }
-
-  if (value != null && typeof value === "object") {
-    return Object.values(value).reduce(
-      (acc, item) => {
-        const result = extractBase64ImagesFromValue(item);
-        return {
-          count: acc.count + result.count,
-          sizeBytes: acc.sizeBytes + result.sizeBytes,
-        };
-      },
-      { count: 0, sizeBytes: 0 },
-    );
-  }
-
-  return { count: 0, sizeBytes: 0 };
-}
-
-/**
- * Get all string values from a localized value: a plain string or an object of locale keys to string (e.g. { "es": "...", "default": "..." }).
- */
-function getAllLocalizedStrings(value: unknown): string[] {
-  if (typeof value === "string") return [value];
-  if (value != null && typeof value === "object" && !Array.isArray(value)) {
-    return Object.values(value).filter(
-      (v): v is string => typeof v === "string",
-    );
-  }
-  return [];
 }
 
 /** Question types that have a choices array with item text (select-base). */
@@ -182,45 +98,6 @@ function getPanelChildElements(panel: SurveyJsonRecord): unknown[] | null {
   return null;
 }
 
-function getNonEmptyLocalizedValues(source: unknown): unknown {
-  if (
-    source != null &&
-    typeof source === "object" &&
-    !Array.isArray(source) &&
-    Object.keys(source).length > 0
-  ) {
-    return source;
-  }
-  return undefined;
-}
-
-function readLocalizedField(
-  owner: unknown,
-  locKey: "locTitle" | "locDescription" | "locText" | "locHtml",
-  rawKey: "title" | "description" | "text" | "html",
-): unknown {
-  const record = owner as Record<string, unknown> | null;
-  const localizedObj =
-    record && typeof record === "object"
-      ? (record[locKey] as Record<string, unknown> | undefined)
-      : undefined;
-  const values = getNonEmptyLocalizedValues(localizedObj?.values);
-  if (values !== undefined) {
-    return values;
-  }
-  if (record && typeof record === "object") {
-    const raw = record[rawKey];
-    if (raw !== undefined && raw !== null) {
-      return raw;
-    }
-  }
-  const getLocaleText = localizedObj?.getLocaleText;
-  if (typeof getLocaleText === "function") {
-    return getLocaleText.call(localizedObj);
-  }
-  return undefined;
-}
-
 /**
  * Analyze survey from JSON (used when SurveyModel is not available).
  */
@@ -232,9 +109,6 @@ export function analyzeSurvey(jsonData: string): FormDiagnosticsStats {
 
   try {
     const survey = JSON.parse(jsonData);
-    const embeddedImages = extractBase64ImagesFromValue(survey);
-    stats.embeddedImagesCount = embeddedImages.count;
-    stats.embeddedImagesSizeBytes = embeddedImages.sizeBytes;
 
     // This JSON fallback mirrors common SurveyJS element structures. In the
     // creator tab, live SurveyModel stats overlay these counts.
@@ -336,8 +210,6 @@ export function analyzeSurveyModel(
 ): Partial<FormDiagnosticsStats> {
   const partial: Partial<FormDiagnosticsStats> = {
     totalQuestions: 0,
-    embeddedImagesCount: 0,
-    embeddedImagesSizeBytes: 0,
     dropdownCount: 0,
     totalDropdownChoicesCount: 0,
     maxDropdownChoicesCount: 0,
@@ -405,62 +277,6 @@ export function analyzeSurveyModel(
     }
   }
 
-  function addImageStatsFromValues(values: string[]): void {
-    for (const s of values) {
-      const r = extractBase64ImagesFromString(s);
-      partial.embeddedImagesCount! += r.count;
-      partial.embeddedImagesSizeBytes! += r.sizeBytes;
-    }
-  }
-
-  function extractImagesFromQuestion(question: Question): void {
-    addImageStatsFromValues(
-      getAllLocalizedStrings(readLocalizedField(question, "locTitle", "title")),
-    );
-    addImageStatsFromValues(
-      getAllLocalizedStrings(
-        readLocalizedField(question, "locDescription", "description"),
-      ),
-    );
-
-    const qType = question.getType();
-    if (SELECT_BASE_TYPES.has(qType)) {
-      const choices = (question as { choices?: unknown[] }).choices ?? [];
-      for (const choice of choices) {
-        addImageStatsFromValues(
-          getAllLocalizedStrings(readLocalizedField(choice, "locText", "text")),
-        );
-      }
-    }
-
-    if (qType === "matrixdropdown" || qType === "matrixdynamic") {
-      const columns = (question as { columns?: unknown[] }).columns ?? [];
-      for (const col of columns) {
-        const colChoices = (col as { choices?: unknown[] }).choices ?? [];
-        for (const choice of colChoices) {
-          addImageStatsFromValues(
-            getAllLocalizedStrings(
-              readLocalizedField(choice, "locText", "text"),
-            ),
-          );
-        }
-      }
-    }
-
-    if (qType === "image") {
-      addImageStatsFromValues([
-        parseScalarString((question as Record<string, unknown>).imageLink) ??
-          "",
-      ]);
-    }
-
-    if (qType === "html") {
-      addImageStatsFromValues(
-        getAllLocalizedStrings(readLocalizedField(question, "locHtml", "html")),
-      );
-    }
-  }
-
   for (const q of questions) {
     const qType = q.getType();
 
@@ -483,13 +299,7 @@ export function analyzeSurveyModel(
       partial.scanditCount!++;
     }
 
-    extractImagesFromQuestion(q);
   }
-
-  const logoStr = parseScalarString((survey as { logo?: unknown }).logo);
-  const logo = extractBase64ImagesFromString(logoStr ?? undefined);
-  partial.embeddedImagesCount! += logo.count;
-  partial.embeddedImagesSizeBytes! += logo.sizeBytes;
 
   return partial;
 }

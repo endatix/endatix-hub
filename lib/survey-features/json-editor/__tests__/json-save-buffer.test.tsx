@@ -9,6 +9,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { stubResizeObserver } from "@/test/stubs/resize-observer";
 import { Result } from "@/lib/result";
 import { useJsonEditor } from "../use-json-editor.hook";
+import { bindConversionSource, conversionSession } from "../../form-diagnostics/conversion-session";
 
 beforeEach(stubResizeObserver);
 
@@ -144,4 +145,34 @@ it("allows a Designer save after leaving the JSON tab", () => {
   // Assert
   expect(acknowledgeOldTab()).toBe(false);
   expect(hook.captureJsonSave()()).toBe(true);
+});
+
+it("submits validated Ace edits on top of an exact converted source and rejects an old acknowledgement", () => {
+  // Arrange
+  const { creator, hook, editor } = view;
+  creator.activeTab = "designer";
+  const png = "data:image/png;base64,iVBORw0KGgo=";
+  const source = { logo: png, title: { default: "Hello" }, pages: [{ name: "p", visible: true }] };
+  creator.JSON = source;
+  bindConversionSource(creator, source);
+  const session = conversionSession(creator)!;
+  const snapshot = session.review();
+  const stored = "https://storage.example/content/f/1/a.png";
+  session.uploads.set(snapshot.inventory.files[0].key, stored);
+  session.apply(snapshot);
+  creator.activeTab = "json";
+  const tab = creator.getPlugin<TabJsonEditorAcePlugin>("json").model as AceJsonEditorModel;
+  tab.init(editor);
+  editor.setValue(JSON.stringify({ ...JSON.parse(tab.text), title: "Revised" }));
+
+  // Act
+  const result = hook.prepareSave(creator);
+  if (Result.isError(result)) throw new Error(result.message);
+  editor.setValue("{");
+
+  // Assert
+  expect(result.value.payload).toEqual({ ...source, title: { default: "Revised" }, logo: stored });
+  expect(result.value.acknowledge()).toBe(false);
+  expect(Result.isError(hook.prepareSave(creator))).toBe(true);
+  editor.setValue(JSON.stringify(result.value.payload));
 });

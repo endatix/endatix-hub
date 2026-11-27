@@ -3,8 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { CreatorImageStorage, useStorageWithCreator } from "@/features/asset-storage/client";
-import { prepareDefinitionSave } from "@/lib/survey-features/form-diagnostics/conversion-session";
-import { useFormDiagnostics } from "@/lib/survey-features/form-diagnostics";
+import { useTemplateDiagnostics } from "@/lib/survey-features/form-diagnostics";
 import { TelemetryLogger } from "@/features/telemetry";
 import { useSurveyLicenseKey } from "@/features/config/survey-license-provider";
 import { useDesignerRuntime } from "@/lib/designer-runtime";
@@ -119,7 +118,7 @@ function FormTemplateEditorContent({
   const [name, setName] = useState(templateName);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [originalName, setOriginalName] = useState(templateName);
-  const { registerJsonEditor, getJsonModel, captureJsonSave } = useJsonEditor({
+  const { registerJsonEditor, prepareSave } = useJsonEditor({
     onJsonStateChange: (state) => {
       setHasJsonErrors(state.hasErrors);
       setIsOnJsonTab(state.isOnJsonTab);
@@ -136,7 +135,7 @@ function FormTemplateEditorContent({
   const [questionClasses, setQuestionClasses] = useState<any[]>([]);
   useRichTextEditing(creator);
   useCreatorJson(creator, templateJson);
-  const { initGlobals: initDiagnostics, bindToCreator: bindDiagnostics } = useFormDiagnostics(creator);
+  useTemplateDiagnostics(creator);
   useCreatorTabUrl(creator);
 
   const creatorTheme = useEndatixCreatorTheme();
@@ -213,7 +212,6 @@ function FormTemplateEditorContent({
       }
 
       try {
-        initDiagnostics();
         const newCreator = new SurveyCreator({
           ...(options || defaultCreatorOptions),
           showCreatorThemeSettings: false,
@@ -224,7 +222,6 @@ function FormTemplateEditorContent({
           creatorThemeRef.current,
           document.getElementById("surveyCreatorContainer") ?? undefined,
         );
-        bindDiagnostics(newCreator);
         setCreator(newCreator);
         onCreatorCreated(newCreator);
 
@@ -253,8 +250,6 @@ function FormTemplateEditorContent({
       toast.error("Failed to load custom questions");
     });
   }, [
-    initDiagnostics,
-    bindDiagnostics,
     options,
     slkVal,
     registerStorageHandlers,
@@ -345,14 +340,7 @@ function FormTemplateEditorContent({
       return;
     }
 
-    const jsonResult = getJsonModel(creator);
-    if (Result.isError(jsonResult)) {
-      toast.error(jsonResult.message);
-      return;
-    }
-
-    const acknowledgeJsonSave = captureJsonSave();
-    const prepared = prepareDefinitionSave(creator, jsonResult.value);
+    const prepared = prepareSave(creator);
     if (Result.isError(prepared)) {
       toast.error(prepared.message);
       return;
@@ -369,7 +357,7 @@ function FormTemplateEditorContent({
         return;
       }
 
-      if (acknowledgeJsonSave() && prepared.value.acknowledge()) {
+      if (prepared.value.acknowledge()) {
         setHasUnsavedChanges(false);
         setIsJsonModified(false);
       }

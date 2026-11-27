@@ -72,8 +72,7 @@ vi.mock("@/features/asset-storage/client", () => ({
 vi.mock("@/lib/survey-features/json-editor/use-json-editor.hook", () => ({
   useJsonEditor: () => ({
     registerJsonEditor: () => vi.fn(),
-    getJsonModel: () => Result.success({ title: "Edited" }),
-    captureJsonSave: () => () => true,
+    prepareSave: () => Result.success({ payload: { title: "Edited" }, acknowledge: () => true }),
   }),
 }));
 
@@ -98,6 +97,7 @@ vi.mock("@/lib/survey-features/any-answered", () => ({
 
 vi.mock("@/lib/survey-features/form-diagnostics", () => ({
   applyFormDiagnosticsAudience: vi.fn(),
+  useTemplateDiagnostics: vi.fn(),
   useFormDiagnostics: () => ({
     initGlobals: vi.fn(),
     bindToCreator: () => vi.fn(),

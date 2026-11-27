@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { FormTemplate } from "@/types";
 import { auth } from "@/auth";
-import { authorization } from "@/features/auth/authorization";
+import { authorization, Permissions } from "@/features/auth/authorization";
 import { AssetStorageProvider } from "@/features/asset-storage/server";
 import { DesignerRuntimeProvider } from "@/lib/designer-runtime";
 import { getSurveyLicenseKey } from "@/features/config/server";
@@ -23,6 +23,7 @@ export default async function FormTemplateEditPage({ params }: Params) {
   await requireHubAccess();
 
   const { templateId } = await params;
+  const canConvertImages = (await checkPermission(Permissions.Templates.Edit)).success;
   let template: FormTemplate | null = null;
   try {
     template = await getFormTemplate(templateId);
@@ -65,10 +66,7 @@ export default async function FormTemplateEditPage({ params }: Params) {
         <SurveyLicenseProvider value={getSurveyLicenseKey()}>
           <DesignerRuntimeProvider
             key={templateId}
-            initialState={{
-              canConvertImages: (await checkPermission("templates.edit")).success,
-              templateId,
-            }}
+            initialState={{ templateId, canConvertImages }}
           >
             <AssetStorageProvider>
               <FormTemplateEditorContainer {...props} />

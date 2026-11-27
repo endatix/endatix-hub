@@ -70,28 +70,6 @@ describe("form diagnostics logic", () => {
     expect(stats.scanditCount).toBe(1);
   });
 
-  it("counts embedded base64 images from parsed JSON string values", () => {
-    const surveyJson = {
-      logo: "data:image/png;base64,AAAA",
-      pages: [
-        {
-          elements: [
-            {
-              type: "html",
-              name: "intro",
-              html: '<img src="data:image/jpeg;base64,BBBB" />',
-            },
-          ],
-        },
-      ],
-    };
-
-    const stats = analyzeSurvey(JSON.stringify(surveyJson));
-
-    expect(stats.embeddedImagesCount).toBe(2);
-    expect(stats.embeddedImagesSizeBytes).toBe(6);
-  });
-
   it("uses SurveyModel semantics for model-derived stats", () => {
     const survey = new Model({
       pages: [
@@ -136,7 +114,5 @@ describe("form diagnostics logic", () => {
     expect(stats.maxDropdownChoicesCount).toBe(3);
     expect(stats.fileUploadCount).toBe(1);
     expect(stats.fileUploadWithoutBlobCount).toBe(0);
-    expect(stats.embeddedImagesCount).toBe(1);
-    expect(stats.embeddedImagesSizeBytes).toBe(3);
   });
 });

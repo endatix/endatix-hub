@@ -4,7 +4,6 @@ import { toast } from "@/components/ui/toast";
 import { TelemetryLogger } from "@/features/telemetry";
 import { customQuestions } from "@/customizations/questions/question-registry";
 import { CreatorImageStorage, useStorageWithCreator } from "@/features/asset-storage/client";
-import { prepareDefinitionSave } from "@/lib/survey-features/form-diagnostics/conversion-session";
 import { useSurveyLicenseKey } from "@/features/config/survey-license-provider";
 import { designerRuntimeDeps } from "./designer-runtime-deps";
 import {
@@ -216,7 +215,7 @@ function FormEditor({
     },
     [setHasJsonErrors, setIsOnJsonTab, setIsJsonModified, setHasUnsavedChanges],
   );
-  const { registerJsonEditor, getJsonModel, captureJsonSave } = useJsonEditor({
+  const { registerJsonEditor, prepareSave } = useJsonEditor({
     onJsonStateChange,
     downloadName: formName,
   });
@@ -316,14 +315,7 @@ function FormEditor({
   const saveForm = useCallback(async () => {
     const isDraft = false;
 
-    const jsonResult = getJsonModel(creator);
-    if (Result.isError(jsonResult)) {
-      toast.error(jsonResult.message);
-      return;
-    }
-
-    const acknowledgeJsonSave = captureJsonSave();
-    const prepared = prepareDefinitionSave(creator, jsonResult.value);
+    const prepared = prepareSave(creator);
     if (Result.isError(prepared)) {
       toast.error(prepared.message);
       return;
@@ -374,7 +366,7 @@ function FormEditor({
       isThemeUpdated = true;
     }
 
-    if (acknowledgeJsonSave() && prepared.value.acknowledge()) {
+    if (prepared.value.acknowledge()) {
       setHasUnsavedChanges(false);
       setIsJsonModified(false);
     }
@@ -389,8 +381,7 @@ function FormEditor({
       </p>,
     );
   }, [
-    getJsonModel,
-    captureJsonSave,
+    prepareSave,
     creator,
     formId,
     themeId,

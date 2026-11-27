@@ -21,6 +21,7 @@ import {
 } from "./json-editor-state";
 import { addObfuscatedJsonDownload } from "./json-download-menu";
 import { Result } from "@/lib/result";
+import { conversionSession, prepareDefinitionSave } from "../form-diagnostics/conversion-session";
 
 const INVALID_JSON_ERROR_MESSAGE =
   "Please fix the errors in the JSON schema and try again.";
@@ -40,6 +41,26 @@ function warnUnknownReference(
 /** undefined and false block; true (warnings at most) does not. */
 function jsonTabBlocks(model: JsonEditorBaseModel): boolean {
   return model.allowingDeactivate() !== true;
+}
+
+function validateBuffer(text: string): Result<object> {
+  try {
+    const survey = new Model();
+    survey.fromJSON(JSON.parse(text));
+    if (survey.jsonErrors?.length > 0) return Result.validationError(INVALID_JSON_ERROR_MESSAGE);
+    return Result.success(survey.toJSON());
+  } catch {
+    return Result.validationError(MALFORMED_JSON_ERROR_MESSAGE);
+  }
+}
+
+function getJsonModel(creator: SurveyCreatorModel | null): Result<object> {
+  if (!creator) return Result.error(UNEXPECTED_ERROR_MESSAGE);
+  if (creator.activeTab !== JSON_EDITOR_PLUGIN_NAME) return Result.success(creator.JSON);
+  const plugin: TabJsonEditorBasePlugin = creator.getPlugin(JSON_EDITOR_PLUGIN_NAME);
+  if (!plugin) return Result.error(UNEXPECTED_ERROR_MESSAGE);
+  if (jsonTabBlocks(plugin.model)) return Result.validationError(INVALID_JSON_ERROR_MESSAGE);
+  return validateBuffer(plugin.model.text);
 }
 
 export type { JsonEditorState } from "./json-editor-state";
@@ -124,6 +145,8 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
       }
 
       function leaveJsonTab() {
+        const buffer = activeBuffer.current;
+        if (buffer?.modified) conversionSession(creator)?.acceptEditorText(buffer.model.text);
         removeModelListener?.();
         removeModelListener = undefined;
         activeBuffer.current = null;
@@ -209,47 +232,16 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
     [activeBuffer, onJsonStateChange],
   );
 
-  const getJsonModel = useCallback(
-    (creator: SurveyCreatorModel | null): Result<any> => {
-      if (!creator) {
-        return Result.error(UNEXPECTED_ERROR_MESSAGE);
-      }
-
-      const currentTab = creator.activeTab;
-
-      if (currentTab !== JSON_EDITOR_PLUGIN_NAME) {
-        return Result.success(creator.JSON);
-      }
-
-      const jsonPlugin: TabJsonEditorBasePlugin = creator.getPlugin(
-        JSON_EDITOR_PLUGIN_NAME,
-      );
-
-      if (!jsonPlugin) {
-        return Result.error(UNEXPECTED_ERROR_MESSAGE);
-      }
-
-      const model = jsonPlugin.model;
-      if (jsonTabBlocks(model)) {
-        return Result.validationError(INVALID_JSON_ERROR_MESSAGE);
-      }
-
-      try {
-        const resultJson = JSON.parse(model.text);
-        const surveyModel = new Model();
-        surveyModel.fromJSON(resultJson);
-
-        if (surveyModel.jsonErrors?.length > 0) {
-          return Result.validationError(INVALID_JSON_ERROR_MESSAGE);
-        }
-
-        return Result.success(surveyModel.toJSON());
-      } catch {
-        return Result.validationError(MALFORMED_JSON_ERROR_MESSAGE);
-      }
-    },
-    [],
-  );
-
-  return { registerJsonEditor, getJsonModel, captureJsonSave };
+  const prepareSave = useCallback((creator: SurveyCreatorModel | null) => {
+    const validated = getJsonModel(creator);
+    if (Result.isError(validated)) return validated;
+    const request = prepareDefinitionSave(creator, validated.value);
+    if (Result.isError(request)) return request;
+    const acknowledgeBuffer = captureJsonSave();
+    return Result.success({
+      payload: request.value.payload,
+      acknowledge: () => acknowledgeBuffer() && request.value.acknowledge(),
+    });
+  }, [captureJsonSave]);
+  return { registerJsonEditor, getJsonModel, captureJsonSave, prepareSave };
 }

@@ -53,16 +53,17 @@ function useStoreImage({ itemId, itemType }: CreatorImageStorageProps) {
 export function CreatorImageStorage(props: CreatorImageStorageProps) {
   const store = useStoreImage(props);
   const { itemId, itemType } = props;
-  const original = useMemo(() => store && storeImage({
-    itemId, itemType, questionName: "embedded-images", isResizeEnabled: false,
-  }), [itemId, itemType, store]);
+  const original = useMemo(
+    () => store && storeImage({ itemId, itemType, questionName: "embedded-images", isResizeEnabled: false }),
+    [itemId, itemType, store],
+  );
   return (
     <OriginalImageUploadContext.Provider value={original}>
-    <ImageUploadContext.Provider value={store}>
-      <RichTextImageDisplay>
-        {props.creator ? <ChoiceImageSettings creator={props.creator} PreviewDisplay={RichTextImageDisplay}>{props.children}</ChoiceImageSettings> : props.children}
-      </RichTextImageDisplay>
-    </ImageUploadContext.Provider>
+      <ImageUploadContext.Provider value={store}>
+        <RichTextImageDisplay>
+          {props.creator ? <ChoiceImageSettings creator={props.creator} PreviewDisplay={RichTextImageDisplay}>{props.children}</ChoiceImageSettings> : props.children}
+        </RichTextImageDisplay>
+      </ImageUploadContext.Provider>
     </OriginalImageUploadContext.Provider>
   );
 }

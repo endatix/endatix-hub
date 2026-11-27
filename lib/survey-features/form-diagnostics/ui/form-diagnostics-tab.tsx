@@ -343,9 +343,9 @@ export const FormDiagnosticsView = ({
             audienceFindings.length === 0 && (
               <Alert className="border-green-200 bg-green-50 text-green-600 dark:border-green-800 dark:bg-green-950/20 dark:text-green-400">
                 <CheckCircle2 className="h-4 w-4" />
-                <AlertTitle>All Good!</AlertTitle>
+                <AlertTitle>Structure checks complete</AlertTitle>
                 <AlertDescription>
-                  No issues detected in the form structure.
+                  No other structural issues detected.
                 </AlertDescription>
               </Alert>
             )

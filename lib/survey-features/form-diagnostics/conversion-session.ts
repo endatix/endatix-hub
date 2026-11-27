@@ -1,12 +1,18 @@
-import type { SurveyCreatorModel } from "survey-creator-core";
+import type {
+  SurveyCreatorModel,
+  TabJsonEditorBasePlugin,
+} from "survey-creator-core";
 import { Result } from "@/lib/result";
+import { JSON_EDITOR_PLUGIN_NAME } from "../json-editor/json-editor-state";
 import { reviewEmbeddedImages, replaceEmbeddedImages } from "./embedded-images";
 import { equalDefinition, sourceWithEdits } from "./source-definition";
+import { applyImageEdit, matchEditorFields } from "./image-conversion-edit";
 
 export interface ImageSnapshot {
   source: object;
   projection: object;
   survey: SurveyCreatorModel["survey"];
+  revision: number;
   inventory: ReturnType<typeof reviewEmbeddedImages>;
 }
 
@@ -15,80 +21,197 @@ const sessions = new WeakMap<SurveyCreatorModel, ConversionSession>();
 
 export class ConversionSession {
   readonly uploads = new Map<string, string>();
+  private readonly transfers = new Map<string, Promise<string>>();
   private pending = false;
   private submitted?: object;
   private generation = 0;
-  private undoPoint?: { before: ImageSnapshot; after: object };
+  private revision = 0;
+  private ambiguousBuffer = false;
+  private readonly onModified = () => {
+    this.revision++;
+  };
+  private undoPoint?: ReturnType<typeof applyImageEdit>;
+  lastConversion?: ImageSnapshot;
 
-  constructor(readonly creator: SurveyCreatorModel, private source: object, private baseline: object) {}
+  constructor(
+    readonly creator: SurveyCreatorModel,
+    private source: object,
+    private baseline: object,
+  ) {
+    creator.onModified?.add(this.onModified);
+  }
+
+  dispose() {
+    this.creator.onModified?.remove(this.onModified);
+  }
+
+  async storeOnce(key: string, upload: () => Promise<string>) {
+    const confirmed = this.uploads.get(key);
+    if (confirmed) return confirmed;
+    const pending = this.transfers.get(key);
+    if (pending) return pending;
+    const transfer = upload();
+    this.transfers.set(key, transfer);
+    try {
+      const url = await transfer;
+      this.uploads.set(key, url);
+      return url;
+    } finally { this.transfers.delete(key); }
+  }
 
   review(): ImageSnapshot {
+    if (this.ambiguousBuffer) throw new Error(REVIEW_AGAIN);
     const projection: object = this.creator.JSON;
     const source = sourceWithEdits(this.source, this.baseline, projection);
-    return { source, projection, survey: this.creator.survey, inventory: reviewEmbeddedImages(source) };
+    const inventory = matchEditorFields(
+      this.creator,
+      reviewEmbeddedImages(source),
+    );
+    return {
+      source,
+      projection,
+      survey: this.creator.survey,
+      revision: this.revision,
+      inventory,
+    };
+  }
+
+  acceptEditorText(text: string) {
+    try {
+      const source = sourceWithEdits(
+        this.source,
+        this.baseline,
+        JSON.parse(text),
+      );
+      this.baseline = this.creator.JSON;
+      this.source = source;
+      this.ambiguousBuffer = false;
+    } catch {
+      this.ambiguousBuffer = true;
+    }
   }
 
   current(snapshot: ImageSnapshot) {
-    return sessions.get(this.creator) === this && this.creator.survey === snapshot.survey &&
-      this.creator.activeTab !== "json" && equalDefinition(this.creator.JSON, snapshot.projection);
+    return (
+      sessions.get(this.creator) === this &&
+      this.creator.survey === snapshot.survey &&
+      this.revision === snapshot.revision &&
+      this.creator.activeTab !== JSON_EDITOR_PLUGIN_NAME &&
+      equalDefinition(this.creator.JSON, snapshot.projection)
+    );
   }
 
   apply(snapshot: ImageSnapshot) {
-    if (!this.current(snapshot)) throw new Error(REVIEW_AGAIN);
-    const source = replaceEmbeddedImages(snapshot.source, snapshot.inventory, this.uploads);
-    this.setCanvas(source);
-    this.undoPoint = { before: snapshot, after: this.baseline };
+    if (!this.current(snapshot)) return "stale";
+    const source = replaceEmbeddedImages(
+      snapshot.source,
+      snapshot.inventory,
+      this.uploads,
+    );
+    this.undoPoint = applyImageEdit(
+      this.creator,
+      { converted: source, review: snapshot.inventory },
+      this.captureEdit(snapshot, source),
+    );
+    return "converted";
   }
 
+  private captureEdit(snapshot: ImageSnapshot, source: object) {
+    let convertedBaseline: object;
+    return (stored: boolean) => {
+      this.source = stored ? source : snapshot.source;
+      if (stored) convertedBaseline ??= this.creator.JSON;
+      this.baseline = stored ? convertedBaseline : snapshot.projection;
+      this.pending = true;
+      this.generation++;
+      this.lastConversion = stored ? snapshot : undefined;
+    };
+  }
   undo() {
-    if (!this.undoPoint || !equalDefinition(this.creator.JSON, this.undoPoint.after)) return false;
-    this.setCanvas(this.undoPoint.before.source);
-    this.undoPoint = undefined;
+    if (
+      !this.undoPoint ||
+      this.creator.undoRedoManager.peekTransaction(true) !== this.undoPoint
+    )
+      return false;
+    this.creator.undo();
     return true;
   }
 
-  private setCanvas(source: object) {
-    this.creator.changeText(JSON.stringify(source), false, true);
-    this.source = source;
-    this.baseline = this.creator.JSON;
-    this.pending = true;
-    this.generation++;
-    this.creator.setModified({ type: "PROPERTY_CHANGED" });
+  isSubmitted(source: object) {
+    return (
+      this.submitted !== undefined && equalDefinition(this.submitted, source)
+    );
   }
 
-  isSubmitted(source: object) { return this.submitted !== undefined && equalDefinition(this.submitted, source); }
-
   prepare(projection: object) {
-    const payload = this.pending ? sourceWithEdits(this.source, this.baseline, projection) : projection;
+    if (this.pending && this.ambiguousBuffer) throw new Error(REVIEW_AGAIN);
+    const payload = this.pending
+      ? sourceWithEdits(this.source, this.baseline, this.validatedEditorInput(projection))
+      : projection;
     if (this.pending) this.submitted = payload;
-    const generation = this.generation;
-    const wasPending = this.pending;
-    return { payload, acknowledge: () => {
-      if (sessions.get(this.creator) !== this || generation !== this.generation || (wasPending && this.submitted !== payload)) return false;
-      this.source = payload;
-      this.baseline = projection;
-      const unchanged = !wasPending || (this.creator.activeTab === "json" || equalDefinition(this.creator.JSON, projection));
-      if (unchanged) {
-        this.undoPoint = undefined;
-        this.pending = false;
-      }
-      return unchanged;
-    } };
+    const request = { generation: this.generation, converted: this.pending, payload, projection };
+    return {
+      payload,
+      acknowledge: () => this.acknowledge(request),
+    };
+  }
+
+  private acknowledge(request: { generation: number; converted: boolean; payload: object; projection: object }) {
+    if (sessions.get(this.creator) !== this || request.generation !== this.generation) return false;
+    if (request.converted && this.submitted !== request.payload) return false;
+    this.source = request.payload;
+    this.baseline = request.projection;
+    const unchanged = !request.converted || this.creator.activeTab === JSON_EDITOR_PLUGIN_NAME ||
+      equalDefinition(this.creator.JSON, request.projection);
+    if (unchanged) {
+      this.undoPoint = undefined;
+      this.lastConversion = undefined;
+      this.pending = false;
+    }
+    return unchanged;
+  }
+
+  /** getJsonModel already validated this buffer. Its normalized result omits explicit defaults. */
+  private validatedEditorInput(projection: object): object {
+    if (this.creator.activeTab !== JSON_EDITOR_PLUGIN_NAME) return projection;
+    const tab: TabJsonEditorBasePlugin = this.creator.getPlugin(
+      JSON_EDITOR_PLUGIN_NAME,
+    );
+    return JSON.parse(tab.model.text);
   }
 }
 
-export function bindConversionSource(creator: SurveyCreatorModel, source: object) {
+export function bindConversionSource(
+  creator: SurveyCreatorModel,
+  source: object,
+) {
+  sessions.get(creator)?.dispose();
   sessions.set(creator, new ConversionSession(creator, source, creator.JSON));
+}
+
+export function unbindConversionSource(creator: SurveyCreatorModel) {
+  sessions.get(creator)?.dispose();
+  sessions.delete(creator);
 }
 
 export function conversionSession(creator: SurveyCreatorModel | null) {
   return creator ? sessions.get(creator) : undefined;
 }
 
-export function prepareDefinitionSave(creator: SurveyCreatorModel | null, validated: object): Result<ReturnType<ConversionSession["prepare"]>> {
+export function prepareDefinitionSave(
+  creator: SurveyCreatorModel | null,
+  validated: object,
+): Result<ReturnType<ConversionSession["prepare"]>> {
   try {
-    return Result.success(conversionSession(creator)?.prepare(validated) ?? { payload: validated, acknowledge: () => true });
+    return Result.success(
+      conversionSession(creator)?.prepare(validated) ?? {
+        payload: validated,
+        acknowledge: () => true,
+      },
+    );
   } catch {
-    return Result.validationError("Cannot safely match this edit to the converted definition. Review changes before saving.");
+    return Result.validationError(
+      "Cannot safely match this edit to the converted definition. Review changes before saving.",
+    );
   }
 }
