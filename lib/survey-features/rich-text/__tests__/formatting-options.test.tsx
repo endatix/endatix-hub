@@ -96,3 +96,20 @@ it("opens formatting only on request and closes it when another field takes focu
   act(() => other.view.focus());
   expect(screen.queryByRole("toolbar")).toBeNull();
 });
+
+it("formats the last character selected before tabbing directly to the toolbar", () => {
+  // Arrange
+  render(<RichTextField value="Follow the trail" />);
+  const editor = mountedEditor();
+  const text = editor.view.dom.querySelector("p")!.firstChild!;
+  editor.view.focus();
+  document.getSelection()!.setBaseAndExtent(text, 0, text, 6);
+
+  // Act
+  fireEvent.keyDown(editor.view.dom, { key: "Tab" });
+  fireEvent.click(screen.getByRole("button", { name: "Formatting options" }));
+  fireEvent.click(screen.getByRole("button", { name: "Bold" }));
+
+  // Assert
+  expect(editor.getHTML()).toBe("<p><strong>Follow</strong> the trail</p>");
+});

@@ -1,6 +1,6 @@
 import { useContext, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type RefObject } from "react";
 import type { Editor } from "@tiptap/core";
-import { NodeSelection } from "@tiptap/pm/state";
+import { NodeSelection, TextSelection } from "@tiptap/pm/state";
 import { X } from "lucide-react";
 import { ImageUploadContext } from "./image-upload-context";
 import { OpenImageSettings, inlineImage } from "./image-settings-target";
@@ -58,11 +58,28 @@ function useImageTransfers(editor?: Editor, choiceLabel = false) {
   return { jobs, upload: (files: FileList) => editor && transfers.current?.upload(editor.state.selection, files) };
 }
 
+// A final Shift+Arrow selectionchange can arrive after Tab or pointer focus
+// leaves the editing surface. Capture the browser selection before that move.
+function rememberSelection(editor?: Editor) {
+  if (!editor || !(editor.state.selection instanceof TextSelection)) return;
+  const root = editor.view.dom;
+  const selection = root.ownerDocument.getSelection();
+  if (!selection?.anchorNode || !selection.focusNode ||
+    !root.contains(selection.anchorNode) || !root.contains(selection.focusNode)) return;
+  const anchor = editor.view.posAtDOM(selection.anchorNode, selection.anchorOffset);
+  const head = editor.view.posAtDOM(selection.focusNode, selection.focusOffset);
+  const range = TextSelection.between(editor.state.doc.resolve(anchor), editor.state.doc.resolve(head));
+  if (!range.eq(editor.state.selection)) editor.view.dispatch(editor.state.tr.setSelection(range));
+}
+
 function useFormattingOptions(editor?: Editor) {
   const [expanded, setExpanded] = useState(false);
   const id = useId();
   function navigate(event: KeyboardEvent<HTMLDivElement>) {
-    if (event.key === "Tab") event.stopPropagation();
+    if (event.key === "Tab") {
+      rememberSelection(editor);
+      event.stopPropagation();
+    }
     if (expanded && event.key === "Escape") {
       event.stopPropagation();
       setExpanded(false);
@@ -124,6 +141,7 @@ function FormattingOptions({ options, editor, upload, openSettings }: Readonly<O
     className={expanded ? "rich-text-formatting" : "rich-text-trigger"}>
     <button type="button" className="rich-text-format-toggle" title={label}
       aria-label={label} aria-expanded={expanded} aria-controls={expanded ? id : undefined}
+      onPointerDown={() => rememberSelection(editor)}
       onClick={event => {
         if (expanded) editor?.view.focus();
         else event.currentTarget.focus({ preventScroll: true });
