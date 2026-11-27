@@ -30,6 +30,7 @@ import {
   normalizeChoicesToDataListItems,
 } from "@/lib/survey-features/data-lists/utils";
 import { Result } from "@/lib/result";
+import { definitionBytes, sizeChange } from "../definition-size";
 import { useCallback, useMemo, useState } from "react";
 import { Model } from "survey-core";
 import { collectReservedDataListNames } from "../collect-reserved-data-list-names";
@@ -279,7 +280,7 @@ type CreateCopiedFormInput = {
 
 async function createCopiedForm(
   input: CreateCopiedFormInput,
-): Promise<{ ok: true; formId: string } | { ok: false; error: string }> {
+): Promise<{ ok: true; formId: string; change: ReturnType<typeof sizeChange> } | { ok: false; error: string }> {
   const cloned = cloneSurveyWithBindings(input.surveyPayload, input.successes);
   const newFormName = getCopiedFormName(input.formName);
 
@@ -301,7 +302,7 @@ async function createCopiedForm(
       };
     }
 
-    return { ok: true, formId: createResult.value };
+    return { ok: true, formId: createResult.value, change: sizeChange(definitionBytes(input.surveyPayload), definitionBytes(cloned)) };
   } catch (error) {
     const message = toErrorMessage(error, "Failed to create the new form.");
     return {
@@ -391,10 +392,12 @@ async function mapPool<T, R>(
 
 interface ConvertLargeChoiceListsProps {
   model: FormDiagnosticsPlugin;
+  onCopy?: (change: ReturnType<typeof sizeChange> | null) => void;
 }
 
 export function ConvertLargeChoiceLists({
   model,
+  onCopy,
 }: Readonly<ConvertLargeChoiceListsProps>) {
   const [threshold, setThreshold] = useState(10);
   const [phase, setPhase] = useState<Phase>("idle");
@@ -436,6 +439,7 @@ export function ConvertLargeChoiceLists({
   const candidatePreview = candidates.slice(0, PREVIEW_LIMIT);
 
   const resetRun = useCallback(() => {
+    onCopy?.(null);
     setPhase("idle");
     setPhaseLabel("");
     setCompleted(0);
@@ -444,7 +448,7 @@ export function ConvertLargeChoiceLists({
     setLastSummary(null);
     setLastFailures([]);
     setCreatedFormId(null);
-  }, []);
+  }, [onCopy]);
 
   const clearRunResults = useCallback(() => {
     setErrorBanner(null);
@@ -563,6 +567,7 @@ export function ConvertLargeChoiceLists({
       `Created "${getCopiedFormName(model.formName)}" with ${successes.length} conversion(s). ${failed} failed or skipped.`,
     );
     setCreatedFormId(formResult.formId);
+    onCopy?.(formResult.change);
   }, [
     candidates,
     clearRunResults,
@@ -575,6 +580,7 @@ export function ConvertLargeChoiceLists({
     model.formName,
     parsedPayload,
     recordConversionOutcomes,
+    onCopy,
   ]);
 
   const progressPct =

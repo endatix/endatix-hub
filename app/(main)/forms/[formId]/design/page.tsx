@@ -142,7 +142,7 @@ export default async function FormDesignerPage({
         <SurveyLicenseProvider value={getSurveyLicenseKey()}>
           <DesignerRuntimeProvider
             key={formId}
-            initialState={designerScope(form, (await checkPermission(Permissions.Forms.Edit)).success)}
+            initialState={designerScope(form, (await checkPermission(Permissions.Forms.Edit)).success, (await checkPermission(Permissions.Forms.Create)).success)}
           >
             <AssetStorageProvider>
               <FormAssistantProvider
@@ -161,7 +161,7 @@ export default async function FormDesignerPage({
   );
 }
 
-function designerScope(form: Form, canConvertImages: boolean) {
+function designerScope(form: Form, canConvertImages: boolean, canCreate: boolean) {
   return {
     formId: form.id,
     definitionId: form.activeDefinitionId ?? undefined,
@@ -170,6 +170,7 @@ function designerScope(form: Form, canConvertImages: boolean) {
     isPublic: form.isPublic,
     formIsEnabled: form.isEnabled,
     canConvertImages,
+    canCreateListCopy: canCreate && canConvertImages,
   };
 }
 

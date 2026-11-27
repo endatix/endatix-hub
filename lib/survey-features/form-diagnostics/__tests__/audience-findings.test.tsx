@@ -59,8 +59,8 @@ describe("Audience findings in Diagnostics", () => {
       />,
     );
 
-    const disclosure = screen.getByText(/Review personalization/);
-    expect(disclosure.closest("details")?.open).toBe(false);
+    const disclosure = screen.getByRole("button", {name:"Review personalization"});
+    expect(disclosure.getAttribute("aria-expanded")).toBe("false");
     fireEvent.click(disclosure);
     const section = screen.getByRole("region", { name: /Personalization/ });
     expect(within(section).getByText("{tierr} is not declared")).toBeTruthy();
@@ -75,7 +75,7 @@ describe("Audience findings in Diagnostics", () => {
     render(<FormDiagnosticsView model={plugin} />);
     vi.mocked(audience.review).mockResolvedValue({ findings: [] });
 
-    fireEvent.click(screen.getByText(/Review personalization/));
+    fireEvent.click(screen.getByRole("button", {name:"Review personalization"}));
     expect(audience.applyFix).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Use {tier}" }));
 
@@ -93,7 +93,7 @@ describe("Audience findings in Diagnostics", () => {
     vi.mocked(audience.review).mockResolvedValue({ findings: [] });
 
     // Act
-    fireEvent.click(screen.getByText(/Review personalization/));
+    fireEvent.click(screen.getByRole("button", {name:"Review personalization"}));
     fireEvent.click(
       screen.getByRole("button", { name: "Add as participant property" }),
     );
@@ -163,7 +163,7 @@ describe("Audience findings in Diagnostics", () => {
     vi.mocked(audience.review).mockResolvedValue({ findings: [UNUSED] });
     plugin.activate();
 
-    fireEvent.click(await screen.findByText(/Review personalization/));
+    fireEvent.click(await screen.findByRole("button", {name:"Review personalization"}));
     expect(screen.getByText("{seats} is never used")).toBeTruthy();
   });
 
@@ -234,7 +234,7 @@ describe("Audience findings in Diagnostics", () => {
       />,
     );
 
-    fireEvent.click(screen.getByText(/Review personalization/));
+    fireEvent.click(screen.getByRole("button", {name:"Review personalization"}));
     expect(
       screen.getByText(
         "A calculated value shares its name with the Property {seats}",

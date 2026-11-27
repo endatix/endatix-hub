@@ -39,17 +39,15 @@ function open(canEdit: boolean, store: StoreImage | null) {
   return region;
 }
 
-it("shows a compact no-action result and keeps settings behind a keyboard disclosure", () => {
+it("opens checks on a no-action form and distinguishes settings from successful checks", () => {
   const creator = new SurveyCreatorModel();
   const source = { elements: [{ type: "text", name: "comment" }] };
   creator.JSON = source;
   bindConversionSource(creator, source);
   render(<FormDiagnosticsView model={new FormDiagnosticsPlugin(creator)} />);
-  expect(screen.getByRole("heading", { name: "No actions recommended" })).toBeTruthy();
-  const details = screen.getByText("All checks and settings").closest("details")!;
-  expect(details.open).toBe(false);
-  fireEvent.click(screen.getByText("All checks and settings"));
-  expect(details.open).toBe(true);
+  expect(screen.getByRole("heading", { name: "No action needed" })).toBeTruthy();
+  const details = screen.getByText("All checks and settings").closest("section")!;
+  expect(within(details).getByRole("button").getAttribute("aria-expanded")).toBe("true");
   expect(details.textContent).toContain("Checked · none embedded");
   expect(details.textContent).toContain("Not available");
   expect(details.textContent).toContain("Disabled");
@@ -62,9 +60,9 @@ it("offers a custom threshold for small dropdowns only after inspection, without
   bindConversionSource(creator, source);
   const plugin = new FormDiagnosticsPlugin(creator);
   plugin.formId = "12";
-  render(<FormDiagnosticsView model={plugin} />);
+  render(<DesignerRuntimeProvider initialState={{canCreateListCopy:true}}><FormDiagnosticsView model={plugin} /></DesignerRuntimeProvider>);
   expect(screen.queryByLabelText("Minimum choices required for conversion")).toBeNull();
-  fireEvent.click(screen.getByText("Optional: create a copy with data lists"));
+  fireEvent.click(screen.getByRole("button", {name:"Review choice lists"}));
   fireEvent.change(screen.getByLabelText("Minimum choices required for conversion"), { target: { value: "2" } });
   expect(screen.getByText("region")).toBeTruthy();
   expect(convertChoicesToDataListAction).not.toHaveBeenCalled();
@@ -80,11 +78,14 @@ it("reviews a single placement without making an upload", () => {
     view.getByRole("button", { name: "Convert 1 placement" }),
   ).toBeTruthy();
   expect(store).not.toHaveBeenCalled();
+  expect(document.activeElement?.textContent).toBe("What will change");
 });
 
 it("reports a finding with storage disabled and omits conversion without edit access", () => {
   // Arrange & Act
   const view = open(false, null);
+  expect(view.getByText(/Benefit if converted/)).toBeTruthy();
+  expect(document.activeElement?.textContent).toBe("Placement details");
 
   // Assert
   expect(view.getByText(/storage is disabled/)).toBeTruthy();
@@ -96,6 +97,8 @@ it("reports a finding with storage disabled and omits conversion without edit ac
 it("omits conversion for a read-only author even with storage enabled", () => {
   // Arrange & Act
   const view = open(false, vi.fn());
+  expect(view.getByText("Needs edit access")).toBeTruthy();
+  expect(view.getByText(/Benefit if converted/)).toBeTruthy();
 
   // Assert
   expect(
@@ -117,7 +120,9 @@ it("identifies the failed placement, retries it, and shows the converted placeme
 
   // Assert
   expect(view.getByRole("status").textContent).toContain("1 placement converted using 1 stored image. 0 skipped.");
-  expect(view.getByRole("list", { name: "Image placements" }).textContent).toContain("Survey · logo");
+  expect(view.getByText("Measured definition size")).toBeTruthy();
+  expect(view.queryByText(/Estimate/i)).toBeNull();
+  expect(view.getByRole("list", { name: "Image placements" }).textContent).toContain("logo · File 1");
   expect(view.queryByRole("button", { name: "Retry conversion" })).toBeNull();
   expect(store).toHaveBeenCalledTimes(2);
 });

@@ -1,16 +1,21 @@
 "use client";
 
-import { useCallback, useId, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useId, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { ReactElementFactory } from "survey-react-ui";
 import { useOptionalDesignerRuntime } from "@/lib/designer-runtime";
 import { FormDiagnosticsPlugin } from "../form-diagnostics-plugin";
 import { conversionSession } from "../conversion-session";
-import { choiceListCheck, structureNotes } from "../diagnostic-recommendations";
+import { choiceListCheck } from "../diagnostic-recommendations";
+import { choiceFinding, leadConversion, manualFindings, type Conversion, type Finding } from "../diagnostic-findings";
 import { AudienceFindings, useAudienceFindings } from "./audience-findings";
 import { ConvertLargeChoiceLists } from "./convert-large-choice-lists";
 import { EmbeddedImageCard } from "./embedded-image-card";
 import { useImageConversion } from "./use-image-conversion";
-import { AllChecks, Disclosure, OverviewHeader } from "./diagnostic-checks";
+import { AllChecks, OverviewHeader, type CheckInputs, type CheckStatus } from "./diagnostic-checks";
+import { FindingPanel } from "./finding-panel";
+import { Button } from "@/components/ui/button";
+import { SURVEY_CREATOR_BUILT_IN_TAB } from "@/lib/survey-js";
+import type { sizeChange } from "../definition-size";
 
 type ModelProps = Readonly<{ model: FormDiagnosticsPlugin }>;
 interface FormDiagnosticsTabProps {
@@ -27,43 +32,49 @@ function useAudienceCheck(model: FormDiagnosticsPlugin) {
   return useSyncExternalStore(subscribe, read, read);
 }
 
-function ChoiceTool({ model, check }: ModelProps & { check: ReturnType<typeof choiceListCheck> }) {
-  const [inspected, setInspected] = useState(false);
-  if (!check.count && !inspected) return null;
-  const title = check.recommended ? "Move large choice lists into a new form copy" : "Optional: create a copy with data lists";
-  return <Disclosure title={title} onInspect={() => setInspected(true)}>
-    <ConvertLargeChoiceLists model={model} />
-  </Disclosure>;
+function ChoiceTool({ model, check, allowed, lead }: ModelProps & { check: ReturnType<typeof choiceListCheck>; allowed: boolean; lead: boolean }) {
+  const [change, setChange] = useState<ReturnType<typeof sizeChange> | null>(null);
+  const finding = choiceFinding(check.count, check.bytes);
+  if (!check.recommended) finding.title = "Optional: create a copy with data lists";
+  const result = change && <p><strong className="block">Measured copy definition size</strong>{change.before.toLocaleString()} → {change.after.toLocaleString()} bytes ({change.percent.toFixed(1)}% {change.delta >= 0 ? "smaller" : "larger"}). The original form is unchanged.</p>;
+  return <FindingPanel lead={lead} finding={finding} result={result} effect={allowed ? "Creates a copy" : "Needs create and edit access"} blocked={!allowed} cta="Review choice lists">
+    {allowed ? <ConvertLargeChoiceLists model={model} onCopy={setChange} /> : <p>Creating the copy requires permission to create and edit forms. No changes are available here.</p>}
+  </FindingPanel>;
 }
 
-function imageStatus(images: ReturnType<typeof useImageConversion>, available: boolean) {
+type ImageState = ReturnType<typeof useImageConversion>;
+type ImageCheck = { label: string; notice: string; status: CheckStatus };
+function imageStatus(images: ImageState, available: boolean, editable: boolean): ImageCheck {
   if (!images.review) return available && !images.message
-    ? { label: "Checking…", notice: "Checking embedded images…" }
-    : { label: "Not available", notice: "Some checks are unavailable" };
-  if (images.busy) return { label: "Uploading", notice: "Conversion in progress" };
-  if (images.retry || images.stale) return { label: "Review needed", notice: "Conversion needs review" };
-  if (images.done) return { label: "Conversion applied", notice: "" };
+    ? { label: "Checking…", notice: "Checking embedded images…", status: "Pending" }
+    : { label: "Not available", notice: "Some checks are unavailable", status: "Unavailable" };
+  if (images.busy) return { label: "Uploading", notice: "Conversion in progress", status: "Pending" };
+  if (images.retry || images.stale) return { label: "Review again", notice: "Conversion needs review", status: "Needs review" };
+  if (images.done) return { label: "Conversion applied", notice: "", status: "Pending" };
+  if (images.enabled && images.review.eligible.length && !editable)
+    return { label: "Needs edit access", notice: "Moving embedded images requires edit access", status: "Unavailable" };
   return imageInventoryStatus(images.review, images.enabled);
 }
 
-function imageInventoryStatus(review: NonNullable<ReturnType<typeof useImageConversion>["review"]>, enabled: boolean) {
-  if (review.eligible.length && !enabled) return { label: "Storage disabled", notice: "Image storage is unavailable" };
-  if (review.skipped.length) return { label: `${review.skipped.length} skipped`, notice: "Some image placements need manual review" };
-  return { label: review.eligible.length ? "Review available" : "Checked · none embedded", notice: "" };
+function imageInventoryStatus(review: NonNullable<ImageState["review"]>, enabled: boolean): ImageCheck {
+  if (review.eligible.length && !enabled) return { label: "Storage disabled", notice: "Image storage is unavailable", status: "Unavailable" };
+  if (review.skipped.length) return { label: `${review.skipped.length} skipped`, notice: "Some image placements need manual review", status: "Needs review" };
+  if (review.eligible.length) return {label: `${review.eligible.length} placements`, notice: "", status: "Needs review"};
+  return { label: "Checked · none embedded", notice: "", status: "OK" };
 }
 
 function useOverview(model: FormDiagnosticsPlugin) {
   const session = conversionSession(model.creator);
   const images = useImageConversion(session);
-  const source = images.snapshot?.source;
+  const source = images.done ? model.creator.JSON : images.snapshot?.source;
   const check = useMemo(() => choiceListCheck(source ?? model.creator.JSON ?? {}, Boolean(model.formId)),
     [source, model, model.stats, model.formId]);
   const measured = images.done ? session?.measuredChange : undefined;
   const bytes = measured?.after ?? images.snapshot?.bytes ?? model.stats.uncompressedSize;
   const estimated = images.done ? 0 : Math.max(0, images.snapshot?.estimatedSavings ?? 0);
   // These signals can describe the same choice label. Do not subtract its bytes twice.
-  const remaining = bytes - Math.max(estimated, check.recommended ? check.bytes : 0);
-  return { session, images, bytes, check, notes: structureNotes(model.stats, remaining) };
+  const remaining = bytes - Math.max(estimated, check.recommended ? check.impact : 0);
+  return { session, images, bytes, check, remaining };
 }
 
 function checkNotice(status: ReturnType<typeof imageStatus>, audience: ReturnType<typeof useAudienceCheck>, pendingSave: boolean) {
@@ -75,33 +86,60 @@ function checkNotice(status: ReturnType<typeof imageStatus>, audience: ReturnTyp
 
 function useDiagnosticsOverview(model: FormDiagnosticsPlugin) {
   const overview = useOverview(model);
-  const { session, images, check, notes } = overview;
+  const { session, images, check, remaining } = overview;
   const findings = useAudienceFindings(model);
   const audience = useAudienceCheck(model);
-  const upload = model.stats.fileUploadWithoutBlobCount;
-  const canEdit = useOptionalDesignerRuntime()?.stateRef.current.canConvertImages;
-  const imageOpportunity = Boolean(!images.done && images.review?.eligible.length && (images.snapshot?.estimatedSavings ?? 0) > 0);
-  const imageAction = imageOpportunity && images.enabled && canEdit;
-  const actions = [imageAction, check.recommended, upload > 0, findings.length > 0, notes.length > 0].filter(Boolean).length;
-  const status = imageStatus(images, Boolean(session));
+  const runtime = useOptionalDesignerRuntime()?.stateRef.current;
+  const canCopy = runtime?.canCreateListCopy === true;
+  const pages = model.creator.survey?.pages.length ?? 0;
+  const manual = manualFindings(model.stats, remaining, pages, findings.length);
+  const status = imageStatus(images, Boolean(session), Boolean(runtime?.canConvertImages));
+  const candidates: Conversion[] = [];
+  if (images.review?.eligible.length || images.done) candidates.push({id:"images", runnable: Boolean(runtime?.canConvertImages && images.enabled), impact: images.snapshot?.estimatedSavings ?? 0});
+  if (check.recommended) candidates.push({id:"choices", runnable:canCopy, impact:check.impact});
+  const lead = images.done || images.busy || images.retry ? "images" : leadConversion(candidates);
+  const actions = candidates.length + manual.length + Number(!images.review?.eligible.length && Boolean(images.review?.skipped.length));
   const notice = checkNotice(status, audience, Boolean(images.done && session?.lastConversion));
-  const noticeText = imageOpportunity && !canEdit && !notice ? "Moving embedded images requires edit access" : notice;
-  return { ...overview, actions, notice: noticeText, findings, upload, status, audience };
+  return { ...overview, actions, notice, findings, manual, lead, canCopy, status, pages, audience };
+}
+
+function ManualReview({ model, finding, children }: ModelProps & {finding: Finding; children?: ReactNode}) {
+  const tabs = SURVEY_CREATOR_BUILT_IN_TAB;
+  const tab = finding.id === "logic" ? tabs.logic : finding.id === "size" ? tabs.json : tabs.designer;
+  return <FindingPanel finding={finding} cta={finding.id === "audience" ? "Review personalization" : "Review details"}>
+    {children ?? <><ManualLocations model={model} id={finding.id} /><p className="text-sm">Nothing is changed automatically. Inspect the relevant settings in the editor.</p>
+      {model.creator.tabs.some(item => item.id === tab) && <Button variant="outline" onClick={() => {model.creator.activeTab = tab;}}>Open {tab === tabs.json ? "JSON Editor" : tab === tabs.logic ? "Logic" : "Designer"}</Button>}</>}
+  </FindingPanel>;
+}
+
+function ManualLocations({model,id}: ModelProps & {id:string}) {
+  const survey = model.creator.survey;
+  if (id === "length") return <ul className="max-h-48 overflow-auto text-sm">{survey.pages.map(page =>
+    <li key={page.name}>{page.name} · {page.questions.length} questions</li>)}</ul>;
+  if (id !== "files") return null;
+  const files = survey.getAllQuestions().filter(q => q.getType() === "file" && q.getPropertyValue("storeDataAsText") !== false);
+  return <ul className="max-h-48 overflow-auto text-sm">{files.map(q =>
+    <li key={q.name}>{q.page?.name} › {q.name} · stores files in the submission</li>)}</ul>;
 }
 
 function DiagnosticsOverview({ model }: ModelProps) {
-  const { session, images, bytes, check, notes, actions, notice, findings, upload, status, audience } = useDiagnosticsOverview(model);
+  const { session, images, bytes, check, actions, notice, findings, manual, lead, canCopy, status, audience, pages } = useDiagnosticsOverview(model);
+  const panels = [];
+  if (session && (images.message || images.review?.eligible.length || images.review?.skipped.length))
+    panels.push({id:"images", node:<EmbeddedImageCard session={session} controls={images} lead={lead === "images"} />});
+  if (check.count) panels.push({id:"choices",node:<ChoiceTool model={model} check={check} allowed={canCopy} lead={lead === "choices"} />});
+  for (const finding of manual) panels.push({id:finding.id,node:<ManualReview model={model} finding={finding}>
+    {finding.id === "audience" ? <AudienceFindings findings={findings} actions={model} /> : undefined}</ManualReview>});
+  panels.sort((a,b) => Number(b.id === lead) - Number(a.id === lead));
+  const image: CheckInputs["image"] = ["Embedded images", status.label, status.status];
   return <div className="h-full w-full min-w-0 flex-1 overflow-y-auto bg-background px-3 py-5 sm:p-8">
     <div className="mx-auto max-w-3xl space-y-4">
       <OverviewHeader actions={actions} notice={notice} bytes={bytes} questions={model.stats.totalQuestions} />
-      {upload > 0 && <p className="rounded-lg border p-4 text-sm"><strong>Review file storage.</strong> {upload} upload questions store files in submission JSON. Check their storage settings.</p>}
-      {session && <EmbeddedImageCard session={session} controls={images} />}
-      {findings.length > 0 && <Disclosure title={`Review personalization · ${findings.length} ${findings.length === 1 ? "finding" : "findings"}`}>
-        <AudienceFindings findings={findings} actions={model} />
-      </Disclosure>}
-      {notes.length > 0 && <Disclosure title={`Review form structure · ${notes[0]}`}><ul className="list-inside list-disc text-sm">{notes.map(note => <li key={note}>{note}</li>)}</ul></Disclosure>}
-      <ChoiceTool model={model} check={check} />
-      <AllChecks model={model} images={status.label} audience={audience} />
+      {panels.map(({id,node}, index) => <div key={id}>
+        {id !== lead && index === Number(Boolean(lead)) && <h3 className="mb-2 text-sm font-semibold">{lead ? "Also worth a look" : "Review findings and options"}</h3>}
+        <div className={id === lead ? "" : "rounded-lg border bg-card"}>{node}</div>
+      </div>)}
+      <AllChecks model={model} image={image} audience={audience} pages={pages} bytes={bytes} choices={check} healthy={!actions && !notice} />
     </div>
   </div>;
 }

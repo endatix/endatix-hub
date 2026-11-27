@@ -17,7 +17,7 @@ it("estimates encoded bytes per placement, including when the stored links would
 });
 
 it("uses only convertible inline lists for size and count recommendations", () => {
-  const choices = ["x".repeat(110 * 1024)];
+  const choices = Array.from({length: 11}, (_, i) => `${i}${"x".repeat(10 * 1024)}`);
   const question = { type: "radiogroup", name: "pick", choices };
   const check = (elements: object[]) => choiceListCheck({ elements }, true);
   expect(check([question])).toMatchObject({ recommended: false, count: 0 });

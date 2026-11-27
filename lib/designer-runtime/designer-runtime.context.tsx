@@ -25,6 +25,7 @@ export type DesignerScope = {
 export interface DesignerRuntimeState extends DesignerScope {
   definitionId?: string;
   canConvertImages?: boolean;
+  canCreateListCopy?: boolean;
   formName?: string;
   folderId?: string | null;
   isPublic?: boolean;

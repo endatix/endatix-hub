@@ -2,11 +2,12 @@ export type Path = readonly (string | number)[];
 export type Field = {
   path: Path;
   location: string;
+  group?: string;
   text: string;
   kind: "html" | "native" | "unsupported";
 };
 type Node = Record<string, unknown>;
-type Position = { path: Path; location: string };
+type Position = { path: Path; location: string; group?: string };
 
 function node(value: unknown): Node {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -26,6 +27,7 @@ function* localized(
   for (const [locale, text] of Object.entries(node(value))) {
     if (typeof text === "string" && /data:image\//i.test(text))
       yield {
+        group: at.group,
         path: [...at.path, locale],
         location: `${at.location} · ${locale}`,
         text,
@@ -39,7 +41,7 @@ function* fields(value: Node, at: Position, { keys, kind = "html" }: FieldGroup)
   for (const key of keys) {
     yield* localized(
       value[key],
-      { path: [...at.path, key], location: `${at.location} · ${key}` },
+      { path: [...at.path, key], location: `${at.location} · ${key}`, group: at.group ?? at.location },
       kind,
     );
   }
@@ -50,13 +52,19 @@ function* children(value: Node, at: Position, key: string) {
   if (!Array.isArray(list)) return;
   for (const [index, entry] of list.entries()) {
     const child = node(entry);
-    const name = typeof child.name === "string" ? ` (${child.name})` : "";
+    const name = typeof child.name === "string" && !/[<>]|data:image/i.test(child.name) ? ` (${child.name})` : "";
+    const location = `${at.location} › ${childLabel(key)} ${index + 1}${name}`;
     const position = {
       path: [...at.path, key, index],
-      location: `${at.location} · ${key} ${index + 1}${name}`,
+      location, group: ["choices","rows","columns"].includes(key) ? at.group ?? at.location : location,
     };
     yield { child, entry, position };
   }
+}
+
+function childLabel(key: string) {
+  const labels: Record<string,string> = {pages:"Page",elements:"Element",templateElements:"Template element",choices:"Choice",rows:"Row",columns:"Column",completedHtmlOnCondition:"Completion message"};
+  return labels[key] ?? key;
 }
 
 function* labels(value: Node, at: Position, key: string): Generator<Field> {
