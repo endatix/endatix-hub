@@ -1,4 +1,4 @@
-import { Editor, type EditorOptions } from "@tiptap/core";
+import { Editor, Extension, type EditorOptions } from "@tiptap/core";
 import Image from "@tiptap/extension-image";
 import { BackgroundColor, Color, TextStyle } from "@tiptap/extension-text-style";
 import StarterKit from "@tiptap/starter-kit";
@@ -30,11 +30,21 @@ const fieldImage = Image.extend({
   },
 });
 
+const fieldNavigation = Extension.create({
+  name: "fieldNavigation",
+  addKeyboardShortcuts() {
+    return {
+      Home: () => this.editor.commands.selectTextblockStart(),
+      End: () => this.editor.commands.selectTextblockEnd(),
+    };
+  },
+});
+
 export function createFieldEditor(options: Partial<EditorOptions>) {
   return new Editor({
     extensions: [
       StarterKit.configure({ link: { openOnClick: false }, trailingNode: false }),
-      TextStyle, Color, BackgroundColor,
+      TextStyle, Color, BackgroundColor, fieldNavigation,
       fieldImage.configure({ inline: true, allowBase64: true, resize: {
         enabled: options.editable !== false, directions: ["bottom-right"], alwaysPreserveAspectRatio: true,
       } }),
