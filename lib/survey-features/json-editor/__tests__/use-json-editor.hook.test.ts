@@ -9,7 +9,8 @@ import {
 } from "../json-editor-state";
 import { useJsonEditor } from "../use-json-editor.hook";
 
-vi.mock("survey-core", () => ({
+vi.mock("survey-core", async (original) => ({
+  ...await original<typeof import("survey-core")>(),
   SvgRegistry: { registerIcon: vi.fn() },
   Model: vi.fn().mockImplementation(function (this: any) {
     this.fromJSON = vi.fn();

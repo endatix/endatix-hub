@@ -97,3 +97,13 @@ export function useFormDiagnostics(creator: SurveyCreatorModel | null) {
     bindToCreator,
   };
 }
+
+/** Template editors have no Audience binding and can register when the Creator becomes available. */
+export function useTemplateDiagnostics(creator: SurveyCreatorModel | null) {
+  const { initGlobals, bindToCreator } = useFormDiagnostics(creator);
+  useEffect(() => {
+    if (!creator) return;
+    initGlobals();
+    return bindToCreator(creator);
+  }, [creator, initGlobals, bindToCreator]);
+}

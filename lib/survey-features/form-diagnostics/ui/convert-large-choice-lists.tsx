@@ -30,8 +30,9 @@ import {
   normalizeChoicesToDataListItems,
 } from "@/lib/survey-features/data-lists/utils";
 import { Result } from "@/lib/result";
+import { formatBytes, formatCount } from "@/lib/utils/formatters";
+import { definitionBytes, sizeChange } from "../definition-size";
 import { useCallback, useMemo, useState } from "react";
-import { Info } from "lucide-react";
 import { Model } from "survey-core";
 import { collectReservedDataListNames } from "../collect-reserved-data-list-names";
 import type { FormDiagnosticsPlugin } from "../form-diagnostics-plugin";
@@ -57,10 +58,6 @@ type ConvertChoicesResult = Awaited<
 const DATA_LIST_NAME_ALREADY_EXISTS_ERROR_CODE =
   "data_list_name_already_exists";
 const MAX_DUPLICATE_NAME_RETRIES = 3;
-
-function formatNumber(n: number): string {
-  return n.toLocaleString();
-}
 
 function isDuplicateDataListNameError(result: { errorCode?: string }): boolean {
   return result.errorCode === DATA_LIST_NAME_ALREADY_EXISTS_ERROR_CODE;
@@ -280,7 +277,7 @@ type CreateCopiedFormInput = {
 
 async function createCopiedForm(
   input: CreateCopiedFormInput,
-): Promise<{ ok: true; formId: string } | { ok: false; error: string }> {
+): Promise<{ ok: true; formId: string; change: ReturnType<typeof sizeChange> } | { ok: false; error: string }> {
   const cloned = cloneSurveyWithBindings(input.surveyPayload, input.successes);
   const newFormName = getCopiedFormName(input.formName);
 
@@ -302,7 +299,7 @@ async function createCopiedForm(
       };
     }
 
-    return { ok: true, formId: createResult.value };
+    return { ok: true, formId: createResult.value, change: sizeChange(definitionBytes(input.surveyPayload), definitionBytes(cloned)) };
   } catch (error) {
     const message = toErrorMessage(error, "Failed to create the new form.");
     return {
@@ -392,14 +389,14 @@ async function mapPool<T, R>(
 
 interface ConvertLargeChoiceListsProps {
   model: FormDiagnosticsPlugin;
-  attentionMessage?: string;
-  attentionClassName?: string;
+  onCopy?: (change: ReturnType<typeof sizeChange> | null) => void;
+  onThresholdChange?: (minimum:number) => void;
 }
 
 export function ConvertLargeChoiceLists({
   model,
-  attentionMessage,
-  attentionClassName,
+  onCopy,
+  onThresholdChange,
 }: Readonly<ConvertLargeChoiceListsProps>) {
   const [threshold, setThreshold] = useState(10);
   const [phase, setPhase] = useState<Phase>("idle");
@@ -440,24 +437,20 @@ export function ConvertLargeChoiceLists({
 
   const candidatePreview = candidates.slice(0, PREVIEW_LIMIT);
 
+  const clearRunResults = useCallback(() => {
+    onCopy?.(null);
+    setErrorBanner(null);
+    setDoneMessage(null);
+    setLastSummary(null);
+    setLastFailures([]);
+    setCreatedFormId(null);
+  }, [onCopy]);
   const resetRun = useCallback(() => {
+    clearRunResults();
     setPhase("idle");
     setPhaseLabel("");
     setCompleted(0);
-    setDoneMessage(null);
-    setErrorBanner(null);
-    setLastSummary(null);
-    setLastFailures([]);
-    setCreatedFormId(null);
-  }, []);
-
-  const clearRunResults = useCallback(() => {
-    setErrorBanner(null);
-    setDoneMessage(null);
-    setLastSummary(null);
-    setLastFailures([]);
-    setCreatedFormId(null);
-  }, []);
+  }, [clearRunResults]);
 
   const markDone = useCallback(() => {
     setPhase("done");
@@ -568,6 +561,7 @@ export function ConvertLargeChoiceLists({
       `Created "${getCopiedFormName(model.formName)}" with ${successes.length} conversion(s). ${failed} failed or skipped.`,
     );
     setCreatedFormId(formResult.formId);
+    onCopy?.(formResult.change);
   }, [
     candidates,
     clearRunResults,
@@ -580,6 +574,7 @@ export function ConvertLargeChoiceLists({
     model.formName,
     parsedPayload,
     recordConversionOutcomes,
+    onCopy,
   ]);
 
   const progressPct =
@@ -598,14 +593,6 @@ export function ConvertLargeChoiceLists({
         a new copy is created when at least one conversion succeeds.
       </p>
 
-      {attentionMessage ? (
-        <Alert className={`mb-4 ${attentionClassName ?? ""}`.trim()}>
-          <Info className="h-4 w-4" />
-          <AlertTitle>Recommended for this form</AlertTitle>
-          <AlertDescription>{attentionMessage}</AlertDescription>
-        </Alert>
-      ) : null}
-
       <div className="mb-4 flex flex-wrap items-end gap-4">
         <div className="space-y-2">
           <Label htmlFor="edx-choice-threshold">
@@ -619,7 +606,9 @@ export function ConvertLargeChoiceLists({
             disabled={phase !== "idle" && phase !== "done"}
             onChange={(e) => {
               const v = Number(e.target.value);
-              setThreshold(Number.isFinite(v) && v >= 1 ? v : 1);
+              const minimum = Number.isFinite(v) && v >= 1 ? v : 1;
+              setThreshold(minimum);
+              onThresholdChange?.(minimum);
             }}
             className="w-28"
           />
@@ -631,15 +620,11 @@ export function ConvertLargeChoiceLists({
           <div className="text-xs text-muted-foreground">
             Convertible questions
           </div>
-          <div className="text-lg font-semibold">
-            {formatNumber(candidates.length)}
-          </div>
+          <div className="text-lg font-semibold">{formatCount(candidates.length)}</div>
         </div>
         <div className="rounded-md border bg-background p-3">
           <div className="text-xs text-muted-foreground">Choices to move</div>
-          <div className="text-lg font-semibold">
-            {formatNumber(totalChoicesToMove)}
-          </div>
+          <div className="text-lg font-semibold">{formatCount(totalChoicesToMove)}</div>
         </div>
       </div>
 
@@ -656,7 +641,7 @@ export function ConvertLargeChoiceLists({
               <li key={c.name}>
                 <span className="font-medium">{c.name}</span>{" "}
                 <span className="text-muted-foreground">
-                  ({c.type}, {c.choiceCount} choices)
+                  ({c.type}, {formatCount(c.choiceCount)} choices · {formatBytes(c.choiceBytes)})
                 </span>
               </li>
             ))}

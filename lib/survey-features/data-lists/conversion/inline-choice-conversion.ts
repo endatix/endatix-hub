@@ -4,6 +4,8 @@ import {
   hasDynamicChoiceSourcesInJson,
 } from "../utils/choice-sources";
 import { resolveLocalizedText } from "../utils/survey-localized-text";
+import { normalizeChoicesToDataListItems } from "../utils/data-list-items";
+import { applyDataListBindingToQuestionJson } from "../utils/question-binding";
 import {
   forEachSurveyJsonNode,
   forEachSurveyJsonRoot,
@@ -14,12 +16,20 @@ export interface ConvertibleChoiceQuestionRef {
   name: string;
   type: "dropdown" | "tagbox";
   choiceCount: number;
+  choiceBytes: number;
+  projectedSavings: number | null;
   title: string;
 }
 
-function inlineChoiceCount(element: Record<string, unknown>): number {
-  const choices = element.choices;
-  return Array.isArray(choices) ? choices.length : 0;
+const jsonBytes = (value: unknown) => new TextEncoder().encode(JSON.stringify(value)).length;
+function choiceMetrics(element: Record<string,unknown>, choices: unknown[]) {
+  const choiceBytes = jsonBytes(choices);
+  // SurveyJS turns scalar numeric choices into ItemValue objects before the existing import.
+  const items = choices.map(choice => typeof choice === "number" || typeof choice === "boolean" ? {value:choice} : choice);
+  const copy = { ...element };
+  applyDataListBindingToQuestionJson(copy, "1000000000000000000");
+  const projectedSavings = normalizeChoicesToDataListItems(items).ok ? jsonBytes(element) - jsonBytes(copy) : null;
+  return { choiceCount: choices.length, choiceBytes, projectedSavings };
 }
 
 function collectConvertibleChoiceQuestions(
@@ -40,18 +50,14 @@ function collectConvertibleChoiceQuestions(
       return;
     }
 
-    const count = inlineChoiceCount(element);
-    if (count <= 0) {
-      return;
-    }
-    if (threshold !== undefined && count < threshold) {
-      return;
-    }
+    const choices = Array.isArray(element.choices) ? element.choices : [];
+    const count = choices.length;
+    if (count < Math.max(1, threshold ?? 1)) return;
 
     out.push({
       name: element.name,
       type: qType,
-      choiceCount: count,
+      ...choiceMetrics(element, choices),
       title: resolveLocalizedText(element.title) || element.name || qType,
     });
   });

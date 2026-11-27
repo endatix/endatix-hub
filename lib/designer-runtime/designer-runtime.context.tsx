@@ -23,6 +23,9 @@ export type DesignerScope = {
  * The state of the designer runtime.
  */
 export interface DesignerRuntimeState extends DesignerScope {
+  definitionId?: string;
+  canConvertImages?: boolean;
+  canCreateListCopy?: boolean;
   formName?: string;
   folderId?: string | null;
   isPublic?: boolean;
@@ -36,6 +39,7 @@ export interface DesignerRuntimeState extends DesignerScope {
  * The context value of the designer runtime.
  */
 export interface DesignerRuntimeContextValue {
+  definitionId?: string;
   stateRef: React.RefObject<DesignerRuntimeState>;
   /** Bumped on each updateState call so consumers can react to ref changes. */
   revision: number;
@@ -75,12 +79,8 @@ export function DesignerRuntimeProvider({
   }, []);
 
   const contextValue = useMemo(
-    () => ({
-      stateRef,
-      revision,
-      updateState,
-    }),
-    [revision, updateState],
+    () => ({ stateRef, revision, updateState, definitionId: initialState.definitionId }),
+    [initialState.definitionId, revision, updateState],
   );
 
   return (

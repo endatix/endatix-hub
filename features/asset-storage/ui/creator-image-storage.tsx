@@ -3,6 +3,7 @@
 import { useMemo, type ReactNode } from "react";
 import {
   ImageUploadContext,
+  OriginalImageUploadContext,
   type StoreImage,
 } from "@/lib/survey-features/rich-text/ui/image-upload-context";
 import { Result } from "@/lib/result";
@@ -51,11 +52,18 @@ function useStoreImage({ itemId, itemType }: CreatorImageStorageProps) {
 
 export function CreatorImageStorage(props: CreatorImageStorageProps) {
   const store = useStoreImage(props);
+  const { itemId, itemType } = props;
+  const original = useMemo(
+    () => store && storeImage({ itemId, itemType, questionName: "embedded-images", isResizeEnabled: false }),
+    [itemId, itemType, store],
+  );
   return (
-    <ImageUploadContext.Provider value={store}>
-      <RichTextImageDisplay>
-        {props.creator ? <ChoiceImageSettings creator={props.creator} PreviewDisplay={RichTextImageDisplay}>{props.children}</ChoiceImageSettings> : props.children}
-      </RichTextImageDisplay>
-    </ImageUploadContext.Provider>
+    <OriginalImageUploadContext.Provider value={original}>
+      <ImageUploadContext.Provider value={store}>
+        <RichTextImageDisplay>
+          {props.creator ? <ChoiceImageSettings creator={props.creator} PreviewDisplay={RichTextImageDisplay}>{props.children}</ChoiceImageSettings> : props.children}
+        </RichTextImageDisplay>
+      </ImageUploadContext.Provider>
+    </OriginalImageUploadContext.Provider>
   );
 }

@@ -25,6 +25,13 @@ type Finding<K extends AudienceFinding["kind"]> = Extract<
 >;
 
 const NOT_DECLARED = "No Property, question or calculated value has this name.";
+const benefits: Record<AudienceFinding["kind"], string> = {
+  "unknown-variable": "Connect the reference to a declared value.",
+  "variable-collision": "Make it clear which value the form reads.",
+  "not-filled-in": "Identify participants missing information used by the form.",
+  "unused-property": "Keep the participant property catalog relevant.",
+  "prefill-type-mismatch": "Avoid prefilling an incompatible answer.",
+};
 
 const DECLARED_BY = {
   question: "question",
@@ -163,6 +170,7 @@ function AudienceFindingAlert({
       <AlertTitle className="text-sm font-semibold">{title}</AlertTitle>
       <AlertDescription className="text-xs opacity-90">
         {description}
+        <span className="mt-2 block"><strong>Expected benefit · Not measured:</strong> {benefits[finding.kind]}</span>
         {where && <span className="mt-1 block">In &quot;{where}&quot;.</span>}
         <FindingButtons finding={finding} actions={actions} />
       </AlertDescription>

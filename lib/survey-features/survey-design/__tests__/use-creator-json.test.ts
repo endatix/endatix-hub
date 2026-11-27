@@ -2,6 +2,8 @@
 import { renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { useCreatorJson } from "../ui/use-creator-json";
+import { SurveyCreatorModel } from "survey-creator-core";
+import { conversionSession } from "../../form-diagnostics/conversion-session";
 
 type FakeCreator = { JSON: object | null };
 type CreatorJsonProps = { creator: FakeCreator; json: object | null };
@@ -15,6 +17,57 @@ const renderCreatorJson = (initialProps: CreatorJsonProps) =>
   );
 
 describe("useCreatorJson", () => {
+  it.each(["form", "template"])("retains %s edits when an acknowledged Save refresh follows a failed Save", owner => {
+    // Arrange
+    const creator = new SurveyCreatorModel();
+    const original: object = { logo: "data:image/png;base64,iVBORw0KGgo=", pages: [{ name: "page", visible: true }] };
+    const { rerender } = renderHook(({ source, version }: { source: object; version?: string }) =>
+      useCreatorJson(creator, source, version), { initialProps: { source: original, version: owner === "form" ? "1" : undefined } });
+    const session = conversionSession(creator)!;
+    const review = session.review();
+    const logo = "https://storage.example/content/image.png";
+    session.uploads.set(review.inventory.files[0].key, logo);
+    session.apply(review);
+    const saved = session.prepare(creator.JSON);
+    expect(saved.acknowledge()).toBe(true);
+
+    // Act: the later request fails, then the successful request's readback arrives.
+    creator.survey.title = "Keep this edit";
+    session.prepare(creator.JSON);
+    rerender({ source: saved.payload, version: owner === "form" ? "2" : undefined });
+
+    // Assert
+    expect(creator.survey.title).toBe("Keep this edit");
+    expect(conversionSession(creator)?.prepare(creator.JSON).payload).toEqual({
+      ...original, logo, title: "Keep this edit",
+    });
+    creator.dispose();
+  });
+  it("keeps a newer canvas edit when saving a conversion creates a new active version", () => {
+    // Arrange
+    const creator = new SurveyCreatorModel();
+    const json: object = { logo: "data:image/png;base64,iVBORw0KGgo=", pages: [{ name: "p", visible: true }] };
+    const { rerender } = renderHook(({ source, id }: { source: object; id: string }) => useCreatorJson(creator, source, id),
+      { initialProps: { source: json, id: "1" } });
+    const session = conversionSession(creator)!;
+    const review = session.review();
+    session.uploads.set(review.inventory.files[0].key, "https://storage.example/content/f/1/a.png");
+    session.apply(review);
+    const submitted = session.prepare(creator.JSON);
+    creator.survey.title = "Edited during Save";
+
+    // Act
+    rerender({ source: submitted.payload, id: "2" });
+
+    // Assert
+    expect(creator.survey.title).toBe("Edited during Save");
+    expect(submitted.acknowledge()).toBe(false);
+    expect(session.review().source).toEqual({ ...submitted.payload, title: "Edited during Save" });
+    rerender({ source: submitted.payload, id: "3" });
+    expect(conversionSession(creator)).not.toBe(session);
+    expect(creator.survey.title).not.toBe("Edited during Save");
+    creator.dispose();
+  });
   it("does not overwrite live edits when the same snapshot is refetched", () => {
     // Arrange
     const creator = createCreator();

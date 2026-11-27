@@ -1,417 +1,181 @@
 "use client";
 
-import React, { useMemo } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  AlertTriangle,
-  CheckCircle2,
-  EyeOff,
-  Globe,
-  Info,
-  Layers,
-  FileJson,
-  Image as ImageIcon,
-  Lock,
-  Zap,
-  ListTodo,
-  FileUp,
-  ShieldCheck,
-  ShieldX,
-} from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useCallback, useId, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { ReactElementFactory } from "survey-react-ui";
+import { useOptionalDesignerRuntime } from "@/lib/designer-runtime";
 import { FormDiagnosticsPlugin } from "../form-diagnostics-plugin";
+import { conversionSession } from "../conversion-session";
+import { choiceListCheck } from "../diagnostic-recommendations";
+import { choiceFinding, leadConversion, manualFindings, type Conversion, type Finding } from "../diagnostic-findings";
 import { AudienceFindings, useAudienceFindings } from "./audience-findings";
 import { ConvertLargeChoiceLists } from "./convert-large-choice-lists";
+import { EmbeddedImageCard } from "./embedded-image-card";
+import { useImageConversion } from "./use-image-conversion";
+import { AllChecks, OverviewHeader, type CheckInputs, type CheckStatus } from "./diagnostic-checks";
+import { FindingPanel } from "./finding-panel";
+import { Button } from "@/components/ui/button";
+import { SURVEY_CREATOR_BUILT_IN_TAB } from "@/lib/survey-js";
+import type { sizeChange } from "../definition-size";
 
-interface FormDiagnosticsViewProps {
-  model?: FormDiagnosticsPlugin;
-}
-
+type ModelProps = Readonly<{ model: FormDiagnosticsPlugin }>;
 interface FormDiagnosticsTabProps {
   data?: FormDiagnosticsPlugin | { model?: FormDiagnosticsPlugin };
 }
 
-interface DiagnosticsIssue {
-  title: string;
-  description: string;
-  severity: "critical" | "warning" | "info";
-  url?: string;
+function useAudienceCheck(model: FormDiagnosticsPlugin) {
+  const key = useId();
+  const subscribe = useCallback((notify: () => void) => {
+    model.registerPropertyChangedHandlers(["audienceCheck"], notify, key);
+    return () => model.unregisterPropertyChangedHandlers(["audienceCheck"], key);
+  }, [model, key]);
+  const read = () => model.audienceCheck;
+  return useSyncExternalStore(subscribe, read, read);
 }
 
-function formatNumber(n: number): string {
-  return n.toLocaleString();
+function ChoiceTool({ model, check, allowed, lead }: ModelProps & { check: ReturnType<typeof choiceListCheck>; allowed: boolean; lead: boolean }) {
+  const [change, setChange] = useState<ReturnType<typeof sizeChange> | null>(null);
+  const [minimum, setMinimum] = useState(10);
+  const finding = choiceFinding(minimum === 10 ? check : choiceListCheck(model.creator.JSON, true, minimum));
+  if (!check.recommended) finding.title = "Optional: create a copy with data lists";
+  const result = change && <span className="block"><strong className="block">Measured copy definition size</strong>{change.before.toLocaleString()} → {change.after.toLocaleString()} bytes ({change.percent.toFixed(1)}% {change.delta >= 0 ? "smaller" : "larger"}). The original form is unchanged.</span>;
+  return <FindingPanel lead={lead} finding={finding} result={result} effect={allowed ? "Creates a copy" : "Needs create and edit access"} blocked={!allowed} cta="Review choice lists">
+    {allowed ? <ConvertLargeChoiceLists model={model} onCopy={setChange} onThresholdChange={setMinimum} /> : <p>Creating the copy requires permission to create and edit forms. No changes are available here.</p>}
+  </FindingPanel>;
 }
 
-function formatSize(bytes: number): string {
-  if (bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return (
-    Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
-  );
+type ImageState = ReturnType<typeof useImageConversion>;
+type ImageCheck = { label: string; notice: string; status: CheckStatus };
+function imageStatus(images: ImageState, session: ReturnType<typeof conversionSession>, editable: boolean): ImageCheck {
+  if (!images.review) return session && !images.message
+    ? { label: "Checking…", notice: "Checking embedded images…", status: "Pending" }
+    : { label: "Not available", notice: "Some checks are unavailable", status: "Unavailable" };
+  if (images.busy) return { label: "Uploading", notice: "Conversion in progress", status: "Pending" };
+  if (images.retry || images.stale) return { label: "Review again", notice: "Conversion needs review", status: "Needs review" };
+  if (images.done && session?.lastConversion) return { label: "Conversion applied · not saved", notice: "", status: "Pending" };
+  if (images.done) return imageInventoryStatus({...images.review,eligible:[]},images.enabled,editable);
+  return imageInventoryStatus(images.review, images.enabled, editable);
 }
 
-function getFormAccessLabel(isPublic: boolean | undefined): string {
-  if (isPublic === undefined) {
-    return "-";
-  }
-
-  return isPublic ? "Public" : "Private";
+function imageInventoryStatus(review: NonNullable<ImageState["review"]>, enabled: boolean, editable: boolean): ImageCheck {
+  if (review.eligible.length && !enabled) return { label: "Storage disabled", notice: "Image storage is unavailable", status: "Unavailable" };
+  if (review.eligible.length && !editable) return { label: "Needs edit access", notice: "Moving embedded images requires edit access", status: "Unavailable" };
+  if (review.skipped.length) return { label: `${review.skipped.length} skipped`, notice: "Some image placements need manual review", status: "Needs review" };
+  if (review.eligible.length) return {label: `${review.eligible.length} placements`, notice: "", status: "Needs review"};
+  return { label: "Checked · none embedded", notice: "", status: "OK" };
 }
 
-export const FormDiagnosticsView = ({
-  model,
-}: Readonly<FormDiagnosticsViewProps>) => {
-  const stats = model?.stats;
-  const audienceFindings = useAudienceFindings(model);
+function useOverview(model: FormDiagnosticsPlugin) {
+  const session = conversionSession(model.creator);
+  const images = useImageConversion(session);
+  const source = images.done ? model.creator.JSON : images.snapshot?.source;
+  const isForm = Boolean(model.formId);
+  const check = useMemo(() => choiceListCheck(source ?? model.creator.JSON ?? {}, isForm),
+    [source, model, isForm]);
+  const measured = images.done ? session?.measuredChange : undefined;
+  const bytes = measured?.after ?? images.snapshot?.bytes ?? model.stats.uncompressedSize;
+  const estimated = images.done ? 0 : Math.max(0, images.snapshot?.estimatedSavings ?? 0);
+  // These signals can describe the same choice label. Do not subtract its bytes twice.
+  const remaining = bytes - Math.max(estimated, check.recommended ? check.impact : 0);
+  return { session, images, bytes, check, remaining };
+}
 
-  const issues = useMemo(() => {
-    if (!stats) return [];
-    const list: DiagnosticsIssue[] = [];
+function checkNotice(status: ReturnType<typeof imageStatus>, audience: ReturnType<typeof useAudienceCheck>, pendingSave: boolean) {
+  if (pendingSave) return "Conversion ready to save";
+  if (audience === "failed") return "Some checks are unavailable";
+  if (audience === "checking") return "Checking personalization…";
+  return status.notice;
+}
 
-    if (stats.uncompressedSize > 1024 * 1024) {
-      list.push({
-        title: "Large JSON Size",
-        description: `The form JSON is ${formatSize(stats.uncompressedSize)} as UTF-8, which may impact load times.`,
-        severity: "warning",
-      });
-    }
+function conversionCandidates(overview:ReturnType<typeof useOverview>, permissions:{canCopy:boolean; editable:boolean}) {
+  const {images, check} = overview;
+  const candidates: Conversion[] = [];
+  if (images.review?.eligible.length || images.done) candidates.push({id:"images", runnable:permissions.editable && images.enabled, impact:images.snapshot?.estimatedSavings ?? 0});
+  if (check.recommended) candidates.push({id:"choices", runnable:permissions.canCopy, impact:check.impact});
+  return candidates;
+}
 
-    if (stats.totalQuestions > 100) {
-      list.push({
-        title: "High Question Count",
-        description: `The form contains ${formatNumber(stats.totalQuestions)} questions. Consider splitting it into multiple pages or forms if possible.`,
-        severity: "info",
-      });
-    }
+function useDiagnosticsOverview(model: FormDiagnosticsPlugin) {
+  const overview = useOverview(model);
+  const { session, images, remaining } = overview;
+  const findings = useAudienceFindings(model);
+  const audience = useAudienceCheck(model);
+  const runtime = useOptionalDesignerRuntime()?.stateRef.current;
+  const canCopy = runtime?.canCreateListCopy === true;
+  const pages = model.creator.survey?.pages.length ?? 0;
+  const manual = manualFindings(model.stats, {remainingBytes:remaining, pages, audience:findings.length});
+  const status = imageStatus(images, session, Boolean(runtime?.canConvertImages));
+  const candidates = conversionCandidates(overview,{canCopy,editable:runtime?.canConvertImages === true});
+  const lead = images.done || images.busy || images.retry ? "images" : leadConversion(candidates);
+  const actions = candidates.length + manual.length + Number(!images.review?.eligible.length && Boolean(images.review?.skipped.length));
+  const notice = checkNotice(status, audience, Boolean(images.done && session?.lastConversion));
+  return { ...overview, actions, notice, findings, manual, lead, canCopy, status, pages, audience };
+}
 
-    if (stats.embeddedImagesCount > 5) {
-      const embeddedImagesSizeText =
-        stats.embeddedImagesSizeBytes > 0
-          ? ` (${formatSize(stats.embeddedImagesSizeBytes)} total).`
-          : ".";
-      list.push({
-        title: "Embedded Images Detected",
-        description: `Found ${formatNumber(stats.embeddedImagesCount)} base64 embedded images${embeddedImagesSizeText} Use external URLs if possible.`,
-        severity: "warning",
-      });
-    }
+function ManualReview({ model, finding, children }: ModelProps & {finding: Finding; children?: ReactNode}) {
+  const tabs = SURVEY_CREATOR_BUILT_IN_TAB;
+  const tab = finding.id === "logic" ? tabs.logic : finding.id === "size" ? tabs.json : tabs.designer;
+  return <FindingPanel finding={finding} cta={finding.id === "audience" ? "Review personalization" : "Review details"}>
+    {children ?? <><ManualLocations model={model} id={finding.id} /><p className="text-sm">Nothing is changed automatically. Inspect the relevant settings in the editor.</p>
+      {model.creator.tabs.some(item => item.id === tab) && <Button variant="outline" onClick={() => {model.creator.activeTab = tab;}}>Open {tab === tabs.json ? "JSON Editor" : tab === tabs.logic ? "Logic" : "Designer"}</Button>}</>}
+  </FindingPanel>;
+}
 
-    if (stats.logicConditionsCount > 50) {
-      list.push({
-        title: "Complex Logic Found",
-        description: `The form has ${formatNumber(stats.logicConditionsCount)} logic conditions. This might affect client-side performance.`,
-        severity: "warning",
-      });
-    }
+function ManualLocations({model,id}: ModelProps & {id:string}) {
+  const survey = model.creator.survey;
+  if (id === "length") return <ul className="max-h-48 overflow-auto text-sm">{survey.pages.map(page =>
+    <li key={page.name}>{page.name} · {page.questions.length} questions</li>)}</ul>;
+  if (id !== "files") return null;
+  const files = survey.getAllQuestions().filter(q => q.getType() === "file" && q.getPropertyValue("storeDataAsText") !== false);
+  return <ul className="max-h-48 overflow-auto text-sm">{files.map(q =>
+    <li key={q.name}>{q.page?.name} › {q.name} · stores files in the submission</li>)}</ul>;
+}
 
-    if (stats.fileUploadWithoutBlobCount > 0) {
-      list.push({
-        title: "File Upload without Blob Storage",
-        description: `${formatNumber(stats.fileUploadWithoutBlobCount)} file upload questions are storing data as text in the JSON. This can lead to massive submission sizes.`,
-        severity: "critical",
-      });
-    }
-
-    return list;
-  }, [stats]);
-
-  if (!model || !stats) {
-    return (
-      <div className="p-6 text-center text-muted-foreground">
-        No diagnostics data available.
-      </div>
-    );
-  }
-
-  const requiresReCaptcha = model.requiresReCaptcha;
-  const isPublic = model.isPublic;
-  const infoAlertClassName =
-    "text-blue-600 border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-800";
-  const warningCardClassName =
-    "border-orange-200 bg-orange-50 text-orange-700 dark:bg-orange-950/20 dark:border-orange-800 dark:text-orange-300";
-  const choicesJsonThreshold = 100 * 1024;
-  const maxSingleChoicesThreshold = 50 * 1024;
-  const jsonSizeThreshold = 1024 * 1024;
-  const questionCountThreshold = 100;
-  const embeddedImagesThreshold = 5;
-  const logicConditionsThreshold = 50;
-  const largestChoicesThreshold = 200;
-  const hasLargeJson = stats.uncompressedSize > jsonSizeThreshold;
-  const hasHighQuestionCount = stats.totalQuestions > questionCountThreshold;
-  const hasManyEmbeddedImages =
-    stats.embeddedImagesCount > embeddedImagesThreshold;
-  const hasComplexLogic = stats.logicConditionsCount > logicConditionsThreshold;
-  const hasLargeChoiceList =
-    stats.maxDropdownChoicesCount > largestChoicesThreshold;
-  const hasLargeChoicesJsonTotal =
-    stats.totalChoicesJsonSize > choicesJsonThreshold;
-  const hasLargeSingleChoicesJson =
-    stats.maxChoicesJsonSize > maxSingleChoicesThreshold;
-  const shouldHighlightConverter =
-    hasLargeChoiceList || hasLargeChoicesJsonTotal || hasLargeSingleChoicesJson;
-  const converterAttentionMessage = shouldHighlightConverter
-    ? `Large choices detected (max dropdown: ${formatNumber(stats.maxDropdownChoicesCount)}, choices JSON total: ${formatSize(stats.totalChoicesJsonSize)}, max single: ${formatSize(stats.maxChoicesJsonSize)}). Use bulk conversion below to move inline choices into data lists.`
-    : undefined;
-  const formAccessLabel = getFormAccessLabel(isPublic);
-  const metricCardClass = (isWarning: boolean) =>
-    `flex flex-col gap-1.5 rounded-lg border bg-card p-4 ${
-      isWarning ? warningCardClassName : ""
-    }`;
-
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case "critical":
-        return "text-destructive border-destructive/50 bg-destructive/10";
-      case "warning":
-        return "text-orange-600 border-orange-200 bg-orange-50 dark:bg-orange-950/20 dark:text-orange-400 dark:border-orange-800";
-      case "info":
-        return infoAlertClassName;
-      default:
-        return "";
-    }
-  };
-
-  const getSeverityIcon = (severity: string) => {
-    switch (severity) {
-      case "critical":
-        return <AlertTriangle className="h-4 w-4" />;
-      case "warning":
-        return <AlertTriangle className="h-4 w-4" />;
-      case "info":
-        return <Info className="h-4 w-4" />;
-      default:
-        return <CheckCircle2 className="h-4 w-4" />;
-    }
-  };
-
-  return (
-    <div className="h-full overflow-y-auto bg-background p-6">
-      <Card className="mx-auto max-w-6xl">
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-xl">
-            <Layers className="h-6 w-6" />
-            Diagnostics
-          </CardTitle>
-          <CardDescription className="text-sm">
-            Checks form size, questions, choices, logic, assets, and security
-            signals.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div>
-            <h4 className="mb-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              FORM ELEMENTS AND COMPLEXITY
-            </h4>
-            <div className="grid grid-cols-2 gap-5 md:grid-cols-3 xl:grid-cols-6">
-              <div className={metricCardClass(hasLargeJson)}>
-                <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  <FileJson className="h-4 w-4" /> JSON Size (UTF-8)
-                </span>
-                <span className="text-xl font-semibold">
-                  {formatSize(stats.uncompressedSize)}
-                </span>
-              </div>
-              <div className={metricCardClass(hasHighQuestionCount)}>
-                <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  <ListTodo className="h-4 w-4" /> Questions
-                </span>
-                <span className="text-xl font-semibold">
-                  {formatNumber(stats.totalQuestions)}
-                </span>
-              </div>
-              <div className={metricCardClass(hasManyEmbeddedImages)}>
-                <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  <ImageIcon className="h-4 w-4" /> Embedded Images
-                </span>
-                <span className="text-xl font-semibold">
-                  {formatNumber(stats.embeddedImagesCount)}
-                  {stats.embeddedImagesSizeBytes > 0 && (
-                    <span className="ml-1 text-sm font-normal text-muted-foreground">
-                      ({formatSize(stats.embeddedImagesSizeBytes)})
-                    </span>
-                  )}
-                </span>
-              </div>
-              <div className={metricCardClass(hasComplexLogic)}>
-                <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  <Zap className="h-4 w-4" /> Logic conditions
-                </span>
-                <span className="text-xl font-semibold">
-                  {formatNumber(stats.logicConditionsCount)}
-                </span>
-              </div>
-              <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4">
-                <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  <EyeOff className="h-4 w-4" /> Hidden (invisible)
-                </span>
-                <span className="text-xl font-semibold">
-                  {formatNumber(stats.invisibleLogicItemsCount)}
-                </span>
-              </div>
-              <div className={metricCardClass(false)}>
-                <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  Dropdowns
-                </span>
-                <span className="text-xl font-semibold">
-                  {formatNumber(stats.dropdownCount)}
-                </span>
-              </div>
-              <div className={metricCardClass(hasLargeChoiceList)}>
-                <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  Largest list (choices)
-                </span>
-                <span className="text-xl font-semibold">
-                  {formatNumber(stats.maxDropdownChoicesCount)}
-                </span>
-              </div>
-              <div className={metricCardClass(hasLargeChoicesJsonTotal)}>
-                <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  Choices JSON (total)
-                </span>
-                <span className="text-xl font-semibold">
-                  {formatSize(stats.totalChoicesJsonSize)}
-                </span>
-              </div>
-              <div className={metricCardClass(hasLargeSingleChoicesJson)}>
-                <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  Choices JSON (max)
-                </span>
-                <span className="text-xl font-semibold">
-                  {formatSize(stats.maxChoicesJsonSize)}
-                </span>
-              </div>
-              <div className={metricCardClass(false)}>
-                <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  <FileUp className="h-4 w-4" /> File Uploads
-                </span>
-                <span className="text-xl font-semibold">
-                  {formatNumber(stats.fileUploadCount)}
-                </span>
-              </div>
-              <div className={metricCardClass(false)}>
-                <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  {requiresReCaptcha ? (
-                    <ShieldCheck className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <ShieldX className="h-4 w-4 text-muted-foreground" />
-                  )}{" "}
-                  reCAPTCHA
-                </span>
-                <span className="text-xl font-semibold">
-                  {requiresReCaptcha ? "Enabled" : "Disabled"}
-                </span>
-              </div>
-              <div className={metricCardClass(false)}>
-                <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  {isPublic === true ? (
-                    <Globe className="h-4 w-4" />
-                  ) : (
-                    <Lock className="h-4 w-4" />
-                  )}{" "}
-                  Form access
-                </span>
-                <span className="text-xl font-semibold">{formAccessLabel}</span>
-              </div>
-            </div>
-          </div>
-
-          <ConvertLargeChoiceLists
-            model={model}
-            attentionMessage={converterAttentionMessage}
-            attentionClassName={infoAlertClassName}
-          />
-
-          <AudienceFindings findings={audienceFindings} actions={model} />
-
-          {issues.length > 0 ? (
-            <div className="space-y-3 pt-2">
-              <h4 className="flex items-center gap-2 text-sm font-medium">
-                Potential Issues{" "}
-                <Badge variant="secondary">{formatNumber(issues.length)}</Badge>
-              </h4>
-              {issues.map((issue) => (
-                <Alert
-                  key={issue.title}
-                  className={getSeverityColor(issue.severity)}
-                >
-                  {getSeverityIcon(issue.severity)}
-                  <AlertTitle className="text-sm font-semibold">
-                    {issue.title}
-                  </AlertTitle>
-                  <AlertDescription className="text-xs opacity-90">
-                    {issue.description}
-                    {issue.url && (
-                      <span className="mt-2 block">
-                        <a
-                          href={issue.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-medium text-primary underline underline-offset-2 hover:no-underline"
-                        >
-                          RESTful choices (ChoicesRestful) -&gt;
-                        </a>
-                      </span>
-                    )}
-                  </AlertDescription>
-                </Alert>
-              ))}
-            </div>
-          ) : (
-            audienceFindings.length === 0 && (
-              <Alert className="border-green-200 bg-green-50 text-green-600 dark:border-green-800 dark:bg-green-950/20 dark:text-green-400">
-                <CheckCircle2 className="h-4 w-4" />
-                <AlertTitle>All Good!</AlertTitle>
-                <AlertDescription>
-                  No issues detected in the form structure.
-                </AlertDescription>
-              </Alert>
-            )
-          )}
-        </CardContent>
-      </Card>
+function findingPanels(model: FormDiagnosticsPlugin, overview: ReturnType<typeof useDiagnosticsOverview>) {
+  const {session,images,check,findings,manual,lead,canCopy} = overview;
+  const panels = [];
+  if (session && (images.message || images.review?.eligible.length || images.review?.skipped.length))
+    panels.push({id:"images", node:<EmbeddedImageCard session={session} controls={images} lead={lead === "images"} />});
+  if (check.recommended) panels.push({id:"choices",node:<ChoiceTool model={model} check={check} allowed={canCopy} lead={lead === "choices"} />});
+  for (const finding of manual) panels.push({id:finding.id,node:<ManualReview model={model} finding={finding}>
+    {finding.id === "audience" ? <AudienceFindings findings={findings} actions={model} /> : undefined}</ManualReview>});
+  return panels.sort((a,b) => Number(b.id === lead) - Number(a.id === lead));
+}
+function DiagnosticsOverview({ model }: ModelProps) {
+  const overview = useDiagnosticsOverview(model);
+  const {bytes,check,actions,notice,lead,canCopy,status,audience,pages} = overview;
+  const panels = findingPanels(model, overview);
+  const optional = !check.recommended && check.count > 0 ? <ChoiceTool model={model} check={check} allowed={canCopy} lead={false} /> : undefined;
+  const image: CheckInputs["image"] = ["Embedded images", status.label, status.status];
+  return <div className="h-full w-full min-w-0 flex-1 overflow-y-auto bg-background px-3 py-5 sm:p-8">
+    <div className="mx-auto max-w-3xl space-y-4">
+      <OverviewHeader actions={actions} notice={notice} bytes={bytes} questions={model.stats.totalQuestions} />
+      {panels.map(({id,node}, index) => <div key={id} className={id !== lead && index > Number(Boolean(lead)) ? "!mt-0" : ""}>
+        {id !== lead && index === Number(Boolean(lead)) && <h3 className="mb-2 text-sm font-semibold">{lead ? "Also worth a look" : "Review findings and options"}</h3>}
+        <div className={id === lead ? "" : compactRowClass(index - Number(Boolean(lead)), index === panels.length - 1)}>{node}</div>
+      </div>)}
+      <AllChecks model={model} image={image} audience={audience} pages={pages} bytes={bytes} choices={check} healthy={!actions && !notice} optional={optional} />
     </div>
-  );
-};
-
-function getDiagnosticsModel(
-  data: FormDiagnosticsTabProps["data"],
-): FormDiagnosticsPlugin | undefined {
-  if (data instanceof FormDiagnosticsPlugin) {
-    return data;
-  }
-
-  return data?.model;
+  </div>;
 }
 
-export function FormDiagnosticsTab({
-  data,
-}: Readonly<FormDiagnosticsTabProps>) {
-  const model = getDiagnosticsModel(data);
-
-  return <FormDiagnosticsView model={model} />;
+function compactRowClass(index:number, last:boolean) {
+  const top = index === 0 ? "rounded-t-lg border-t" : "";
+  return `border-x border-b bg-card ${top} ${last ? "rounded-b-lg" : ""}`;
 }
 
-function renderFormDiagnosticsTab(props: unknown) {
-  return <FormDiagnosticsTab {...(props as FormDiagnosticsTabProps)} />;
+export function FormDiagnosticsView({ model }: Readonly<{ model?: FormDiagnosticsPlugin }>) {
+  if (!model?.stats) return <p className="p-6 text-muted-foreground">Diagnostics unavailable. No definition to check.</p>;
+  return <DiagnosticsOverview model={model} />;
+}
+
+export function FormDiagnosticsTab({ data }: Readonly<FormDiagnosticsTabProps>) {
+  return <FormDiagnosticsView model={data instanceof FormDiagnosticsPlugin ? data : data?.model} />;
 }
 
 let isRegistered = false;
 export function registerFormDiagnosticsTab() {
   if (isRegistered) return;
-
-  ReactElementFactory.Instance.registerElement(
-    "svc-tab-form-diagnostics",
-    renderFormDiagnosticsTab,
-  );
+  ReactElementFactory.Instance.registerElement("svc-tab-form-diagnostics",
+    (props: unknown) => <FormDiagnosticsTab {...(props as FormDiagnosticsTabProps)} />);
   isRegistered = true;
 }

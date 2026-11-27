@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { CreatorImageStorage, useStorageWithCreator } from "@/features/asset-storage/client";
+import { useTemplateDiagnostics } from "@/lib/survey-features/form-diagnostics";
 import { TelemetryLogger } from "@/features/telemetry";
 import { useSurveyLicenseKey } from "@/features/config/survey-license-provider";
 import { useDesignerRuntime } from "@/lib/designer-runtime";
@@ -117,7 +118,7 @@ function FormTemplateEditorContent({
   const [name, setName] = useState(templateName);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [originalName, setOriginalName] = useState(templateName);
-  const { registerJsonEditor, getJsonModel, captureJsonSave } = useJsonEditor({
+  const { registerJsonEditor, prepareSave } = useJsonEditor({
     onJsonStateChange: (state) => {
       setHasJsonErrors(state.hasErrors);
       setIsOnJsonTab(state.isOnJsonTab);
@@ -134,6 +135,7 @@ function FormTemplateEditorContent({
   const [questionClasses, setQuestionClasses] = useState<any[]>([]);
   useRichTextEditing(creator);
   useCreatorJson(creator, templateJson);
+  useTemplateDiagnostics(creator);
   useCreatorTabUrl(creator);
 
   const creatorTheme = useEndatixCreatorTheme();
@@ -338,18 +340,16 @@ function FormTemplateEditorContent({
       return;
     }
 
-    const jsonResult = getJsonModel(creator);
-    if (Result.isError(jsonResult)) {
-      toast.error(jsonResult.message);
+    const prepared = prepareSave(creator);
+    if (Result.isError(prepared)) {
+      toast.error(prepared.message);
       return;
     }
-
-    const acknowledgeJsonSave = captureJsonSave();
 
     setIsSaving(true);
     try {
       const result =
-        (await updateTemplateJsonAction(templateId, jsonResult.value)) ??
+        (await updateTemplateJsonAction(templateId, prepared.value.payload)) ??
         Result.error("Could not proceed with updating template JSON");
 
       if (Result.isError(result)) {
@@ -357,7 +357,7 @@ function FormTemplateEditorContent({
         return;
       }
 
-      if (acknowledgeJsonSave()) {
+      if (prepared.value.acknowledge()) {
         setHasUnsavedChanges(false);
         setIsJsonModified(false);
       }

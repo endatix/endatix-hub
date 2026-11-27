@@ -21,6 +21,7 @@ import {
 } from "./json-editor-state";
 import { addObfuscatedJsonDownload } from "./json-download-menu";
 import { Result } from "@/lib/result";
+import { conversionSession, prepareDefinitionSave } from "../form-diagnostics/conversion-session";
 
 const INVALID_JSON_ERROR_MESSAGE =
   "Please fix the errors in the JSON schema and try again.";
@@ -42,6 +43,26 @@ function jsonTabBlocks(model: JsonEditorBaseModel): boolean {
   return model.allowingDeactivate() !== true;
 }
 
+function validateBuffer(text: string): Result<object> {
+  try {
+    const survey = new Model();
+    survey.fromJSON(JSON.parse(text));
+    if (survey.jsonErrors?.length > 0) return Result.validationError(INVALID_JSON_ERROR_MESSAGE);
+    return Result.success(survey.toJSON());
+  } catch {
+    return Result.validationError(MALFORMED_JSON_ERROR_MESSAGE);
+  }
+}
+
+function getJsonModel(creator: SurveyCreatorModel | null): Result<object> {
+  if (!creator) return Result.error(UNEXPECTED_ERROR_MESSAGE);
+  if (creator.activeTab !== JSON_EDITOR_PLUGIN_NAME) return Result.success(creator.JSON);
+  const plugin: TabJsonEditorBasePlugin = creator.getPlugin(JSON_EDITOR_PLUGIN_NAME);
+  if (!plugin) return Result.error(UNEXPECTED_ERROR_MESSAGE);
+  if (jsonTabBlocks(plugin.model)) return Result.validationError(INVALID_JSON_ERROR_MESSAGE);
+  return validateBuffer(plugin.model.text);
+}
+
 export type { JsonEditorState } from "./json-editor-state";
 
 export interface UseJsonEditorOptions {
@@ -54,6 +75,10 @@ interface JsonBuffer {
   model: AceJsonPlugin;
   savedText: string;
   modified: boolean;
+}
+
+function editorText(buffer: JsonBuffer) {
+  return { savedText: buffer.savedText, text: buffer.model.text };
 }
 
 // Activation and file import both call Ace.setValue(). Only activation
@@ -81,18 +106,40 @@ function listenForJsonEdits(buffer: JsonBuffer, onModified: () => void) {
 
 function useJsonSaveBuffer() {
   const activeBuffer = useRef<JsonBuffer | null>(null);
+  const latestSave = useRef(0);
   const captureJsonSave = useCallback(() => {
+    const save = ++latestSave.current;
     const buffer = activeBuffer.current;
     const submitted = buffer?.model.text;
     return () => {
-      if (activeBuffer.current !== buffer) return false;
+      if (activeBuffer.current !== buffer || save !== latestSave.current) return false;
       if (!buffer || submitted === undefined) return true;
       buffer.savedText = submitted;
       buffer.modified = buffer.model.text !== submitted;
       return !buffer.modified;
     };
   }, []);
-  return { activeBuffer, captureJsonSave };
+  const prepareSave = usePrepareSave(activeBuffer, captureJsonSave);
+  return { activeBuffer, captureJsonSave, prepareSave };
+}
+
+function usePrepareSave(activeBuffer: React.RefObject<JsonBuffer | null>, captureJsonSave: () => () => boolean) {
+  return useCallback((creator: SurveyCreatorModel | null) => {
+    const validated = getJsonModel(creator);
+    if (Result.isError(validated)) return validated;
+    const buffer = activeBuffer.current;
+    const request = prepareDefinitionSave(creator, validated.value, buffer ? editorText(buffer) : undefined);
+    if (Result.isError(request)) return request;
+    const acknowledgeBuffer = captureJsonSave();
+    return Result.success({
+      payload: request.value.payload,
+      acknowledge: () => {
+        if (activeBuffer.current !== buffer) return false;
+        const saved = request.value.acknowledge();
+        return acknowledgeBuffer() && saved;
+      },
+    });
+  }, [activeBuffer, captureJsonSave]);
 }
 
 /**
@@ -106,7 +153,7 @@ function useJsonSaveBuffer() {
  */
 export function useJsonEditor(options: UseJsonEditorOptions) {
   const { onJsonStateChange, downloadName = "" } = options;
-  const { activeBuffer, captureJsonSave } = useJsonSaveBuffer();
+  const { activeBuffer, captureJsonSave, prepareSave } = useJsonSaveBuffer();
   const downloadNameRef = useRef(downloadName);
   useEffect(() => {
     downloadNameRef.current = downloadName;
@@ -124,6 +171,8 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
       }
 
       function leaveJsonTab() {
+        const buffer = activeBuffer.current;
+        if (buffer?.modified) conversionSession(creator)?.acceptEditorText(editorText(buffer));
         removeModelListener?.();
         removeModelListener = undefined;
         activeBuffer.current = null;
@@ -209,47 +258,5 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
     [activeBuffer, onJsonStateChange],
   );
 
-  const getJsonModel = useCallback(
-    (creator: SurveyCreatorModel | null): Result<any> => {
-      if (!creator) {
-        return Result.error(UNEXPECTED_ERROR_MESSAGE);
-      }
-
-      const currentTab = creator.activeTab;
-
-      if (currentTab !== JSON_EDITOR_PLUGIN_NAME) {
-        return Result.success(creator.JSON);
-      }
-
-      const jsonPlugin: TabJsonEditorBasePlugin = creator.getPlugin(
-        JSON_EDITOR_PLUGIN_NAME,
-      );
-
-      if (!jsonPlugin) {
-        return Result.error(UNEXPECTED_ERROR_MESSAGE);
-      }
-
-      const model = jsonPlugin.model;
-      if (jsonTabBlocks(model)) {
-        return Result.validationError(INVALID_JSON_ERROR_MESSAGE);
-      }
-
-      try {
-        const resultJson = JSON.parse(model.text);
-        const surveyModel = new Model();
-        surveyModel.fromJSON(resultJson);
-
-        if (surveyModel.jsonErrors?.length > 0) {
-          return Result.validationError(INVALID_JSON_ERROR_MESSAGE);
-        }
-
-        return Result.success(surveyModel.toJSON());
-      } catch {
-        return Result.validationError(MALFORMED_JSON_ERROR_MESSAGE);
-      }
-    },
-    [],
-  );
-
-  return { registerJsonEditor, getJsonModel, captureJsonSave };
+  return { registerJsonEditor, getJsonModel, captureJsonSave, prepareSave };
 }

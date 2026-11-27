@@ -3,7 +3,7 @@ import { NotFoundComponent } from "@/components/error-handling/not-found";
 import { HubPageLoadError } from "@/components/error-handling/error-page";
 import { Button } from "@/components/ui/button";
 import { AssetStorageProvider } from "@/features/asset-storage/server";
-import { authorization } from "@/features/auth/authorization";
+import { authorization, Permissions } from "@/features/auth/authorization";
 import FormDesignerWrapper, {
   FormDesignerWrapperProps,
 } from "@/features/forms/ui/designer/form-designer-wrapper";
@@ -141,13 +141,8 @@ export default async function FormDesignerPage({
       <Suspense fallback={<FormEditorLoader />}>
         <SurveyLicenseProvider value={getSurveyLicenseKey()}>
           <DesignerRuntimeProvider
-            initialState={{
-              formId,
-              formName: form.name,
-              folderId: form.folderId,
-              isPublic: form.isPublic,
-              formIsEnabled: form.isEnabled,
-            }}
+            key={formId}
+            initialState={designerScope(form, (await checkPermission(Permissions.Forms.Edit)).success, (await checkPermission(Permissions.Forms.Create)).success)}
           >
             <AssetStorageProvider>
               <FormAssistantProvider
@@ -164,6 +159,19 @@ export default async function FormDesignerPage({
       </Suspense>
     </div>
   );
+}
+
+function designerScope(form: Form, canConvertImages: boolean, canCreate: boolean) {
+  return {
+    formId: form.id,
+    definitionId: form.activeDefinitionId ?? undefined,
+    formName: form.name,
+    folderId: form.folderId,
+    isPublic: form.isPublic,
+    formIsEnabled: form.isEnabled,
+    canConvertImages,
+    canCreateListCopy: canCreate && canConvertImages,
+  };
 }
 
 /** The variables read with the page, and the form's reads and writes behind Preview as. */

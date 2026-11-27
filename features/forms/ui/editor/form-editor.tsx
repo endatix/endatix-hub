@@ -215,7 +215,7 @@ function FormEditor({
     },
     [setHasJsonErrors, setIsOnJsonTab, setIsJsonModified, setHasUnsavedChanges],
   );
-  const { registerJsonEditor, getJsonModel, captureJsonSave } = useJsonEditor({
+  const { registerJsonEditor, prepareSave } = useJsonEditor({
     onJsonStateChange,
     downloadName: formName,
   });
@@ -250,7 +250,7 @@ function FormEditor({
     creator,
     markFormModified,
   });
-  useCreatorJson(creator, formJson);
+  useCreatorJson(creator, formJson, designerRuntime.definitionId);
   useCreatorTabUrl(creator);
 
   const saveCustomQuestion = useCallback(
@@ -315,20 +315,18 @@ function FormEditor({
   const saveForm = useCallback(async () => {
     const isDraft = false;
 
-    const jsonResult = getJsonModel(creator);
-    if (Result.isError(jsonResult)) {
-      toast.error(jsonResult.message);
+    const prepared = prepareSave(creator);
+    if (Result.isError(prepared)) {
+      toast.error(prepared.message);
       return;
     }
-
-    const acknowledgeJsonSave = captureJsonSave();
     const theme = creator?.theme as StoredTheme;
     let isThemeUpdated = false;
 
     const updateDefinitionResult = await updateFormDefinitionJsonAction(
       formId,
       isDraft,
-      jsonResult.value,
+      prepared.value.payload,
     );
 
     if (updateDefinitionResult === undefined) {
@@ -368,7 +366,7 @@ function FormEditor({
       isThemeUpdated = true;
     }
 
-    if (acknowledgeJsonSave()) {
+    if (prepared.value.acknowledge()) {
       setHasUnsavedChanges(false);
       setIsJsonModified(false);
     }
@@ -383,8 +381,7 @@ function FormEditor({
       </p>,
     );
   }, [
-    getJsonModel,
-    captureJsonSave,
+    prepareSave,
     creator,
     formId,
     themeId,
