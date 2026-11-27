@@ -26,8 +26,8 @@ export function pastedImageContent(
   const replacements = localImages(template, clipboard, store);
   if (!replacements.length) return;
   const formats = editor.getFormat();
-  return async () => {
-    for (const replace of replacements) await replace();
+  return async (signal: AbortSignal) => {
+    for (const replace of replacements) await replace(signal);
     return editor.clipboard.convert({ html: template.innerHTML }, formats);
   };
 }
@@ -38,10 +38,12 @@ function localImages(template: HTMLTemplateElement, clipboard: DataTransfer, sto
   return images.filter(image => /^(data:image\/|cid:|blob:|file:)/i.test(image.src))
     .map((image, index) => {
       const source = image.src;
-      return async () => {
+      return async (signal: AbortSignal) => {
         if (image.src !== source) return;
+        signal.throwIfAborted();
         const attachment = attachments[index];
         const file = await clipboardFile(source, attachment);
+        signal.throwIfAborted();
         image.src = await store(file);
         const label = fileLabel(attachment?.name ?? file.name);
         if (label) {
