@@ -1,4 +1,4 @@
-import { Delta, type default as Quill, type Range } from "quill";
+import type { Editor, Range } from "@tiptap/core";
 import type { StoreImage } from "./image-upload-context";
 import { insertUploadedContent } from "./insert-uploaded-content";
 import { pastedImageContent } from "./pasted-image-content";
@@ -12,7 +12,7 @@ export interface ImageTransfer {
   retry?: () => void;
 }
 
-type LoadContent = (signal: AbortSignal) => Promise<Delta>;
+type LoadContent = (signal: AbortSignal) => Promise<HTMLTemplateElement>;
 
 class Transfer implements ImageTransfer {
   readonly id = crypto.randomUUID();
@@ -25,9 +25,9 @@ class Transfer implements ImageTransfer {
     this.retry?.();
   };
 
-  async submit(editor: Quill, range: Range, load: LoadContent) {
+  async submit(editor: Editor, range: Range, load: LoadContent) {
     const signal = this.controller.signal;
-    const loadWithRetry = async (): Promise<Delta> => {
+    const loadWithRetry = async () => {
       while (!signal.aborted) {
         try {
           return await load(signal);
@@ -35,7 +35,7 @@ class Transfer implements ImageTransfer {
           await this.handleFailure(error);
         }
       }
-      return new Delta();
+      return document.createElement("template");
     };
     await insertUploadedContent(editor, range, { signal, load: loadWithRetry });
   }
@@ -60,7 +60,7 @@ class Transfer implements ImageTransfer {
 
 type Publish = (jobs: ImageTransfer[]) => void;
 
-export function bindImageTransfers(editor: Quill, store: StoreImage, options: Publish | { publish: Publish; choiceLabel: boolean }) {
+export function bindImageTransfers(editor: Editor, store: StoreImage, options: Publish | { publish: Publish; choiceLabel: boolean }) {
   const publish = typeof options === "function" ? options : options.publish;
   const choice = typeof options !== "function" && options.choiceLabel;
   const active = new Set<Transfer>();
@@ -74,10 +74,13 @@ export function bindImageTransfers(editor: Quill, store: StoreImage, options: Pu
       changed();
     });
   };
-  const unbind = bindImageInputs(editor, store, choice ? insertChoiceImages(start) : start);
-  return () => {
-    unbind();
-    active.forEach((job) => job.cancel());
+  const inputs = bindImageInputs(editor, store, choice ? insertChoiceImages(start) : start);
+  return {
+    upload: inputs.upload,
+    dispose() {
+      inputs.unbind();
+      active.forEach((job) => job.cancel());
+    },
   };
 }
 
@@ -87,48 +90,60 @@ function insertChoiceImages(start: Start): Start {
   return (range, load) => start(range, async signal => sizeNewChoiceImages(await load(signal)));
 }
 
-function sizeNewChoiceImages(delta: Delta) {
-  for (const op of delta.ops) {
-    if (typeof op.insert !== "object" || !op.insert.image) continue;
-    const attrs = op.attributes ?? {};
-    if (!attrs.width && !attrs.height && !attrs.imageWidth && !attrs.imageCap && !attrs.imageHeight) {
-      op.attributes = { ...attrs, imageCap: "min(100%, 100px)", imageHeight: "auto" };
+function sizeNewChoiceImages(template: HTMLTemplateElement) {
+  for (const image of template.content.querySelectorAll("img")) {
+    if (!image.width && !image.height && !image.style.width && !image.style.maxWidth && !image.style.height) {
+      image.style.maxWidth = "min(100%, 100px)";
+      image.style.height = "auto";
     }
   }
-  return delta;
+  return template;
 }
 
-function bindImageInputs(editor: Quill, store: StoreImage, start: Start) {
-  const original = editor.uploader.upload;
-  editor.uploader.upload = (range, files) => {
+function bindImageInputs(editor: Editor, store: StoreImage, start: Start) {
+  const upload = (range: Range, files: ArrayLike<File>) => {
     const images = Array.from(files).filter(file => file.type.startsWith("image/"));
-    if (!editor.isEnabled() || !images.length) return;
+    if (!editor.isEditable || !images.length) return false;
     start(range, fileContent(images, store));
+    return true;
   };
   const paste = (event: ClipboardEvent) => {
-    if (!editor.isEnabled() || !event.clipboardData) return;
-    const load = pastedImageContent(editor, event.clipboardData, store);
-    if (!load) return;
+    if (!editor.isEditable || !event.clipboardData) return;
+    const load = pastedImageContent(event.clipboardData, store);
+    if (load) start(editor.state.selection, load);
+    else if (event.clipboardData.getData("text/html") || !upload(editor.state.selection, event.clipboardData.files)) return;
     event.preventDefault();
-    start(editor.getSelection(true), load);
+    event.stopImmediatePropagation();
   };
-  editor.root.addEventListener("paste", paste, true);
-  return () => {
-    editor.root.removeEventListener("paste", paste, true);
-    editor.uploader.upload = original;
+  const drop = (event: DragEvent) => {
+    if (!event.dataTransfer?.files.length) return;
+    const pos = editor.view.posAtCoords({ left: event.clientX, top: event.clientY })?.pos;
+    if (pos === undefined || !upload({ from: pos, to: pos }, event.dataTransfer.files)) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
   };
+  const root = editor.view.dom;
+  root.addEventListener("paste", paste, true);
+  root.addEventListener("drop", drop, true);
+  return { upload, unbind() {
+    root.removeEventListener("paste", paste, true);
+    root.removeEventListener("drop", drop, true);
+  } };
 }
 
 function fileContent(files: File[], store: StoreImage) {
   const uploaded = new Map<File, string>();
   return async (signal: AbortSignal) => {
-    const content = new Delta();
+    const content = document.createElement("template");
     for (const file of files) {
       signal.throwIfAborted();
       const url = uploaded.get(file) ?? (await store(file));
       uploaded.set(file, url);
       const alt = fileLabel(file.name);
-      content.insert({ image: url }, alt ? { alt, imageLabel: alt } : undefined);
+      const image = document.createElement("img");
+      image.src = url;
+      if (alt) { image.alt = alt; image.dataset.imageLabel = alt; }
+      content.content.append(image);
     }
     return content;
   };

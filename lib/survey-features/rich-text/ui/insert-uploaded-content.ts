@@ -1,39 +1,31 @@
-import { Delta, type default as Quill, type Range } from "quill";
+import type { Editor, Range } from "@tiptap/core";
+import { closeHistory } from "@tiptap/pm/history";
+import { DOMParser } from "@tiptap/pm/model";
+import type { Transaction } from "@tiptap/pm/state";
+import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
 
 interface Transfer {
-  load(): Promise<Delta>;
+  load(): Promise<HTMLTemplateElement>;
   signal: AbortSignal;
 }
 
-/** Rebase the pending user edit over typing, deletion or undo during the PUT. */
-export async function insertUploadedContent(
-  editor: Quill,
-  range: Range,
-  transfer: Transfer,
-) {
-  let edits = new Delta();
-  const track = (delta: Delta) => {
-    edits = edits.compose(delta);
+export async function insertUploadedContent(editor: Editor, range: Range, transfer: Transfer) {
+  let placement = { from: range.from, to: range.to };
+  let stale = false;
+  const track = ({ transaction }: { transaction: Transaction }) => {
+    if (transaction.getMeta("preventUpdate")) stale = true;
+    const from = transaction.mapping.map(placement.from, 1);
+    placement = { from, to: Math.max(from, transaction.mapping.map(placement.to, -1)) };
   };
-  editor.on("text-change", track);
+  editor.on("transaction", track);
   try {
-    const content = await transfer.load();
-    if (transfer.signal.aborted || !editor.isEnabled()) return;
-    commitInsertion(editor, range, { content, edits });
+    const fragment = await transfer.load();
+    if (stale || transfer.signal.aborted || editor.isDestroyed || !editor.isEditable) return;
+    fragment.innerHTML = htmlSanitizer.sanitize(fragment.innerHTML, htmlSanitizer.presets.surveyHtml);
+    const slice = DOMParser.fromSchema(editor.schema).parseSlice(fragment.content, { preserveWhitespace: true });
+    editor.view.dispatch(closeHistory(editor.state.tr).replaceRange(placement.from, placement.to, slice));
+    editor.view.dispatch(closeHistory(editor.state.tr));
   } finally {
-    editor.off("text-change", track);
-  }
-}
-
-function commitInsertion(editor: Quill, range: Range, pending: { content: Delta; edits: Delta }) {
-  const { content, edits } = pending;
-  const insertion = new Delta().retain(range.index).delete(range.length).concat(content);
-  const selection = editor.getSelection();
-  const start = edits.transformPosition(range.index);
-  editor.history.cutoff();
-  editor.updateContents(edits.transform(insertion, true), "user");
-  editor.history.cutoff();
-  if (selection?.index === start && selection.length === range.length) {
-    editor.setSelection(start + content.length(), 0, "silent");
+    editor.off("transaction", track);
   }
 }

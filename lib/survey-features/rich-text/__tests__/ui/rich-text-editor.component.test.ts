@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import { normalizeAndSanitize, QUILL_USER_EVENT_SOURCE } from "../../ui/rich-text-editor.component";
+import { normalizeAndSanitize } from "../../ui/field-source";
 
 describe("normalizeAndSanitize - Security", () => {
   it("should return empty string for empty string", () => {
@@ -129,12 +129,6 @@ describe("normalizeAndSanitize - Single Paragraph Unwrapping", () => {
 
     // Assert
     expect(result).toBe("Text with spaces");
-  });
-});
-
-describe("handleValueChange - Source Filtering Logic", () => {
-  it("should return early when source is not 'user'", () => {
-    expect(QUILL_USER_EVENT_SOURCE).toBe("user");
   });
 });
 

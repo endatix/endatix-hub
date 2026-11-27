@@ -1,40 +1,36 @@
 // @vitest-environment jsdom
-import Quill, { Delta } from "quill";
+import { createFieldEditor } from "../ui/field-editor";
+import { inlineImage } from "../ui/image-settings-target";
+import { paste } from "./field-fixture";
 import { toast } from "sonner";
 import { describe, expect, it, vi } from "vitest";
 import { insertUploadedContent } from "../ui/insert-uploaded-content";
-import "../ui/responsive-image";
 import {
   bindImageTransfers,
   type ImageTransfer,
-} from "../ui/quill-image-transfers";
+} from "../ui/image-transfers";
 
-describe("Quill image insertion", () => {
+describe("Rich text image insertion", () => {
   it("preserves typing while the transfer is pending and undoes only the insertion", async () => {
-    const editor = new Quill(document.createElement("div"));
-    editor.setText("Left Right");
-    const transfer = Promise.withResolvers<Delta>();
+    const editor = setupEditor();
+    const transfer = Promise.withResolvers<HTMLTemplateElement>();
     const controller = new AbortController();
     const pending = insertUploadedContent(
       editor,
-      { index: 5, length: 0 },
+      { from: 6, to: 6 },
       {
         load: () => transfer.promise,
         signal: controller.signal,
       },
     );
-    editor.insertText(0, "More ", "user");
-    transfer.resolve(
-      new Delta().insert({ image: "https://storage.test/image.png" }),
-    );
+    editor.commands.insertContentAt(1, "More ");
+    const template = document.createElement("template");
+    template.innerHTML = '<img src="https://storage.test/image.png">';
+    transfer.resolve(template);
     await pending;
-    expect(editor.getContents().ops).toEqual([
-      { insert: "More Left " },
-      { insert: { image: "https://storage.test/image.png" } },
-      { insert: "Right\n" },
-    ]);
-    editor.history.undo();
-    expect(editor.getText()).toBe("More Left Right\n");
+    expect(editor.getHTML()).toBe('<p>More Left <img src="https://storage.test/image.png">Right</p>');
+    editor.commands.undo();
+    expect(editor.getText()).toBe("More Left Right");
   });
 });
 
@@ -55,21 +51,17 @@ it.each([false, true])("matches mixed clipboard bytes to their original occurren
     redundant ? [first, second, third] : [second, third]);
 
   // Assert
-  await vi.waitFor(() => expect(editor.root.querySelectorAll("img")).toHaveLength(3));
-  expect(Array.from(editor.root.querySelectorAll("img"), img => img.src)).toEqual([
+  await vi.waitFor(() => expect(editor.view.dom.querySelectorAll<HTMLImageElement>("img[src]")).toHaveLength(3));
+  expect(Array.from(editor.view.dom.querySelectorAll<HTMLImageElement>("img[src]"), img => img.src)).toEqual([
     "https://storage.test/first.png", "https://storage.test/second.png", "https://storage.test/third.png",
   ]);
-  expect(editor.getText()).toBe("Left BeforeMiddleAfterRight\n");
-  stop();
+  expect(editor.getText()).toBe("Left BeforeMiddleAfterRight");
+  stop.dispose();
 });
 
 function setupEditor() {
-  // jsdom provides DOM ranges but has no layout for Quill's focus scrolling.
-  Range.prototype.getBoundingClientRect = () => new DOMRect();
-  const container = document.body.appendChild(document.createElement("div"));
-  const editor = new Quill(container);
-  editor.setText("Left Right");
-  editor.setSelection(5, 0, "silent");
+  const editor = createFieldEditor({ element: document.body.appendChild(document.createElement("div")), content: "Left Right" });
+  editor.commands.setTextSelection(6);
   return editor;
 }
 
@@ -89,22 +81,11 @@ it("explains mismatched clipboard files without uploading, inserting, or offerin
   await vi.waitFor(() => expect(error).toHaveBeenCalledWith(expect.stringContaining("Paste them separately")));
   expect(jobs).toHaveLength(0);
   expect(store).not.toHaveBeenCalled();
-  expect(editor.getText()).toBe("Left Right\n");
-  stop();
+  expect(editor.getText()).toBe("Left Right");
+  stop.dispose();
 });
 
-function paste(editor: Quill, html: string, files: File[]) {
-  const event = new Event("paste", { bubbles: true, cancelable: true });
-  Object.defineProperty(event, "clipboardData", {
-    value: {
-      files,
-      getData: (type: string) => (type === "text/html" ? html : ""),
-    },
-  });
-  editor.root.dispatchEvent(event);
-}
-
-describe("Quill image input", () => {
+describe("Rich text image input", () => {
   it.each([
     ["", "Reef survey"],
     ['alt="Authored label"', "Authored label"],
@@ -114,16 +95,16 @@ describe("Quill image input", () => {
     const file = new File(["pixels"], "Reef_survey.png", { type: "image/png" });
     const stop = bindImageTransfers(editor, async () => canonical, () => {});
     paste(editor, `<strong>Caption</strong><img ${attribute} src="cid:1">`, [file]);
-    await vi.waitFor(() => expect(editor.root.querySelector("img")?.getAttribute("alt")).toBe(expected));
-    expect(editor.root.querySelector("strong")?.textContent).toBe("Caption");
-    stop();
+    await vi.waitFor(() => expect(editor.view.dom.querySelector<HTMLImageElement>("img[src]")?.getAttribute("alt")).toBe(expected));
+    expect(editor.view.dom.querySelector("strong")?.textContent).toBe("Caption");
+    stop.dispose();
   });
   it("uses the original file name for a new image even when storage returns an opaque key", async () => {
     const editor = setupEditor();
     const stop = bindImageTransfers(editor, async () => canonical, () => {});
-    editor.uploader.upload({ index: 0, length: 0 }, [new File(["pixels"], "Harbor_at-sunset.png", {type:"image/png"})]);
-    await vi.waitFor(() => expect(editor.root.querySelector("img")?.alt).toBe("Harbor at sunset"));
-    stop();
+    stop.upload({ from: 1, to: 1 }, [new File(["pixels"], "Harbor_at-sunset.png", {type:"image/png"})]);
+    await vi.waitFor(() => expect(editor.view.dom.querySelector<HTMLImageElement>("img[src]")?.alt).toBe("Harbor at sunset"));
+    stop.dispose();
   });
   it("keeps mixed paste and surrounding text intact across failure and retry", async () => {
     const editor = setupEditor();
@@ -137,14 +118,14 @@ describe("Quill image input", () => {
     });
     paste(editor, '<b>Before</b><img src="cid:1" width="60">After', [image]);
     await vi.waitFor(() => expect(jobs[0].retry).toBeDefined());
-    expect(editor.getText()).toBe("Left Right\n");
+    expect(editor.getText()).toBe("Left Right");
     jobs[0].retry?.();
     await vi.waitFor(() => expect(jobs).toHaveLength(0));
-    expect(editor.root.innerHTML).toContain(
+    expect(editor.getHTML()).toContain(
       `<strong>Before</strong><img src="${canonical}" width="60">After`,
     );
     expect(store).toHaveBeenCalledWith(image);
-    stop();
+    stop.dispose();
   });
 
   it("ignores a completed PUT after the author cancels a file-only paste", async () => {
@@ -162,17 +143,16 @@ describe("Quill image input", () => {
     jobs[0].cancel();
     transfer.resolve(canonical);
     await vi.waitFor(() => expect(jobs).toHaveLength(0));
-    expect(editor.getContents().ops).toEqual([{ insert: "Left Right\n" }]);
-    stop();
+    expect(editor.getText()).toBe("Left Right");
+    stop.dispose();
   });
 
   it("drops a file at the pointer's document position", async () => {
     const editor = setupEditor();
     const point = document.createRange();
-    point.setStart(editor.root.querySelector("p")!.firstChild!, 5);
+    point.setStart(editor.view.dom.querySelector("p")!.firstChild!, 5);
     point.collapse(true);
-    const original = document.caretRangeFromPoint;
-    document.caretRangeFromPoint = () => point;
+    vi.spyOn(editor.view, "posAtCoords").mockReturnValue({ pos: editor.view.posAtDOM(point.startContainer, point.startOffset), inside: 0, affinity: 0 });
     const stop = bindImageTransfers(
       editor,
       async () => canonical,
@@ -183,13 +163,12 @@ describe("Quill image input", () => {
       Object.defineProperty(event, "dataTransfer", {
         value: { files: [new File(["pixels"], "River_bank.png", {type:"image/png"})] },
       });
-      editor.root.dispatchEvent(event);
-      await vi.waitFor(() => expect(editor.root.querySelector("img")?.alt).toBe("River bank"));
-      expect(editor.getContents().ops[0].insert).toBe("Left ");
-      expect(editor.root.querySelector("img")?.src).toBe(canonical);
+      editor.view.dom.dispatchEvent(event);
+      await vi.waitFor(() => expect(editor.view.dom.querySelector<HTMLImageElement>("img[src]")?.alt).toBe("River bank"));
+      expect(editor.view.dom.querySelector("p")?.firstChild?.textContent).toBe("Left ");
+      expect(editor.view.dom.querySelector<HTMLImageElement>("img[src]")?.src).toBe(canonical);
     } finally {
-      stop();
-      document.caretRangeFromPoint = original;
+      stop.dispose();
     }
   });
 
@@ -197,8 +176,8 @@ describe("Quill image input", () => {
     const editor = setupEditor();
     const stop = bindImageTransfers(editor, async () => canonical, () => {});
     paste(editor, "", [new File(["pixels"], "North-trail.png", {type:"image/png"})]);
-    await vi.waitFor(() => expect(editor.root.querySelector("img")?.alt).toBe("North trail"));
-    stop();
+    await vi.waitFor(() => expect(editor.view.dom.querySelector<HTMLImageElement>("img[src]")?.alt).toBe("North trail"));
+    stop.dispose();
   });
 
   it.each(["cancel drop", "unmount paste", "complete drop"])(
@@ -213,26 +192,28 @@ describe("Quill image input", () => {
       if (action === "unmount paste") {
         paste(editor, '<img src="cid:1"><img src="cid:2">', files);
       } else {
-        editor.uploader.upload({ index: 5, length: 0 }, files);
+        unmount.upload({ from: 6, to: 6 }, files);
       }
       await vi.waitFor(() => expect(store).toHaveBeenCalledTimes(1));
-      if (action === "unmount paste") unmount();
+      if (action === "unmount paste") unmount.dispose();
       if (action === "cancel drop") jobs[0].cancel();
       first.resolve(canonical);
       await vi.waitFor(() => expect(jobs).toHaveLength(0));
       expect(store).toHaveBeenCalledTimes(action === "complete drop" ? 2 : 1);
-      expect(editor.root.querySelectorAll("img")).toHaveLength(action === "complete drop" ? 2 : 0);
-      unmount();
+      expect(editor.view.dom.querySelectorAll<HTMLImageElement>("img[src]")).toHaveLength(action === "complete drop" ? 2 : 0);
+      unmount.dispose();
     },
   );
 
-  it("retains Quill's inline file paste when storage is disabled", async () => {
+  it("retains inline file paste when storage is disabled", async () => {
     const editor = setupEditor();
+    const binding = bindImageTransfers(editor, inlineImage, () => {});
     paste(editor, "", [image]);
     await vi.waitFor(() =>
-      expect(editor.root.querySelector("img")?.src).toMatch(
+      expect(editor.view.dom.querySelector<HTMLImageElement>("img[src]")?.src).toMatch(
         /^data:image\/png;base64,/,
       ),
     );
+    binding.dispose();
   });
 });
