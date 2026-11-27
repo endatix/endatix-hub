@@ -23,7 +23,7 @@ export class ConversionSession {
   readonly uploads = new Map<string, string>();
   private readonly transfers = new Map<string, Promise<string>>();
   private pending = false;
-  private submitted?: object;
+  private submitted?: { payload: object; echoed: boolean };
   private generation = 0;
   private revision = 0;
   private ambiguousBuffer = false;
@@ -137,10 +137,11 @@ export class ConversionSession {
     return true;
   }
 
-  isSubmitted(source: object) {
-    return (
-      this.submitted !== undefined && equalDefinition(this.submitted, source)
-    );
+  consumeSaveEcho(source: object) {
+    const submitted = this.submitted;
+    if (!submitted || submitted.echoed || !equalDefinition(submitted.payload, source)) return false;
+    submitted.echoed = true;
+    return true;
   }
 
   prepare(projection: object) {
@@ -148,7 +149,7 @@ export class ConversionSession {
     const payload = this.pending
       ? sourceWithEdits(this.source, this.baseline, this.validatedEditorInput(projection))
       : projection;
-    if (this.pending) this.submitted = payload;
+    if (this.pending) this.submitted = { payload, echoed: false };
     const request = { generation: this.generation, converted: this.pending, payload, projection };
     return {
       payload,
@@ -158,7 +159,7 @@ export class ConversionSession {
 
   private acknowledge(request: { generation: number; converted: boolean; payload: object; projection: object }) {
     if (sessions.get(this.creator) !== this || request.generation !== this.generation) return false;
-    if (request.converted && this.submitted !== request.payload) return false;
+    if (request.converted && this.submitted?.payload !== request.payload) return false;
     this.source = request.payload;
     this.baseline = request.projection;
     const unchanged = !request.converted || this.creator.activeTab === JSON_EDITOR_PLUGIN_NAME ||

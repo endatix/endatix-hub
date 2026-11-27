@@ -40,7 +40,7 @@ export function useCreatorJson(
     if (!creator || !json) return;
     const next = { creator, json, definitionId };
     // Saving an active definition with submissions creates a new version. Its echo must not reset a newer edit.
-    if (conversionSession(creator)?.isSubmitted(json)) { last.current = next; return; }
+    if (conversionSession(creator)?.consumeSaveEcho(json)) { last.current = next; return; }
     if (alreadyLoaded(next, last.current)) return;
     creator.JSON = json;
     bindConversionSource(creator, json);

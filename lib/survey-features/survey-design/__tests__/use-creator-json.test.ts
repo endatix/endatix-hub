@@ -36,7 +36,10 @@ describe("useCreatorJson", () => {
     // Assert
     expect(creator.survey.title).toBe("Edited during Save");
     expect(submitted.acknowledge()).toBe(false);
-    expect(session.prepare(creator.JSON).payload).toEqual({ ...submitted.payload, title: "Edited during Save" });
+    expect(session.review().source).toEqual({ ...submitted.payload, title: "Edited during Save" });
+    rerender({ source: submitted.payload, id: "3" });
+    expect(conversionSession(creator)).not.toBe(session);
+    expect(creator.survey.title).not.toBe("Edited during Save");
     creator.dispose();
   });
   it("does not overwrite live edits when the same snapshot is refetched", () => {
