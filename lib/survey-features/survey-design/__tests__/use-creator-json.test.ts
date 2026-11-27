@@ -20,7 +20,8 @@ describe("useCreatorJson", () => {
   it("keeps the fetched localized source independent of the editable model", () => {
     // Arrange
     const creator = new SurveyCreatorModel();
-    const description = { default: "Map", fr: "Carte" };
+    const map = '<img src="https://example.invalid/map.png">';
+    const description = { default: map, fr: "Carte" };
     const source = { elements: [{ name: "map", type: "text", description }] };
     renderHook(() => useCreatorJson(creator, source));
 
@@ -28,7 +29,7 @@ describe("useCreatorJson", () => {
     creator.survey.getQuestionByName("map").description = "Updated";
 
     // Assert
-    expect(description.default).toBe("Map");
+    expect(description.default).toBe(map);
     expect(conversionSession(creator)?.prepare(creator.JSON).payload).toEqual({
       elements: [{ name: "map", type: "text", description: { default: "Updated", fr: "Carte" } }],
     });

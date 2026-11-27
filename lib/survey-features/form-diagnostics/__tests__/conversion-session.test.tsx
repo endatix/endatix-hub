@@ -64,6 +64,17 @@ it("retains projected-away defaults and locale objects when saving an image edit
   expect(saved).toEqual(expected);
 });
 
+it("uses Creator's ordinary serialization for a plain text edit without image changes", () => {
+  // Arrange
+  const { creator } = editor();
+
+  // Act
+  creator.survey.title = "Updated";
+
+  // Assert
+  expect(prepare(creator).payload).toEqual(creator.JSON);
+});
+
 it("preserves source structure through review, conversion, undo, and repeated Save preparation", async () => {
   // Arrange
   const { creator, session } = editor();

@@ -20,6 +20,12 @@ const REVIEW_AGAIN = "The definition changed. Review images again.";
 const sessions = new WeakMap<SurveyCreatorModel, ConversionSession>();
 const richTextProperties = new Set(["title", "description", "text"]);
 
+function containsInlineImage(value: unknown) {
+  const hasImage = (text: unknown) => typeof text === "string" && /<img[\s/>]/i.test(text);
+  if (!value || typeof value !== "object") return hasImage(value);
+  return Object.values(value).some(text => hasImage(text));
+}
+
 interface EditorText {
   savedText: string;
   text: string;
@@ -41,7 +47,8 @@ export class ConversionSession {
   private editedRichText = false;
   private readonly onModified = (_: SurveyCreatorModel, event: ModifiedEvent) => {
     this.revision++;
-    if (event.type === "PROPERTY_CHANGED" && richTextProperties.has(event.name ?? "")) this.editedRichText = true;
+    if (event.type === "PROPERTY_CHANGED" && richTextProperties.has(event.name ?? "") &&
+      (containsInlineImage(event.newValue) || containsInlineImage(event.oldValue))) this.editedRichText = true;
   };
   private undoPoint?: ReturnType<typeof applyImageEdit>;
   lastConversion?: ImageSnapshot;
