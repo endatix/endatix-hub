@@ -40,10 +40,12 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
+  > .quill { grid-area: 1 / 1; }
   > [role=status] { grid-column: 1 / -1; }
 }
 
 .rich-text-image-action {
+  grid-area: 1 / 2;
   display: grid;
   place-items: center;
   width: 2rem;

@@ -131,11 +131,15 @@ it("uses only the row action for a choice label, while a click selects the exact
 it("opens field settings by icon and image, preserving an uncapped image when changing its alt", () => {
   const store = vi.fn<StoreImage>();
   const { editor } = setup(store, { choiceLabel: false, readOnly: false });
+  const opener = screen.getByRole("button", { name: "Image settings" });
+  opener.focus();
   click("Image settings");
   expect(screen.getByRole<HTMLSelectElement>("combobox").value).toBe("0");
   change("Image", "-1");
   expect(screen.getByLabelText<HTMLInputElement>("Maximum width").value).toBe("");
+  screen.getByRole("button", { name: "Cancel" }).focus();
   click("Cancel");
+  expect(document.activeElement).toBe(opener);
   fireEvent.click(editor.root.querySelector("img")!);
   change("Alt text", "Large image");
   click("Apply");

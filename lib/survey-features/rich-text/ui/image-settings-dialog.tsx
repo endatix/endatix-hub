@@ -1,4 +1,4 @@
-import { useContext, useEffect, useId, useRef, useState } from "react";
+import { useContext, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { ImageUploadContext, type StoreImage } from "./image-upload-context";
 import { imageDraft, inlineImage, type ImageTarget } from "./image-settings-target";
 
@@ -133,15 +133,24 @@ function DraftEditor(props: EditorProps) {
   </>;
 }
 
-export function ImageSettingsDialog({ target, close }: { target: ImageTarget; close(): void }) {
+function useModal() {
   const ref = useRef<HTMLDialogElement>(null);
+  useLayoutEffect(() => {
+    const dialog = ref.current!;
+    const opener = document.activeElement;
+    dialog.showModal();
+    return () => {
+      dialog.close();
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus({ preventScroll: true });
+    };
+  }, []);
+  return ref;
+}
+
+export function ImageSettingsDialog({ target, close }: { target: ImageTarget; close(): void }) {
+  const ref = useModal();
   const title = useId();
   const [index, select] = useState(target.selected);
-  useEffect(() => {
-    const dialog = ref.current!;
-    dialog.showModal();
-    return () => dialog.close();
-  }, []);
   return <dialog ref={ref} aria-labelledby={title} onCancel={close} className="choice-image-dialog">
     <h2 id={title}>{target.scope === "choice" ? "Choice image settings" : "Image settings"}</h2>
     <label>Image<select value={index} onChange={e => select(Number(e.target.value))}>
