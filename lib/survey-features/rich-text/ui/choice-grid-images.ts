@@ -15,14 +15,22 @@ function rowTarget({ question, row }: GetMatrixRowActionsEvent, creator: SurveyC
   const template = document.createElement("template");
   template.innerHTML = value;
   const images = Array.from(template.content.querySelectorAll("img"));
-  const commit = (index: number, image: HTMLImageElement) => {
+  const commit = (index: number, image: HTMLImageElement | null) => {
     if (!editable() || row.editingObj !== item || item.getLocale() !== locale || item.text !== value) return false;
-    if (images[index]) images[index].replaceWith(image);
-    else template.content.prepend(image);
+    if (!editOccurrence(template.content, index, image)) return false;
     cell.value = template.innerHTML;
     return true;
   };
   return { scope: "choice", images, selected: images.length ? 0 : -1, commit };
+}
+
+function editOccurrence(content: DocumentFragment, index: number, image: HTMLImageElement | null) {
+  const original = content.querySelectorAll("img")[index];
+  if (original && image) original.replaceWith(image);
+  else if (original) original.remove();
+  else if (index === -1 && image) content.prepend(image);
+  else return false;
+  return true;
 }
 
 function rowAction(creator: SurveyCreatorModel, open: Open) {

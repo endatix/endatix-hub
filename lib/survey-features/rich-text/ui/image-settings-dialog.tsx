@@ -59,6 +59,10 @@ function validSize(value: string, saved: string) {
   return value === saved || value === "" || /^(?:[1-9]\d*(?:\.\d+)?)(?:px|%|em|rem|vw)?$/.test(value);
 }
 
+function settingsChanged(draft: Settings, saved: Settings) {
+  return draft.alt !== saved.alt || draft.width !== saved.width || draft.cap !== saved.cap;
+}
+
 interface EditorProps { target: ImageTarget; index: number; close(): void }
 
 async function replaceSource(image: HTMLImageElement, store: StoreImage, file: File) {
@@ -74,10 +78,10 @@ function useApplyImage({target, index, close}: EditorProps) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const alive = useMounted();
-  async function apply(image: HTMLImageElement, file?: File) {
+  async function apply(image: HTMLImageElement | null, file?: File) {
     setBusy(true);
     try {
-      if (file) await replaceSource(image, store, file);
+      if (file && image) await replaceSource(image, store, file);
       if (!alive.current) return;
       if (target.commit(index, image)) close();
       else setError("The content changed. Close and reopen image settings.");
@@ -108,11 +112,11 @@ function useImageDraft(target: ImageTarget) {
   const [file, choose] = useState<File>();
   const suggestion = file && fileLabel(file.name);
   const draft = { ...saved, ...edits, alt: edits.alt ?? saved.alt ?? (suggestion || null) };
-  const dirty = !!file || draft.alt !== saved.alt || draft.width !== saved.width || draft.cap !== saved.cap;
+  const dirty = !!file || settingsChanged(draft, saved);
   const select = (next: number) => { setEdits({}); choose(undefined); setIndex(next); };
   const valid = validSize(draft.width.trim(), saved.width) && validSize(draft.cap.trim(), saved.cap);
   const validFile = file ? file.type.startsWith("image/") : Boolean(image.getAttribute("src"));
-  return { image: applySettings(image, draft), draft, change, file, choose, valid, validFile, dirty, index, select };
+  return { image: applySettings(image, draft), draft, change, file, choose, valid, canApply: valid && validFile, dirty, index, select };
 }
 
 function ImageFileField({choose, index}: Readonly<{choose(file?: File): void; index: number}>) {
@@ -124,24 +128,51 @@ function ImageFileField({choose, index}: Readonly<{choose(file?: File): void; in
 }
 
 function DraftEditor({target, close}: Readonly<Omit<EditorProps, "index">>) {
-  const { draft, change, image, file, choose, valid, validFile, dirty, index, select } = useImageDraft(target);
-  const { apply, busy, error } = useApplyImage({target, index, close});
+  const edit = useImageDraft(target);
+  const { apply, busy, error } = useApplyImage({target, index: edit.index, close});
+  const [removing, setRemoving] = useState(false);
   return <>
     <div className="grid min-h-0 gap-4 overflow-y-auto p-1">
       <fieldset className="grid min-w-0 gap-4" disabled={busy}>
-        <ImageThumbnailPicker target={target} index={index} select={select} locked={dirty || busy} />
-        {dirty && target.images.length > 0 && <p role="status" className="text-sm text-muted-foreground">Apply or cancel these changes before editing another image.</p>}
-        <ImageFileField key={index} choose={choose} index={index} />
-        <ImageFields draft={draft} change={change} />
+        <ImageThumbnailPicker target={target} index={edit.index} select={edit.select} locked={edit.dirty || busy || removing} />
+        {edit.index >= 0 && <RemovalControl staged={removing} disabled={edit.dirty} toggle={() => setRemoving(!removing)} />}
+        {!removing && <DraftFields edit={edit} hasImages={target.images.length > 0} />}
       </fieldset>
-      {!valid && <p className="text-sm text-destructive" role="alert">Enter a positive size, or leave the field blank.</p>}
+      {!edit.valid && <p className="text-sm text-destructive" role="alert">Enter a positive size, or leave the field blank.</p>}
       {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
     </div>
-    <DialogFooter>
-      <Button type="button" variant="secondary" onClick={close}>Cancel</Button>
-      <Button type="button" disabled={busy || !valid || !validFile} onClick={() => apply(image, file)}>{busy ? "Applying…" : "Apply"}</Button>
-    </DialogFooter>
+    <ImageActions close={close} busy={busy} enabled={removing || edit.canApply}
+      apply={() => apply(removing ? null : edit.image, edit.file)} />
   </>;
+}
+
+interface ActionProps { close(): void; apply(): void; busy: boolean; enabled: boolean }
+
+function ImageActions({close, apply, busy, enabled}: Readonly<ActionProps>) {
+  return <DialogFooter>
+    <Button type="button" variant="secondary" onClick={close}>Cancel</Button>
+    <Button type="button" disabled={busy || !enabled} onClick={apply}>{busy ? "Applying…" : "Apply"}</Button>
+  </DialogFooter>;
+}
+
+function DraftFields({edit, hasImages}: Readonly<{edit: ReturnType<typeof useImageDraft>; hasImages: boolean}>) {
+  return <>
+    {edit.dirty && hasImages && <p role="status" className="text-sm text-muted-foreground">Apply or cancel these changes before editing another image.</p>}
+    <ImageFileField key={edit.index} choose={edit.choose} index={edit.index} />
+    <ImageFields draft={edit.draft} change={edit.change} />
+  </>;
+}
+
+function RemovalControl({ staged, disabled, toggle }: Readonly<{ staged: boolean; disabled: boolean; toggle(): void }>) {
+  const hint = useId();
+  return <div className="grid gap-2">
+    <Button type="button" variant="outline" size="sm" className="justify-self-start" disabled={disabled}
+      aria-describedby={hint} onClick={toggle}>{staged ? "Keep image" : "Remove from this field"}</Button>
+    <p id={hint} role={staged ? "status" : undefined} className="text-sm text-muted-foreground">
+      {staged ? "Apply to remove this occurrence. The file and its other uses will stay intact." :
+        "Removal affects only this occurrence, not the stored file or its other uses."}
+    </p>
+  </div>;
 }
 
 interface DialogProps { target: ImageTarget; close(): void; PreviewDisplay: ComponentType<{children: ReactNode}> }

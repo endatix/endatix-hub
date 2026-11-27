@@ -51,6 +51,57 @@ function click(name: string) {
   fireEvent.click(screen.getByRole("button", { name }));
 }
 
+it("removes only the second French choice occurrence on Apply and restores it in one Creator undo", () => {
+  const { creator, openRow } = setup();
+  const choices = () => creator.JSON.pages[0].elements[0].choices;
+  const before = choices();
+  openRow(0);
+  fireEvent.click(screen.getByRole("radio", { name: "2. Two" }));
+  click("Remove from this field");
+  expect(choices()).toEqual(before);
+  click("Cancel");
+  expect(choices()).toEqual(before);
+  openRow(0);
+  fireEvent.click(screen.getByRole("radio", { name: "2. Two" }));
+  click("Remove from this field");
+  click("Apply");
+  expect(choices()[0]).toEqual({value:"key",text:{default:"Caption",fr:`<img src="${source}" alt="One"><strong>Légende</strong>`}});
+  creator.undo();
+  expect(choices()).toEqual(before);
+});
+
+it("shows the last image selected, stages removal reversibly and offers addition after removal", () => {
+  const { editor } = setup(null, {choiceLabel:false,readOnly:false});
+  editor.setContents(editor.clipboard.convert({html:`<img alt="Harbor" src="${source}">`}));
+  const before = editor.getContents();
+  click("Image settings");
+  expect(screen.getByRole("radio", {name:"1. Harbor"}).getAttribute("aria-checked")).toBe("true");
+  expect(screen.getByRole("button",{name:"Add an image"})).toBeTruthy();
+  click("Remove from this field");
+  click("Keep image");
+  expect(screen.getByLabelText<HTMLInputElement>("Alt text").value).toBe("Harbor");
+  click("Remove from this field");
+  click("Apply");
+  expect(editor.root.querySelector("img")).toBeNull();
+  click("Image settings");
+  expect(screen.queryByRole("radio")).toBeNull();
+  expect(screen.queryByRole("button",{name:"Remove from this field"})).toBeNull();
+  expect(screen.getByLabelText("New image file")).toBeTruthy();
+  click("Cancel");
+  editor.history.undo();
+  expect(editor.getContents()).toEqual(before);
+});
+
+it("refuses a staged removal when a concurrent caption edit makes the target stale", () => {
+  const { editor } = setup();
+  fireEvent.click(editor.root.querySelectorAll("img")[1]);
+  click("Remove from this field");
+  editor.insertText(0, "Later ", "user");
+  click("Apply");
+  expect(screen.getByRole("alert").textContent).toContain("content changed");
+  expect(editor.root.querySelectorAll("img")).toHaveLength(2);
+});
+
 it("edits the second French image from the grid without uploading or rewriting the default caption", () => {
   const store = vi.fn<StoreImage>();
   const { creator, openRow } = setup(store);

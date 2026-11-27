@@ -26,14 +26,11 @@ export function ImageThumbnailPicker({ target, index, locked, select }: Readonly
   const title = useId();
   if (!target.images.length) return null;
   return <div className="grid gap-2">
-    {target.images.length > 1 ? <>
       <span id={title} className="text-sm font-medium">Select an image to edit</span>
       <RadioGroup className="max-h-48 overflow-y-auto p-1 sm:grid-cols-2" aria-labelledby={title}
         value={String(index)} disabled={locked} onValueChange={value => select(Number(value))}>
         {target.images.map((image, i) => <Thumbnail key={i} image={image} index={i} />)}
       </RadioGroup>
-    </> : <p className="text-sm font-medium">{imageOption(target.images[0], 0)}</p>}
     {index >= 0 && <Button type="button" variant="outline" size="sm" className="justify-self-start" disabled={locked} onClick={() => select(-1)}><PlusIcon />Add an image</Button>}
-    {index < 0 && target.images.length === 1 && <Button type="button" variant="outline" size="sm" disabled={locked} onClick={() => select(0)}>Edit existing image</Button>}
   </div>;
 }

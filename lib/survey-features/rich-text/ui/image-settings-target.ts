@@ -4,7 +4,8 @@ export interface ImageTarget {
   scope: "choice" | "field";
   images: HTMLImageElement[];
   selected: number;
-  commit(index: number, image: HTMLImageElement): boolean;
+  /** A null replacement removes only the occurrence at index. */
+  commit(index: number, image: HTMLImageElement | null): boolean;
 }
 
 export const OpenImageSettings = createContext<((target: ImageTarget) => void) | null>(null);
