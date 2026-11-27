@@ -49,6 +49,32 @@ const transfer = () => ({
   store: vi.fn().mockResolvedValue(url),
 });
 
+it("retains projected-away defaults and locale objects when saving an image edit after reopening", () => {
+  // Arrange
+  const { creator } = editor();
+  const description = `<img src="${url}" width="180">`;
+
+  // Act
+  creator.survey.getQuestionByName("question").description = description;
+  const saved = prepare(creator).payload;
+
+  // Assert
+  const expected = source(embedded);
+  Object.assign(expected.pages[0].elements[0], { description });
+  expect(saved).toEqual(expected);
+});
+
+it("uses Creator's ordinary serialization for a plain text edit without image changes", () => {
+  // Arrange
+  const { creator } = editor();
+
+  // Act
+  creator.survey.title = "Updated";
+
+  // Assert
+  expect(prepare(creator).payload).toEqual(creator.JSON);
+});
+
 it("preserves source structure through review, conversion, undo, and repeated Save preparation", async () => {
   // Arrange
   const { creator, session } = editor();

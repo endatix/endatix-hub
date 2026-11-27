@@ -10,19 +10,19 @@ import {
 import { canonicalContentImage } from "../use-cases/view-protected-files/canonical-content-image";
 import { useAssetStorage } from "./asset-storage.context";
 import { useStorageReadRuntime } from "./use-storage-read-runtime";
-import { showQuillImage } from "./quill-image-preview";
+import { showEditorImage } from "./editor-image-preview";
 
 const richText = ".sv-string-viewer, .sv-string-editor--html, .sd-html";
 type ReadImage = (src: string) => Promise<string | null>;
 
 function isDisplayImage(image: HTMLImageElement) {
   return image.matches("[data-image-thumbnail]") ||
-    (image.closest(richText) && !image.closest(".ql-editor, [contenteditable=true]:focus"));
+    (image.closest(richText) && !image.closest(".tiptap, [contenteditable=true]:focus"));
 }
 
 function displayTarget(image: HTMLImageElement) {
-  const editor = image.closest(".ql-editor")?.closest<HTMLElement>(".rich-text-editor[id]");
-  if (editor) return { editable: true, show: (src: string, signed: string) => showQuillImage(editor, src, signed) };
+  const editor = image.closest(".tiptap")?.closest<HTMLElement>(".rich-text-editor[id]");
+  if (editor) return { editable: true, show: (src: string, signed: string) => showEditorImage(editor, src, signed) };
   if (isDisplayImage(image)) return { editable: false, show: (_src: string, signed: string) => { image.src = signed; } };
 }
 
@@ -115,7 +115,7 @@ function observeImages(container: Element, display: DisplaySources) {
 function bindRichTextImages(container: Element, display: DisplaySources) {
   const observer = observeImages(container, display);
   const onFocus = (event: Event) => {
-    if (event.target instanceof Element && event.target.matches("[contenteditable=true]:not(.ql-editor)")) {
+    if (event.target instanceof Element && event.target.matches("[contenteditable=true]:not(.tiptap)")) {
       display.restore(event.target);
     }
   };

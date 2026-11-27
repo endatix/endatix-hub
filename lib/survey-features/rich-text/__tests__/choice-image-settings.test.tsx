@@ -1,13 +1,11 @@
-import { createRef } from "react";
-import type ReactQuill from "react-quill-new";
+import { mountedEditor } from "./field-fixture";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QuestionMatrixDynamicModel } from "survey-core";
 import { SurveyCreatorModel } from "survey-creator-core";
 import { beforeEach, expect, it, vi } from "vitest";
 import { ChoiceImageSettings } from "../ui/choice-image-settings";
 import { ImageUploadContext, type StoreImage } from "../ui/image-upload-context";
-import { UploadableQuill } from "../ui/uploadable-quill";
-import "../ui/responsive-image";
+import { RichTextField } from "../ui/rich-text-field";
 
 const source = "https://example.invalid/sample.png";
 const imageFile = new File(["sample pixels"], "sample.png", { type: "image/png" });
@@ -23,10 +21,9 @@ function setup(store: StoreImage | null = null, props = { choiceLabel: true, rea
   creator.JSON = { locale: "fr", elements: [{
     type: "radiogroup", name: "question", choices: [{ value: "key", text: { default: "Caption", fr: french } }, "Plain"],
   }] };
-  const editorRef = createRef<ReactQuill>();
   render(<ImageUploadContext.Provider value={store}>
     <ChoiceImageSettings creator={creator}>
-      <UploadableQuill editorRef={editorRef} {...props} defaultValue={french} />
+      <RichTextField {...props} value={french} />
     </ChoiceImageSettings>
   </ImageUploadContext.Provider>);
   creator.selectElement(creator.survey.getQuestionByName("question"));
@@ -36,7 +33,7 @@ function setup(store: StoreImage | null = null, props = { choiceLabel: true, rea
     .getUpdatedMatrixRowActions(matrix, matrix.visibleRows[index], [])
     .find(action => action.id === "choice-image");
   const openRow = (index: number) => act(() => rowAction(index)?.action?.());
-  return { creator, matrix, rowAction, openRow, editor: editorRef.current!.getEditor() };
+  return { creator, matrix, rowAction, openRow, editor: mountedEditor() };
 }
 
 function change(label: string, value: string) {
@@ -51,10 +48,43 @@ function click(name: string) {
   fireEvent.click(screen.getByRole("button", { name }));
 }
 
+it("opens the selected image's settings with Enter without inserting a paragraph", () => {
+  // Arrange
+  const { editor } = setup();
+  let lastImage = 0;
+  editor.state.doc.descendants((node, pos) => { if (node.type.name === "image") lastImage = pos; });
+  editor.commands.setNodeSelection(lastImage);
+  const original = editor.getHTML();
+
+  // Act
+  fireEvent.keyDown(editor.view.dom, { key: "Enter" });
+
+  // Assert
+  expect(screen.getByLabelText<HTMLInputElement>("Alt text").value).toBe("Two");
+  expect(editor.getHTML()).toBe(original);
+});
+
 function openImageTools() {
   click("Formatting options");
   click("Image settings");
 }
+
+it("opens the selected Tiptap image from the compact choice toolbar and returns focus", async () => {
+  // Arrange
+  const { editor } = setup();
+  let selectedImage = 0;
+  editor.state.doc.descendants((node, pos) => { if (node.type.name === "image") selectedImage = pos; });
+  editor.commands.setNodeSelection(selectedImage);
+
+  // Act
+  openImageTools();
+
+  // Assert
+  expect(screen.getByLabelText<HTMLInputElement>("Alt text").value).toBe("Two");
+  click("Cancel");
+  await waitFor(() => expect(document.activeElement).toBe(editor.view.dom));
+  expect(editor.state.selection.from).toBe(selectedImage);
+});
 
 it.each([true, false])("keeps only Formatting options visible until requested (choice: %s)", choiceLabel => {
   // Arrange
@@ -94,8 +124,8 @@ it("removes only the second French choice occurrence on Apply and restores it in
 
 it("shows the last image selected, stages removal reversibly and offers addition after removal", () => {
   const { editor } = setup(null, {choiceLabel:false,readOnly:false});
-  editor.setContents(editor.clipboard.convert({html:`<img alt="Harbor" src="${source}">`}));
-  const before = editor.getContents();
+  editor.commands.setContent(`<img alt="Harbor" src="${source}">`);
+  const before = editor.getJSON();
   openImageTools();
   expect(screen.getByRole("radio", {name:"1. Harbor"}).getAttribute("aria-checked")).toBe("true");
   expect(screen.getByRole("button",{name:"Add image"})).toBeTruthy();
@@ -106,24 +136,24 @@ it("shows the last image selected, stages removal reversibly and offers addition
   expect(screen.getByLabelText<HTMLInputElement>("Alt text").value).toBe("Harbor");
   click("Remove selected image from this field");
   click("Apply");
-  expect(editor.root.querySelector("img")).toBeNull();
+  expect(editor.view.dom.querySelector<HTMLImageElement>("img[src]")).toBeNull();
   openImageTools();
   expect(screen.queryByRole("radio")).toBeNull();
   expect(screen.queryByRole("button",{name:"Remove selected image from this field"})).toBeNull();
   expect(screen.getByLabelText("New image file")).toBeTruthy();
   click("Cancel");
-  editor.history.undo();
-  expect(editor.getContents()).toEqual(before);
+  editor.commands.undo();
+  expect(editor.getJSON()).toEqual(before);
 });
 
 it("refuses a staged removal when a concurrent caption edit makes the target stale", () => {
   const { editor } = setup();
-  fireEvent.click(editor.root.querySelectorAll("img")[1]);
+  fireEvent.click(editor.view.dom.querySelectorAll<HTMLImageElement>("img[src]")[1]);
   click("Remove selected image from this field");
-  editor.insertText(0, "Later ", "user");
+  editor.commands.insertContentAt(1, "Later ");
   click("Apply");
   expect(screen.getByRole("alert").textContent).toContain("content changed");
-  expect(editor.root.querySelectorAll("img")).toHaveLength(2);
+  expect(editor.view.dom.querySelectorAll<HTMLImageElement>("img[src]")).toHaveLength(2);
 });
 
 it("edits the second French image from the grid without uploading or rewriting the default caption", () => {
@@ -166,15 +196,15 @@ it("keeps a plain label while adding an inline image when storage is disabled", 
 it("keeps a cleared alt decorative across replacement and reopening", async () => {
   const store = vi.fn<StoreImage>().mockResolvedValue("https://example.invalid/replacement.jpg");
   const { editor } = setup(store);
-  fireEvent.click(editor.root.querySelector("img")!);
+  fireEvent.click(editor.view.dom.querySelector<HTMLImageElement>("img[src]")!);
   change("Alt text", "");
   upload(new File(["pixels"], "Harbor_view.jpg", {type:"image/jpeg"}));
   expect(screen.getByLabelText<HTMLInputElement>("Alt text").value).toBe("");
   click("Apply");
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-  const saved = editor.getSemanticHTML();
-  editor.setContents(editor.clipboard.convert({html:saved}));
-  const image = editor.root.querySelector("img")!;
+  const saved = editor.getHTML();
+  editor.commands.setContent(saved);
+  const image = editor.view.dom.querySelector<HTMLImageElement>("img[src]")!;
   expect(image.getAttribute("alt")).toBe("");
   fireEvent.click(image);
   expect(screen.getByRole("radio", {name:"1. Harbor view"}).getAttribute("aria-checked")).toBe("true");
@@ -182,42 +212,42 @@ it("keeps a cleared alt decorative across replacement and reopening", async () =
   expect(store).toHaveBeenCalledTimes(1);
 });
 
-it("retries a failed replacement from Quill, using only the stored reference", async () => {
+it("retries a failed replacement from the editor, using only the stored reference", async () => {
   const replacement = "https://example.invalid/new.png";
   const store = vi.fn<StoreImage>().mockRejectedValueOnce(Error()).mockResolvedValue(replacement);
   const { editor } = setup(store);
-  fireEvent.click(editor.root.querySelectorAll("img")[1]);
+  fireEvent.click(editor.view.dom.querySelectorAll<HTMLImageElement>("img[src]")[1]);
   upload();
   click("Apply");
   expect((await screen.findByRole("alert")).textContent).toContain("retry");
-  expect(editor.root.querySelectorAll("img")[1].src).toBe(source);
+  expect(editor.view.dom.querySelectorAll<HTMLImageElement>("img[src]")[1].src).toBe(source);
   click("Apply");
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-  const [first, second] = editor.root.querySelectorAll("img");
+  const [first, second] = editor.view.dom.querySelectorAll<HTMLImageElement>("img[src]");
   expect(first.src).toBe(source);
   expect(second.src).toBe(replacement);
-  expect(second.getAttribute("width")).toBe("50");
+  expect(editor.getHTML()).toContain('width="50"');
   expect(store).toHaveBeenCalledTimes(2);
 });
 
 it("discards a late upload after the author cancels", async () => {
   const pending = Promise.withResolvers<string>();
   const { editor } = setup(() => pending.promise);
-  fireEvent.click(editor.root.querySelector("img")!);
+  fireEvent.click(editor.view.dom.querySelector<HTMLImageElement>("img[src]")!);
   upload();
   click("Apply");
   expect(screen.getByRole("button", { name: "Applying…" }).hasAttribute("disabled")).toBe(true);
   click("Cancel");
   await act(async () => pending.resolve("https://example.invalid/new.png"));
-  expect(editor.root.querySelectorAll("img")).toHaveLength(2);
-  expect(editor.root.querySelector("img")?.src).toBe(source);
+  expect(editor.view.dom.querySelectorAll<HTMLImageElement>("img[src]")).toHaveLength(2);
+  expect(editor.view.dom.querySelector<HTMLImageElement>("img[src]")?.src).toBe(source);
 });
 
 it("uses only the row action for a choice label, while a click selects the exact image", () => {
   const { editor, rowAction } = setup();
   expect(rowAction(0)?.title).toBe("Choice image settings");
   expect(screen.queryByRole("button", { name: "Image settings" })).toBeNull();
-  fireEvent.click(editor.root.querySelectorAll("img")[1]);
+  fireEvent.click(editor.view.dom.querySelectorAll<HTMLImageElement>("img[src]")[1]);
   expect(screen.getByLabelText<HTMLInputElement>("Alt text").value).toBe("Two");
 });
 
@@ -230,11 +260,11 @@ it("opens field settings by icon and image, preserving an uncapped image when ch
   expect(screen.getByLabelText<HTMLInputElement>("Maximum width").value).toBe("");
   screen.getByRole("button", { name: "Cancel" }).focus();
   click("Cancel");
-  await waitFor(() => expect(document.activeElement).toBe(editor.root));
-  fireEvent.click(editor.root.querySelector("img")!);
+  await waitFor(() => expect(document.activeElement).toBe(editor.view.dom));
+  fireEvent.click(editor.view.dom.querySelector<HTMLImageElement>("img[src]")!);
   change("Alt text", "Large image");
   click("Apply");
-  const image = editor.root.querySelector("img")!;
+  const image = editor.view.dom.querySelector<HTMLImageElement>("img[src]")!;
   expect(image.alt).toBe("Large image");
   expect(image.style.maxWidth).toBe("");
   expect(image.getAttribute("src")).toBe(source);
@@ -244,7 +274,7 @@ it("opens field settings by icon and image, preserving an uncapped image when ch
 it("offers no image controls in a read-only rich-text field", () => {
   const { editor } = setup(null, { choiceLabel: false, readOnly: true });
   expect(screen.queryByRole("button", { name: "Image settings" })).toBeNull();
-  fireEvent.click(editor.root.querySelector("img")!);
+  fireEvent.click(editor.view.dom.querySelector<HTMLImageElement>("img[src]")!);
   expect(screen.queryByRole("dialog")).toBeNull();
 });
 

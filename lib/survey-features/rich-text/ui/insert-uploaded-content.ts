@@ -1,39 +1,61 @@
-import { Delta, type default as Quill, type Range } from "quill";
+import type { Editor, Range } from "@tiptap/core";
+import { closeHistory } from "@tiptap/pm/history";
+import { DOMParser } from "@tiptap/pm/model";
+import type { Transaction } from "@tiptap/pm/state";
+import type { StepMap } from "@tiptap/pm/transform";
+import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
 
 interface Transfer {
-  load(): Promise<Delta>;
+  load(): Promise<HTMLTemplateElement>;
   signal: AbortSignal;
 }
 
-/** Rebase the pending user edit over typing, deletion or undo during the PUT. */
-export async function insertUploadedContent(
-  editor: Quill,
-  range: Range,
-  transfer: Transfer,
-) {
-  let edits = new Delta();
-  const track = (delta: Delta) => {
-    edits = edits.compose(delta);
-  };
-  editor.on("text-change", track);
-  try {
-    const content = await transfer.load();
-    if (transfer.signal.aborted || !editor.isEnabled()) return;
-    commitInsertion(editor, range, { content, edits });
-  } finally {
-    editor.off("text-change", track);
+// Only delete text that was selected at paste time. Typing inside a pending
+// replacement splits that selection into two surviving pieces.
+function survivingRanges(range: Range, map: StepMap) {
+  const ranges: Range[] = [];
+  let start = range.from;
+  function keep(end: number) {
+    if (start < end) ranges.push({ from: map.mapResult(start, 1).pos, to: map.mapResult(end, -1).pos });
   }
+  map.forEach((from, to) => {
+    if (from >= range.to || to <= start) return;
+    keep(from);
+    start = Math.max(start, to);
+  });
+  keep(range.to);
+  return ranges;
 }
 
-function commitInsertion(editor: Quill, range: Range, pending: { content: Delta; edits: Delta }) {
-  const { content, edits } = pending;
-  const insertion = new Delta().retain(range.index).delete(range.length).concat(content);
-  const selection = editor.getSelection();
-  const start = edits.transformPosition(range.index);
-  editor.history.cutoff();
-  editor.updateContents(edits.transform(insertion, true), "user");
-  editor.history.cutoff();
-  if (selection?.index === start && selection.length === range.length) {
-    editor.setSelection(start + content.length(), 0, "silent");
+function trackInsertion(range: Range) {
+  let anchor = range.from;
+  let selected = [range];
+  let stale = false;
+  const track = ({ transaction }: { transaction: Transaction }) => {
+    if (transaction.getMeta("preventUpdate")) stale = true;
+    for (const map of transaction.mapping.maps) {
+      anchor = map.mapResult(anchor, 1).pos;
+      selected = selected.flatMap(part => survivingRanges(part, map));
+    }
+  };
+  return { track, get placement() { return { anchor, selected, stale }; } };
+}
+
+export async function insertUploadedContent(editor: Editor, range: Range, transfer: Transfer) {
+  const pending = trackInsertion(range);
+  editor.on("transaction", pending.track);
+  try {
+    const fragment = await transfer.load();
+    const { anchor, selected, stale } = pending.placement;
+    if (stale || transfer.signal.aborted || editor.isDestroyed || !editor.isEditable) return;
+    fragment.innerHTML = htmlSanitizer.sanitize(fragment.innerHTML, htmlSanitizer.presets.surveyHtml);
+    const slice = DOMParser.fromSchema(editor.schema).parseSlice(fragment.content, { preserveWhitespace: true });
+    const tr = closeHistory(editor.state.tr);
+    for (const part of selected.toReversed()) tr.delete(part.from, part.to);
+    const insertAt = tr.mapping.mapResult(anchor).pos;
+    editor.view.dispatch(tr.replaceRange(insertAt, insertAt, slice));
+    editor.view.dispatch(closeHistory(editor.state.tr));
+  } finally {
+    editor.off("transaction", pending.track);
   }
 }

@@ -1,4 +1,3 @@
-import type Quill from "quill";
 import type { StoreImage } from "./image-upload-context";
 import { fileLabel } from "./image-label";
 
@@ -6,7 +5,6 @@ import { clipboardImageFiles, ClipboardImageError } from "./clipboard-image-file
 
 /** Keep the clipboard's formatting and external links; replace only local image sources. */
 export function pastedImageContent(
-  editor: Quill,
   clipboard: DataTransfer,
   store: StoreImage,
 ) {
@@ -18,11 +16,10 @@ export function pastedImageContent(
     .filter(image => /^(data:image\/|cid:|blob:|file:)/i.test(image.src));
   if (!images.length) return;
   const attachments = Array.from(clipboard.files).filter(file => file.type.startsWith("image/"));
-  const formats = editor.getFormat();
   const upload = uploadImages(images, attachments, store);
   return async (signal: AbortSignal) => {
     await upload(signal);
-    return editor.clipboard.convert({ html: template.innerHTML }, formats);
+    return template;
   };
 }
 

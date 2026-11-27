@@ -17,6 +17,24 @@ const renderCreatorJson = (initialProps: CreatorJsonProps) =>
   );
 
 describe("useCreatorJson", () => {
+  it("keeps the fetched localized source independent of the editable model", () => {
+    // Arrange
+    const creator = new SurveyCreatorModel();
+    const map = '<img src="https://example.invalid/map.png">';
+    const description = { default: map, fr: "Carte" };
+    const source = { elements: [{ name: "map", type: "text", description }] };
+    renderHook(() => useCreatorJson(creator, source));
+
+    // Act
+    creator.survey.getQuestionByName("map").description = "Updated";
+
+    // Assert
+    expect(description.default).toBe(map);
+    expect(conversionSession(creator)?.prepare(creator.JSON).payload).toEqual({
+      elements: [{ name: "map", type: "text", description: { default: "Updated", fr: "Carte" } }],
+    });
+    creator.dispose();
+  });
   it.each(["form", "template"])("retains %s edits when an acknowledged Save refresh follows a failed Save", owner => {
     // Arrange
     const creator = new SurveyCreatorModel();
@@ -120,7 +138,7 @@ describe("useCreatorJson", () => {
     rerender({ creator, json: secondTurn });
 
     // Assert
-    expect(creator.JSON).toBe(secondTurn);
+    expect(creator.JSON).toEqual(secondTurn);
   });
 
   it("assigns JSON when it arrives after the Creator", () => {
@@ -133,7 +151,7 @@ describe("useCreatorJson", () => {
     rerender({ creator, json });
 
     // Assert
-    expect(creator.JSON).toBe(json);
+    expect(creator.JSON).toEqual(json);
   });
 
   it("assigns JSON again when the Creator instance is replaced", () => {
@@ -147,8 +165,8 @@ describe("useCreatorJson", () => {
     rerender({ creator: second, json });
 
     // Assert
-    expect(first.JSON).toBe(json);
-    expect(second.JSON).toBe(json);
+    expect(first.JSON).toEqual(json);
+    expect(second.JSON).toEqual(json);
   });
 });
 
@@ -177,7 +195,7 @@ describe("useCreatorJson snapshot comparison", () => {
     // Act & Assert
     expect(
       rerenderWith({ pages: [{ name: "a" }, { name: "b" }] }, reordered),
-    ).toBe(reordered);
+    ).toEqual(reordered);
   });
 
   it("applies a title edit that only changes letter case", () => {
@@ -187,7 +205,7 @@ describe("useCreatorJson snapshot comparison", () => {
     // Act & Assert
     expect(
       rerenderWith({ pages: [{ name: "p1", title: "first name" }] }, titleCased),
-    ).toBe(titleCased);
+    ).toEqual(titleCased);
   });
 
   it("applies an edit that only retypes a value from string to number", () => {
@@ -197,6 +215,6 @@ describe("useCreatorJson snapshot comparison", () => {
     // Act & Assert
     expect(
       rerenderWith({ pages: [{ name: "p1", rateMax: "5" }] }, numeric),
-    ).toBe(numeric);
+    ).toEqual(numeric);
   });
 });

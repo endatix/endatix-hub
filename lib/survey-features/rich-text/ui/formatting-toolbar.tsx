@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type Quill from "quill";
+import type { Editor } from "@tiptap/core";
 import { Bold, Italic, Underline, Strikethrough, ImagePlus, RotateCcw, Baseline, Highlighter } from "lucide-react";
 
 const marks = [
@@ -9,17 +9,28 @@ const marks = [
   { name: "strike", label: "Strikethrough", Icon: Strikethrough },
 ];
 
-function useFormatting(editor: Quill) {
-  const read = useCallback(() => editor.getFormat(editor.selection.savedRange), [editor]);
+function selectedFormats(editor: Editor): Record<string, string | boolean> {
+  return {
+    ...Object.fromEntries(marks.map(({name}) => [name, editor.isActive(name)])),
+    color: editor.getAttributes("textStyle").color,
+    background: editor.getAttributes("textStyle").backgroundColor,
+  };
+}
+
+function useFormatting(editor: Editor) {
+  const read = useCallback(() => selectedFormats(editor), [editor]);
   const [formats, setFormats] = useState(read);
   useEffect(() => {
     const update = () => setFormats(read());
-    editor.on("editor-change", update);
-    return () => { editor.off("editor-change", update); };
+    editor.on("transaction", update);
+    return () => { editor.off("transaction", update); };
   }, [editor, read]);
   function apply(name: string, value: string | boolean) {
-    editor.focus({ preventScroll: true });
-    editor.format(name, value, "user");
+    const chain = editor.chain();
+    if (name === "color") (typeof value === "string" ? chain.setColor(value) : chain.unsetColor()).run();
+    else if (name === "background") (typeof value === "string" ? chain.setBackgroundColor(value) : chain.unsetBackgroundColor()).run();
+    else chain.toggleMark(name).run();
+    editor.view.focus();
     setFormats(read());
   }
   return { formats, apply };
@@ -49,7 +60,9 @@ function ColorControl({ formats, apply, name }: Formatting & { name: "color" | "
   </span>;
 }
 
-function InsertImage({ editor }: { editor: Quill }) {
+type Upload = (files: FileList) => void;
+
+function InsertImage({ upload }: Readonly<{ upload: Upload }>) {
   const input = useRef<HTMLInputElement>(null);
   return <span role="group" aria-label="Media">
     <button type="button" aria-label="Insert image" title="Insert image" onClick={() => input.current?.click()}>
@@ -57,13 +70,15 @@ function InsertImage({ editor }: { editor: Quill }) {
     </button>
     <input ref={input} type="file" accept="image/*" hidden onChange={event => {
       const files = event.target.files;
-      if (files?.length) editor.uploader.upload(editor.getSelection(true), files);
+      if (files?.length) upload(files);
       event.target.value = "";
     }} />
   </span>;
 }
 
-export function FormattingToolbar({ editor, id, openSettings }: { editor: Quill; id: string; openSettings?: () => void }) {
+type ToolbarProps = { editor: Editor; id: string; upload: Upload; openSettings?: () => void };
+
+export function FormattingToolbar({ editor, id, upload, openSettings }: Readonly<ToolbarProps>) {
   const formatting = useFormatting(editor);
   return <div id={id} className="rich-text-formatting-commands">
     <MarkButtons {...formatting} />
@@ -71,6 +86,6 @@ export function FormattingToolbar({ editor, id, openSettings }: { editor: Quill;
     <ColorControl {...formatting} name="background" />
     {openSettings
       ? <button type="button" aria-label="Image settings" title="Image settings" onClick={openSettings}><ImagePlus size={16} /></button>
-      : <InsertImage editor={editor} />}
+      : <InsertImage upload={upload} />}
   </div>;
 }

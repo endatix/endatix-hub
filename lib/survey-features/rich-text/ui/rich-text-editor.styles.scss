@@ -1,7 +1,7 @@
 /*
  * The property grid swaps this editor in for `title` / `description` / `text`, so
  * it must read as one of the `.sd-formbox` inputs beside it: the wrapper mirrors
- * `.sd-formbox`, the Quill editor mirrors `.sd-formbox__input` (survey-core 3.0.2).
+ * `.sd-formbox`, the editing surface mirrors `.sd-formbox__input` (survey-core 3.0.2).
  * Tokens, never Tailwind literals — `border-gray-300` did not follow the palette
  * (endatix-hub#954). DESIGN.md §9 "Hub CSS injected into the Creator" is the rule.
  */
@@ -30,10 +30,10 @@
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
   color: var(--sjs2-color-component-input-default-value);
-  > .quill { grid-area: 1 / 1 / 2 / -1; min-inline-size: 0; }
-  &:has(> .rich-text-trigger) > .quill { grid-column-end: 2; }
-  &:has(> .rich-text-formatting) > .quill { grid-row: 2; }
-  > [role=status] { grid-column: 1 / -1; }
+  > .rich-text-surface { grid-area: 1 / 1 / 2 / -1; min-inline-size: 0; }
+  &:has(> .rich-text-trigger) > .rich-text-surface { grid-column-end: 2; }
+  &:has(> .rich-text-formatting) > .rich-text-surface { grid-row: 2; }
+  > output { grid-column: 1 / -1; }
 }
 
 .rich-text-trigger { grid-area: 1 / 2; }
@@ -64,8 +64,7 @@
   position: relative;
   input { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; opacity: 0; cursor: pointer; }
 }
-/* Quill ships its own 13px Helvetica; the grid around it is Open Sans. */
-.rich-text-editor .ql-container {
+.rich-text-surface {
   font-family: var(--sjs2-typography-font-family-component-input-content);
   font-size: var(--sjs2-typography-font-size-component-input-content);
   font-weight: var(--sjs2-typography-font-weight-component-input-content);
@@ -74,8 +73,7 @@
 }
 
 /* Mirrors `.sd-formbox__input`, so the control is as tall as a text row. */
-.rich-text-editor .ql-editor {
-  /* Quill's own `line-height: 1.42` here beats the inherited token. */
+.rich-text-surface .tiptap {
   line-height: var(--sjs2-typography-line-height-component-input-content);
   min-height: calc(
     1lh + var(--sjs2-layout-component-input-medium-content-padding-vertical) * 2
@@ -84,10 +82,18 @@
     var(--sjs2-layout-component-input-medium-content-padding-horizontal);
 }
 
-/* Quill's placeholder is a hard-coded rgba(0,0,0,.6), and italic: unreadable on dark. */
-.rich-text-editor .ql-editor.ql-blank::before {
-  color: var(--sjs2-color-component-input-default-placeholder);
-  font-style: normal;
-  left: var(--sjs2-layout-component-input-medium-content-padding-horizontal);
-  right: var(--sjs2-layout-component-input-medium-content-padding-horizontal);
+.rich-text-surface [data-resize-container] {
+  vertical-align: middle;
+  max-width: 100%;
+}
+.rich-text-surface [data-resize-wrapper] { max-width: 100%; }
+.rich-text-surface [data-resize-handle] {
+  width: .8rem;
+  height: .8rem;
+  background: var(--sjs2-color-component-input-default-value);
+  border: 2px solid var(--sjs2-color-component-formbox-default-bg);
+  cursor: nwse-resize;
+}
+.rich-text-surface [data-resize-state=true] img {
+  max-width: none !important;
 }

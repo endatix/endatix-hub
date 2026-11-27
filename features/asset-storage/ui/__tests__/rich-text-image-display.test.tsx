@@ -36,7 +36,7 @@ it("restores an inline editor's original source before focus reaches the editor"
   expect(JSON.parse(fetchRead.mock.calls[0][1].body)).toEqual({ formId: "1", richTextImages: [src] });
 });
 
-it("keeps private display credentials outside editable Quill HTML", async () => {
+it("keeps private display credentials outside editable the editor HTML", async () => {
   // Arrange
   const config = clientStorageConfig({ isPrivate: true });
   const src = `https://${config.hostName}/content/f/1/image.png`;
@@ -47,7 +47,7 @@ it("keeps private display credentials outside editable Quill HTML", async () => 
       <AssetStorageClientProvider config={config}>
         <RichTextImageDisplay>
           <div id="editor" className="rich-text-editor">
-            <div className="ql-editor" contentEditable suppressContentEditableWarning>
+            <div className="tiptap" contentEditable suppressContentEditableWarning>
               {storedImage(src)}
             </div>
           </div>
@@ -57,7 +57,7 @@ it("keeps private display credentials outside editable Quill HTML", async () => 
   );
 
   // Act
-  const editable = container.querySelector(".ql-editor")!;
+  const editable = container.querySelector(".tiptap")!;
   await waitFor(() => expect(container.querySelector("style[data-image-preview]")?.textContent).toContain("temporary"));
   (editable as HTMLElement).focus();
 

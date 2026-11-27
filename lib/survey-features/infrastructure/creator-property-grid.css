@@ -35,7 +35,7 @@
 .svc-creator
   .spg-table__cell:not(.spg-table__cell--detail-panel)
   .rich-text-editor
-  .ql-editor {
+  .tiptap {
   padding: 0;
   min-height: auto;
 }
