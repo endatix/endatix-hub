@@ -6,6 +6,8 @@ it.each([
   [String.raw`C:\fakepath\North_trail-map.JPG`, "North trail map"],
   ["archive/Forêt.du_nord.png", "Forêt du nord"],
   ["pasted-image-2.png", ""],
+  ["IMG00012.jpg", ""],
+  ["Picture-of-the-harbor.png", "Picture of the harbor"],
   ["Screenshot 2026-08-01 at 10.21.30 AM.png", ""],
   ["8c783ec0-265a-4f49-a82b-96253bd97ce9.png", ""],
   ["https://example.invalid/file.png?sig=abc", ""],

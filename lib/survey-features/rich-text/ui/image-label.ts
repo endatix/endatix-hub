@@ -1,12 +1,19 @@
 const opaqueKey = /[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}|[a-f\d]{24,}/i;
-const genericName = /^(?:image|img|dsc|dcim|photo|picture|pasted?|clipboard|screen\s?shot|screen capture|untitled|blob)(?:\s*(?:image|copy|at|am|pm|\d+))*$/i;
+const genericPrefix = /^(?:image|img|dsc|dcim|photo|picture|pasted?|clipboard|screen ?shot|screen capture|untitled|blob)/i;
+
+function isGenericLabel(label: string) {
+  const prefix = genericPrefix.exec(label);
+  if (!prefix) return false;
+  const suffix = label.slice(prefix[0].length).trim();
+  return !suffix || suffix.split(" ").every(word => /^(?:image|copy|at|am|pm|\d+)$/.test(word.toLowerCase()));
+}
 
 export function fileLabel(name: string) {
   if (/[?:#=&%]/.test(name.replace(/^[a-z]:[/\\]/i, ""))) return "";
   const leaf = name.split(/[/\\]/).pop() ?? "";
   if (opaqueKey.test(leaf) || leaf.length > 120 || /[a-z\d]{32,}/i.test(leaf)) return "";
   const label = leaf.replace(/\.[^.]+$/, "").replace(/[_.-]+/g, " ").replace(/\s+/g, " ").trim();
-  return genericName.test(label) || !/\p{L}/u.test(label) ? "" : label;
+  return isGenericLabel(label) || !/\p{L}/u.test(label) ? "" : label;
 }
 
 function sourceLabel(source: string) {
