@@ -75,7 +75,7 @@ function useApplyImage({target, index, close}: EditorProps) {
       if (file) await replaceSource(image, store, file);
       if (!alive.current) return;
       if (target.commit(index, image)) close();
-      else setError("The choice changed. Close and reopen image settings.");
+      else setError("The content changed. Close and reopen image settings.");
     } catch {
       if (alive.current) setError("Could not store the image. Apply again to retry.");
     } finally {
@@ -143,7 +143,7 @@ export function ImageSettingsDialog({ target, close }: { target: ImageTarget; cl
     return () => dialog.close();
   }, []);
   return <dialog ref={ref} aria-labelledby={title} onCancel={close} className="choice-image-dialog">
-    <h2 id={title}>Choice image settings</h2>
+    <h2 id={title}>{target.scope === "choice" ? "Choice image settings" : "Image settings"}</h2>
     <label>Image<select value={index} onChange={e => select(Number(e.target.value))}>
       <option value="-1">Add an image</option>
       {target.images.map((img, i) => <option key={i} value={i}>Image {i + 1}{img.alt && `: ${img.alt}`}</option>)}

@@ -4,7 +4,7 @@ import type { ImageTarget } from "./image-settings-target";
 
 type Open = (target: ImageTarget) => void;
 
-function rowTarget({ question, row }: GetMatrixRowActionsEvent, creator: SurveyCreatorModel) {
+function rowTarget({ question, row }: GetMatrixRowActionsEvent, creator: SurveyCreatorModel): ImageTarget | undefined {
   const item = row.editingObj;
   const cell = row.getQuestionByColumnName("text");
   if (question.name !== "choices" || !(item instanceof ItemValue) || !cell) return;
@@ -22,14 +22,14 @@ function rowTarget({ question, row }: GetMatrixRowActionsEvent, creator: SurveyC
     cell.value = template.innerHTML;
     return true;
   };
-  return { images, selected: images.length ? 0 : -1, commit };
+  return { scope: "choice", images, selected: images.length ? 0 : -1, commit };
 }
 
 function rowAction(creator: SurveyCreatorModel, open: Open) {
   return (_: SurveyModel, event: GetMatrixRowActionsEvent) => {
     if (event.question.name !== "choices" || creator.readOnly || event.question.isReadOnly ||
       event.row.getQuestionByColumnName("text")?.isReadOnly) return;
-    event.actions.push({ id: "choice-image", title: "Choice image settings", iconName: "icon-image",
+    event.actions.push({ id: "choice-image", title: "Choice image settings", ariaLabel: "Choice image settings", iconName: "icon-image",
       location: "end", showTitle: false, action: () => {
         const target = rowTarget(event, creator);
         if (target) open(target);

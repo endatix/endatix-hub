@@ -1,6 +1,7 @@
 import { createContext } from "react";
 
 export interface ImageTarget {
+  scope: "choice" | "field";
   images: HTMLImageElement[];
   selected: number;
   commit(index: number, image: HTMLImageElement): boolean;
@@ -8,16 +9,15 @@ export interface ImageTarget {
 
 export const OpenImageSettings = createContext<((target: ImageTarget) => void) | null>(null);
 
-export function newChoiceImage() {
-  const image = document.createElement("img");
-  image.style.maxWidth = "min(100%, 100px)";
-  image.style.height = "auto";
-  return image;
-}
-
 export function imageDraft(target: ImageTarget, index: number) {
   const original = target.images[index];
-  return original ? original.cloneNode(false) as HTMLImageElement : newChoiceImage();
+  if (original) return original.cloneNode(false) as HTMLImageElement;
+  const image = document.createElement("img");
+  if (target.scope === "choice") {
+    image.style.maxWidth = "min(100%, 100px)";
+    image.style.height = "auto";
+  }
+  return image;
 }
 
 export function inlineImage(file: File): Promise<string> {

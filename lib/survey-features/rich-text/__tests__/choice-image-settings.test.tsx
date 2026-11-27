@@ -21,7 +21,7 @@ beforeEach(() => {
   URL.revokeObjectURL = vi.fn();
 });
 
-function setup(store: StoreImage | null = null) {
+function setup(store: StoreImage | null = null, props = { choiceLabel: true, readOnly: false }) {
   const creator = new SurveyCreatorModel({});
   creator.JSON = { locale: "fr", elements: [{
     type: "radiogroup", name: "question", choices: [{ value: "key", text: { default: "Caption", fr: french } }, "Plain"],
@@ -29,7 +29,7 @@ function setup(store: StoreImage | null = null) {
   const editorRef = createRef<ReactQuill>();
   render(<ImageUploadContext.Provider value={store}>
     <ChoiceImageSettings creator={creator}>
-      <UploadableQuill editorRef={editorRef} choiceLabel defaultValue={french} />
+      <UploadableQuill editorRef={editorRef} {...props} defaultValue={french} />
     </ChoiceImageSettings>
   </ImageUploadContext.Provider>);
   creator.selectElement(creator.survey.getQuestionByName("question"));
@@ -110,7 +110,7 @@ it("retries a failed replacement from Quill, using only the stored reference", a
 it("discards a late upload after the author cancels", async () => {
   const pending = Promise.withResolvers<string>();
   const { editor } = setup(() => pending.promise);
-  click("Image settings");
+  fireEvent.click(editor.root.querySelector("img")!);
   upload();
   click("Apply");
   expect(screen.getByRole("button", { name: "Applying…" }).hasAttribute("disabled")).toBe(true);
@@ -118,6 +118,39 @@ it("discards a late upload after the author cancels", async () => {
   await act(async () => pending.resolve("https://example.invalid/new.png"));
   expect(editor.root.querySelectorAll("img")).toHaveLength(2);
   expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:preview");
+});
+
+it("uses only the row action for a choice label, while a click selects the exact image", () => {
+  const { editor, rowAction } = setup();
+  expect(rowAction(0)?.title).toBe("Choice image settings");
+  expect(screen.queryByRole("button", { name: "Image settings" })).toBeNull();
+  fireEvent.click(editor.root.querySelectorAll("img")[1]);
+  expect(screen.getByLabelText<HTMLInputElement>("Alt text").value).toBe("Two");
+});
+
+it("opens field settings by icon and image, preserving an uncapped image when changing its alt", () => {
+  const store = vi.fn<StoreImage>();
+  const { editor } = setup(store, { choiceLabel: false, readOnly: false });
+  click("Image settings");
+  expect(screen.getByRole<HTMLSelectElement>("combobox").value).toBe("0");
+  change("Image", "-1");
+  expect(screen.getByLabelText<HTMLInputElement>("Maximum width").value).toBe("");
+  click("Cancel");
+  fireEvent.click(editor.root.querySelector("img")!);
+  change("Alt text", "Large image");
+  click("Apply");
+  const image = editor.root.querySelector("img")!;
+  expect(image.alt).toBe("Large image");
+  expect(image.style.maxWidth).toBe("");
+  expect(image.getAttribute("src")).toBe(source);
+  expect(store).not.toHaveBeenCalled();
+});
+
+it("offers no image controls in a read-only rich-text field", () => {
+  const { editor } = setup(null, { choiceLabel: false, readOnly: true });
+  expect(screen.queryByRole("button", { name: "Image settings" })).toBeNull();
+  fireEvent.click(editor.root.querySelector("img")!);
+  expect(screen.queryByRole("dialog")).toBeNull();
 });
 
 it("rejects invalid dimensions and a row that became read-only", () => {
@@ -129,7 +162,7 @@ it("rejects invalid dimensions and a row that became read-only", () => {
   change("Maximum width", "");
   matrix.readOnly = true;
   click("Apply");
-  expect(screen.getByRole("alert").textContent).toContain("choice changed");
+  expect(screen.getByRole("alert").textContent).toContain("content changed");
   click("Cancel");
   expect(rowAction(0)).toBeUndefined();
 });

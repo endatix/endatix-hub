@@ -1,7 +1,7 @@
 import { Delta, type default as Quill } from "quill";
 import type { ImageTarget } from "./image-settings-target";
 
-export function quillImageTarget(editor: Quill, selected?: HTMLImageElement): ImageTarget {
+export function quillImageTarget(editor: Quill, selected?: HTMLImageElement, scope: ImageTarget["scope"] = "field"): ImageTarget {
   const images = Array.from(editor.root.querySelectorAll("img"));
   const insertion = editor.getSelection()?.index ?? editor.getLength() - 1;
   const snapshot = editor.getContents();
@@ -16,7 +16,7 @@ export function quillImageTarget(editor: Quill, selected?: HTMLImageElement): Im
     applyEdit(editor, new Delta().retain(position).delete(original ? 1 : 0).concat(embed));
     return true;
   }
-  return { images, selected: selected ? images.indexOf(selected) : -1, commit };
+  return { scope, images, selected: images.indexOf(selected ?? images[0]), commit };
 }
 
 function applyEdit(editor: Quill, edit: Delta) {
