@@ -1,4 +1,4 @@
-import type { SurveyCreatorModel } from "survey-creator-core";
+import type { ModifiedEvent, SurveyCreatorModel } from "survey-creator-core";
 import { Result } from "@/lib/result";
 import { JSON_EDITOR_PLUGIN_NAME } from "../json-editor/json-editor-state";
 import { reviewEmbeddedImages, replaceEmbeddedImages } from "./embedded-images";
@@ -18,6 +18,7 @@ export interface ImageSnapshot {
 
 const REVIEW_AGAIN = "The definition changed. Review images again.";
 const sessions = new WeakMap<SurveyCreatorModel, ConversionSession>();
+const richTextProperties = new Set(["title", "description", "text"]);
 
 interface EditorText {
   savedText: string;
@@ -37,8 +38,10 @@ export class ConversionSession {
   private generation = 0;
   private revision = 0;
   private ambiguousBuffer = false;
-  private readonly onModified = () => {
+  private editedRichText = false;
+  private readonly onModified = (_: SurveyCreatorModel, event: ModifiedEvent) => {
     this.revision++;
+    if (event.type === "PROPERTY_CHANGED" && richTextProperties.has(event.name ?? "")) this.editedRichText = true;
   };
   private undoPoint?: ReturnType<typeof applyImageEdit>;
   lastConversion?: ImageSnapshot;
@@ -164,9 +167,8 @@ export class ConversionSession {
   }
 
   prepare(projection: object, buffer?: EditorText) {
-    const converted = this.generation > 0;
     let payload = projection;
-    if (converted) {
+    if (this.generation > 0 || this.editedRichText) {
       if (this.ambiguousBuffer || (!buffer && this.creator.activeTab === JSON_EDITOR_PLUGIN_NAME))
         throw new Error(REVIEW_AGAIN);
       payload = buffer ? this.sourceWithBuffer(buffer) : sourceWithEdits(this.source, this.baseline, projection);

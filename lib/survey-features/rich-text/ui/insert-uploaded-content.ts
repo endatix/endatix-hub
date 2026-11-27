@@ -16,7 +16,7 @@ function survivingRanges(range: Range, map: StepMap) {
   const ranges: Range[] = [];
   let start = range.from;
   function keep(end: number) {
-    if (start < end) ranges.push({ from: map.map(start, 1), to: map.map(end, -1) });
+    if (start < end) ranges.push({ from: map.mapResult(start, 1).pos, to: map.mapResult(end, -1).pos });
   }
   map.forEach((from, to) => {
     if (from >= range.to || to <= start) return;
@@ -27,7 +27,7 @@ function survivingRanges(range: Range, map: StepMap) {
   return ranges;
 }
 
-export async function insertUploadedContent(editor: Editor, range: Range, transfer: Transfer) {
+function trackInsertion(range: Range) {
   let anchor = range.from;
   let selected = [range];
   let stale = false;
@@ -38,9 +38,15 @@ export async function insertUploadedContent(editor: Editor, range: Range, transf
       selected = selected.flatMap(part => survivingRanges(part, map));
     }
   };
-  editor.on("transaction", track);
+  return { track, get placement() { return { anchor, selected, stale }; } };
+}
+
+export async function insertUploadedContent(editor: Editor, range: Range, transfer: Transfer) {
+  const pending = trackInsertion(range);
+  editor.on("transaction", pending.track);
   try {
     const fragment = await transfer.load();
+    const { anchor, selected, stale } = pending.placement;
     if (stale || transfer.signal.aborted || editor.isDestroyed || !editor.isEditable) return;
     fragment.innerHTML = htmlSanitizer.sanitize(fragment.innerHTML, htmlSanitizer.presets.surveyHtml);
     const slice = DOMParser.fromSchema(editor.schema).parseSlice(fragment.content, { preserveWhitespace: true });
@@ -50,6 +56,6 @@ export async function insertUploadedContent(editor: Editor, range: Range, transf
     editor.view.dispatch(tr.replaceRange(insertAt, insertAt, slice));
     editor.view.dispatch(closeHistory(editor.state.tr));
   } finally {
-    editor.off("transaction", track);
+    editor.off("transaction", pending.track);
   }
 }

@@ -11,6 +11,27 @@ import {
 } from "../ui/image-transfers";
 
 describe("Rich text image insertion", () => {
+  it("keeps text typed inside the selection while a replacement uploads", async () => {
+    // Arrange
+    const editor = setupEditor();
+    const transfer = Promise.withResolvers<HTMLTemplateElement>();
+    const pending = insertUploadedContent(editor, { from: 1, to: 5 }, {
+      load: () => transfer.promise, signal: new AbortController().signal,
+    });
+
+    // Act
+    editor.commands.insertContentAt(3, "new");
+    const template = document.createElement("template");
+    template.innerHTML = '<img src="https://storage.test/image.png">';
+    transfer.resolve(template);
+    await pending;
+
+    // Assert
+    expect(editor.getHTML()).toBe('<p><img src="https://storage.test/image.png">new Right</p>');
+    editor.commands.undo();
+    expect(editor.getText()).toBe("Lenewft Right");
+  });
+
   it("preserves typing while the transfer is pending and undoes only the insertion", async () => {
     const editor = setupEditor();
     const transfer = Promise.withResolvers<HTMLTemplateElement>();
