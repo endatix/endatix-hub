@@ -2,6 +2,7 @@ import { Delta, type default as Quill, type Range } from "quill";
 import type { StoreImage } from "./image-upload-context";
 import { insertUploadedContent } from "./insert-uploaded-content";
 import { pastedImageContent } from "./pasted-image-content";
+import { fileLabel } from "./image-label";
 import { ClipboardImageError } from "./clipboard-image-files";
 import { toast } from "sonner";
 
@@ -59,7 +60,9 @@ class Transfer implements ImageTransfer {
 
 type Publish = (jobs: ImageTransfer[]) => void;
 
-export function bindImageTransfers(editor: Quill, store: StoreImage, publish: Publish) {
+export function bindImageTransfers(editor: Quill, store: StoreImage, options: Publish | { publish: Publish; choiceLabel: boolean }) {
+  const publish = typeof options === "function" ? options : options.publish;
+  const choice = typeof options !== "function" && options.choiceLabel;
   const active = new Set<Transfer>();
   const changed = () => publish([...active]);
   const start: Start = (range, load) => {
@@ -71,7 +74,7 @@ export function bindImageTransfers(editor: Quill, store: StoreImage, publish: Pu
       changed();
     });
   };
-  const unbind = bindImageInputs(editor, store, start);
+  const unbind = bindImageInputs(editor, store, choice ? insertChoiceImages(start) : start);
   return () => {
     unbind();
     active.forEach((job) => job.cancel());
@@ -79,6 +82,21 @@ export function bindImageTransfers(editor: Quill, store: StoreImage, publish: Pu
 }
 
 type Start = (range: Range, load: LoadContent) => void;
+
+function insertChoiceImages(start: Start): Start {
+  return (range, load) => start(range, async signal => sizeNewChoiceImages(await load(signal)));
+}
+
+function sizeNewChoiceImages(delta: Delta) {
+  for (const op of delta.ops) {
+    if (typeof op.insert !== "object" || !op.insert.image) continue;
+    const attrs = op.attributes ?? {};
+    if (!attrs.width && !attrs.height && !attrs.imageWidth && !attrs.imageCap && !attrs.imageHeight) {
+      op.attributes = { ...attrs, imageCap: "min(100%, 100px)", imageHeight: "auto" };
+    }
+  }
+  return delta;
+}
 
 function bindImageInputs(editor: Quill, store: StoreImage, start: Start) {
   const original = editor.uploader.upload;
@@ -109,7 +127,8 @@ function fileContent(files: File[], store: StoreImage) {
       signal.throwIfAborted();
       const url = uploaded.get(file) ?? (await store(file));
       uploaded.set(file, url);
-      content.insert({ image: url });
+      const alt = fileLabel(file.name);
+      content.insert({ image: url }, alt ? { alt, imageLabel: alt } : undefined);
     }
     return content;
   };

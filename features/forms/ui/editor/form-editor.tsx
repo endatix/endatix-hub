@@ -702,7 +702,7 @@ function FormEditor({
           </div>
         </div>
       ) : creator ? (
-        <CreatorImageStorage itemType="form" itemId={formId}><SurveyCreatorComponent creator={creator} /></CreatorImageStorage>
+        <CreatorImageStorage creator={creator} itemType="form" itemId={formId}><SurveyCreatorComponent creator={creator} /></CreatorImageStorage>
       ) : (
         <div>Error loading form editor</div>
       )}

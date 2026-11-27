@@ -451,7 +451,7 @@ function FormTemplateEditorContent({
             </div>
           </div>
         ) : creator ? (
-          <CreatorImageStorage itemType="template" itemId={templateId}><SurveyCreatorComponent creator={creator} /></CreatorImageStorage>
+          <CreatorImageStorage creator={creator} itemType="template" itemId={templateId}><SurveyCreatorComponent creator={creator} /></CreatorImageStorage>
         ) : (
           <div>Error loading form editor</div>
         )}

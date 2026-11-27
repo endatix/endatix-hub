@@ -3,6 +3,7 @@ import Quill, { Delta } from "quill";
 import { toast } from "sonner";
 import { describe, expect, it, vi } from "vitest";
 import { insertUploadedContent } from "../ui/insert-uploaded-content";
+import "../ui/responsive-image";
 import {
   bindImageTransfers,
   type ImageTransfer,
@@ -104,6 +105,26 @@ function paste(editor: Quill, html: string, files: File[]) {
 }
 
 describe("Quill image input", () => {
+  it.each([
+    ["", "Reef survey"],
+    ['alt="Authored label"', "Authored label"],
+    ['alt=""', ""],
+  ])("keeps authored alt on mixed paste and suggests a name only when absent (%s)", async (attribute, expected) => {
+    const editor = setupEditor();
+    const file = new File(["pixels"], "Reef_survey.png", { type: "image/png" });
+    const stop = bindImageTransfers(editor, async () => canonical, () => {});
+    paste(editor, `<strong>Caption</strong><img ${attribute} src="cid:1">`, [file]);
+    await vi.waitFor(() => expect(editor.root.querySelector("img")?.getAttribute("alt")).toBe(expected));
+    expect(editor.root.querySelector("strong")?.textContent).toBe("Caption");
+    stop();
+  });
+  it("uses the original file name for a new image even when storage returns an opaque key", async () => {
+    const editor = setupEditor();
+    const stop = bindImageTransfers(editor, async () => canonical, () => {});
+    editor.uploader.upload({ index: 0, length: 0 }, [new File(["pixels"], "Harbor_at-sunset.png", {type:"image/png"})]);
+    await vi.waitFor(() => expect(editor.root.querySelector("img")?.alt).toBe("Harbor at sunset"));
+    stop();
+  });
   it("keeps mixed paste and surrounding text intact across failure and retry", async () => {
     const editor = setupEditor();
     const store = vi
@@ -160,18 +181,24 @@ describe("Quill image input", () => {
     try {
       const event = new MouseEvent("drop", { bubbles: true, cancelable: true });
       Object.defineProperty(event, "dataTransfer", {
-        value: { files: [image] },
+        value: { files: [new File(["pixels"], "River_bank.png", {type:"image/png"})] },
       });
       editor.root.dispatchEvent(event);
-      await vi.waitFor(() =>
-        expect(editor.root.innerHTML).toBe(
-          `<p>Left <img src="${canonical}">Right</p>`,
-        ),
-      );
+      await vi.waitFor(() => expect(editor.root.querySelector("img")?.alt).toBe("River bank"));
+      expect(editor.getContents().ops[0].insert).toBe("Left ");
+      expect(editor.root.querySelector("img")?.src).toBe(canonical);
     } finally {
       stop();
       document.caretRangeFromPoint = original;
     }
+  });
+
+  it("uses the clipboard file name for file-only paste", async () => {
+    const editor = setupEditor();
+    const stop = bindImageTransfers(editor, async () => canonical, () => {});
+    paste(editor, "", [new File(["pixels"], "North-trail.png", {type:"image/png"})]);
+    await vi.waitFor(() => expect(editor.root.querySelector("img")?.alt).toBe("North trail"));
+    stop();
   });
 
   it.each(["cancel drop", "unmount paste", "complete drop"])(

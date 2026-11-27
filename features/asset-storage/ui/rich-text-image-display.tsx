@@ -16,7 +16,8 @@ const richText = ".sv-string-viewer, .sv-string-editor--html, .sd-html";
 type ReadImage = (src: string) => Promise<string | null>;
 
 function isDisplayImage(image: HTMLImageElement) {
-  return image.closest(richText) && !image.closest(".ql-editor, [contenteditable=true]:focus");
+  return image.matches("[data-image-thumbnail]") ||
+    (image.closest(richText) && !image.closest(".ql-editor, [contenteditable=true]:focus"));
 }
 
 function displayTarget(image: HTMLImageElement) {

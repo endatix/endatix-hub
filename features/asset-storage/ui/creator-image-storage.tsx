@@ -13,6 +13,8 @@ import {
 } from "../use-cases/upload/upload-handler.factory";
 import { useAssetStorage } from "./asset-storage.context";
 import { RichTextImageDisplay } from "./rich-text-image-display";
+import type { SurveyCreatorModel } from "survey-creator-core";
+import { ChoiceImageSettings } from "@/lib/survey-features/rich-text/ui/choice-image-settings";
 
 function storeImage(config: ContentUploadConfig): StoreImage {
   return async (file) => {
@@ -23,6 +25,7 @@ function storeImage(config: ContentUploadConfig): StoreImage {
 }
 
 interface CreatorImageStorageProps {
+  creator?: SurveyCreatorModel;
   itemId: string;
   itemType: ContentItemType;
   children: ReactNode;
@@ -50,7 +53,9 @@ export function CreatorImageStorage(props: CreatorImageStorageProps) {
   const store = useStoreImage(props);
   return (
     <ImageUploadContext.Provider value={store}>
-      <RichTextImageDisplay>{props.children}</RichTextImageDisplay>
+      <RichTextImageDisplay>
+        {props.creator ? <ChoiceImageSettings creator={props.creator} PreviewDisplay={RichTextImageDisplay}>{props.children}</ChoiceImageSettings> : props.children}
+      </RichTextImageDisplay>
     </ImageUploadContext.Provider>
   );
 }

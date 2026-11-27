@@ -36,6 +36,25 @@
   min-width: 6ch;
 }
 
+.rich-text-editor:has(> .rich-text-image-action) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  > .quill { grid-area: 1 / 1; }
+  > [role=status] { grid-column: 1 / -1; }
+}
+
+.rich-text-image-action {
+  grid-area: 1 / 2;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  cursor: pointer;
+  fill: currentColor;
+  &:focus-visible { outline: 2px solid currentColor; }
+}
+
 /* Quill ships its own 13px Helvetica; the grid around it is Open Sans. */
 .rich-text-editor .ql-container {
   font-family: var(--sjs2-typography-font-family-component-input-content);

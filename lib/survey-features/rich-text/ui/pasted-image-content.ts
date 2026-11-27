@@ -1,5 +1,6 @@
 import type Quill from "quill";
 import type { StoreImage } from "./image-upload-context";
+import { fileLabel } from "./image-label";
 
 import { clipboardImageFiles, ClipboardImageError } from "./clipboard-image-files";
 
@@ -34,7 +35,15 @@ function uploadImages(images: HTMLImageElement[], attachments: File[], store: St
       signal.throwIfAborted();
       const { image, file } = placements[next];
       image.src = await store(file);
+      labelPastedImage(image, file);
       next++;
     }
   };
+}
+
+function labelPastedImage(image: HTMLImageElement, file: File) {
+  const label = fileLabel(file.name);
+  if (!label) return;
+  image.dataset.imageLabel = label;
+  if (!image.hasAttribute("alt")) image.alt = label;
 }
