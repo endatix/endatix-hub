@@ -51,6 +51,27 @@ function click(name: string) {
   fireEvent.click(screen.getByRole("button", { name }));
 }
 
+function openImageTools() {
+  click("Formatting options");
+  click("Image settings");
+}
+
+it.each([true, false])("keeps only Formatting options visible until requested (choice: %s)", choiceLabel => {
+  // Arrange
+  setup(null, { choiceLabel, readOnly: false });
+  expect(screen.queryByRole("button", { name: "Image settings" })).toBeNull();
+
+  // Act
+  click("Formatting options");
+  const toolbar = screen.getByRole("toolbar");
+
+  // Assert
+  expect(toolbar.contains(screen.getByRole("button", { name: "Image settings" }))).toBe(true);
+  expect(screen.queryByRole("button", { name: "Insert image" })).toBeNull();
+  click("Image settings");
+  expect(screen.getByRole("dialog", { name: choiceLabel ? "Choice image settings" : "Image settings" })).toBeTruthy();
+});
+
 it("removes only the second French choice occurrence on Apply and restores it in one Creator undo", () => {
   const { creator, openRow } = setup();
   const choices = () => creator.JSON.pages[0].elements[0].choices;
@@ -75,7 +96,7 @@ it("shows the last image selected, stages removal reversibly and offers addition
   const { editor } = setup(null, {choiceLabel:false,readOnly:false});
   editor.setContents(editor.clipboard.convert({html:`<img alt="Harbor" src="${source}">`}));
   const before = editor.getContents();
-  click("Image settings");
+  openImageTools();
   expect(screen.getByRole("radio", {name:"1. Harbor"}).getAttribute("aria-checked")).toBe("true");
   expect(screen.getByRole("button",{name:"Add image"})).toBeTruthy();
   expect(screen.queryByRole("status")).toBeNull();
@@ -86,7 +107,7 @@ it("shows the last image selected, stages removal reversibly and offers addition
   click("Remove selected image from this field");
   click("Apply");
   expect(editor.root.querySelector("img")).toBeNull();
-  click("Image settings");
+  openImageTools();
   expect(screen.queryByRole("radio")).toBeNull();
   expect(screen.queryByRole("button",{name:"Remove selected image from this field"})).toBeNull();
   expect(screen.getByLabelText("New image file")).toBeTruthy();
@@ -203,15 +224,13 @@ it("uses only the row action for a choice label, while a click selects the exact
 it("opens field settings by icon and image, preserving an uncapped image when changing its alt", async () => {
   const store = vi.fn<StoreImage>();
   const { editor } = setup(store, { choiceLabel: false, readOnly: false });
-  const opener = screen.getByRole("button", { name: "Image settings" });
-  opener.focus();
-  click("Image settings");
+  openImageTools();
   expect(screen.getByRole("radio", {name:"1. One"}).getAttribute("aria-checked")).toBe("true");
   click("Add image");
   expect(screen.getByLabelText<HTMLInputElement>("Maximum width").value).toBe("");
   screen.getByRole("button", { name: "Cancel" }).focus();
   click("Cancel");
-  await waitFor(() => expect(document.activeElement).toBe(opener));
+  await waitFor(() => expect(document.activeElement).toBe(editor.root));
   fireEvent.click(editor.root.querySelector("img")!);
   change("Alt text", "Large image");
   click("Apply");

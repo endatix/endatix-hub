@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type Quill from "quill";
-import { Bold, Italic, Underline, Strikethrough, ImagePlus, RotateCcw } from "lucide-react";
+import { Bold, Italic, Underline, Strikethrough, ImagePlus, RotateCcw, Baseline, Highlighter } from "lucide-react";
 
 const marks = [
   { name: "bold", label: "Bold", Icon: Bold },
@@ -38,12 +38,14 @@ function ColorControl({ formats, apply, name }: Formatting & { name: "color" | "
   const label = name === "color" ? "Text color" : "Highlight";
   const defaultColor = name === "color" ? "#000000" : "#ffffff";
   const value = formats[name];
+  const Icon = name === "color" ? Baseline : Highlighter;
   return <span role="group" aria-label={label}>
-    <label title={label}>{label}<input type="color" aria-label={label}
+    <label className="rich-text-color" title={label}><Icon size={15} aria-hidden />
+      <input type="color" aria-label={label}
       value={typeof value === "string" ? value : defaultColor}
       onChange={event => apply(name, event.target.value)} /></label>
-    <button type="button" aria-label={`Reset ${label.toLowerCase()}`} title={`Reset ${label.toLowerCase()}`}
-      disabled={!value} onClick={() => apply(name, false)}><RotateCcw size={14} /></button>
+    {Boolean(value) && <button type="button" aria-label={`Reset ${label.toLowerCase()}`} title={`Reset ${label.toLowerCase()}`}
+      onClick={() => apply(name, false)}><RotateCcw size={14} /></button>}
   </span>;
 }
 
@@ -61,12 +63,14 @@ function InsertImage({ editor }: { editor: Quill }) {
   </span>;
 }
 
-export function FormattingToolbar({ editor, id }: { editor: Quill; id: string }) {
+export function FormattingToolbar({ editor, id, openSettings }: { editor: Quill; id: string; openSettings?: () => void }) {
   const formatting = useFormatting(editor);
-  return <div id={id} role="toolbar" aria-label="Text formatting" className="rich-text-formatting">
+  return <div id={id} className="rich-text-formatting-commands">
     <MarkButtons {...formatting} />
     <ColorControl {...formatting} name="color" />
     <ColorControl {...formatting} name="background" />
-    <InsertImage editor={editor} />
+    {openSettings
+      ? <button type="button" aria-label="Image settings" title="Image settings" onClick={openSettings}><ImagePlus size={16} /></button>
+      : <InsertImage editor={editor} />}
   </div>;
 }

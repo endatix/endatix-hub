@@ -1,6 +1,7 @@
 import { ItemValue, type GetMatrixRowActionsEvent, type SurveyModel } from "survey-core";
 import type { SurveyCreatorModel, SurveyInstanceCreatedEvent } from "survey-creator-core";
 import type { ImageTarget } from "./image-settings-target";
+import { RICH_TEXT_EDITOR_TYPE } from "./rich-text-editor.model";
 
 type Open = (target: ImageTarget) => void;
 
@@ -35,8 +36,9 @@ function editOccurrence(content: DocumentFragment, index: number, image: HTMLIma
 
 function rowAction(creator: SurveyCreatorModel, open: Open) {
   return (_: SurveyModel, event: GetMatrixRowActionsEvent) => {
+    const cell = event.row.getQuestionByColumnName("text");
     if (event.question.name !== "choices" || creator.readOnly || event.question.isReadOnly ||
-      event.row.getQuestionByColumnName("text")?.isReadOnly) return;
+      !cell || cell.isReadOnly || cell.getType() === RICH_TEXT_EDITOR_TYPE) return;
     event.actions.push({ id: "choice-image", title: "Choice image settings", ariaLabel: "Choice image settings", iconName: "icon-image",
       location: "end", showTitle: false, action: () => {
         const target = rowTarget(event, creator);

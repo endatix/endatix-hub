@@ -1,6 +1,6 @@
 import { useContext, useId, useLayoutEffect, useState, type RefObject, type KeyboardEvent } from "react";
 import ReactQuill from "react-quill-new";
-import { SvgIcon } from "survey-react-ui";
+import { X } from "lucide-react";
 import { ImageUploadContext } from "./image-upload-context";
 import { OpenImageSettings, inlineImage } from "./image-settings-target";
 import { quillImageTarget } from "./quill-image-target";
@@ -28,22 +28,27 @@ function useTransfers({ editorRef, choiceLabel = false, bounds }: Props) {
 
 function useImageSettings({ editorRef, choiceLabel, bounds, readOnly }: Props) {
   const open = useContext(OpenImageSettings);
+  const scope = choiceLabel ? "choice" : "field";
   useLayoutEffect(() => {
     const editor = editorRef.current?.getEditor();
     if (!editor || !open || readOnly) return;
     const click = (event: MouseEvent) => {
-      if (event.target instanceof HTMLImageElement) {
-        open(quillImageTarget(editor, event.target, choiceLabel ? "choice" : "field"));
-      }
+      if (event.target instanceof HTMLImageElement) open(quillImageTarget(editor, event.target, scope));
     };
     editor.root.addEventListener("click", click);
     return () => editor.root.removeEventListener("click", click);
-  }, [open, editorRef, choiceLabel, bounds, readOnly]);
-  if (!open || choiceLabel || readOnly) return;
+  }, [open, editorRef, scope, bounds, readOnly]);
+  if (!open || readOnly) return;
   return () => {
-    const editor = editorRef.current?.getEditor();
-    if (editor) open(quillImageTarget(editor));
+    const editor = editorRef.current?.editor;
+    if (editor) open(toolbarImageTarget(editor, scope));
   };
+}
+
+function toolbarImageTarget(editor: NonNullable<ReactQuill["editor"]>, scope: "field" | "choice") {
+  // Restore the insertion range and give the dialog a stable return-focus target.
+  editor.focus({ preventScroll: true });
+  return quillImageTarget(editor, undefined, scope);
 }
 
 function useFormattingOptions(editorRef: Props["editorRef"]) {
@@ -61,18 +66,26 @@ function useFormattingOptions(editorRef: Props["editorRef"]) {
   return { expanded, setExpanded, toolbarId, navigate };
 }
 
-function FormattingOptions({ editorRef, options }: { editorRef: Props["editorRef"]; options: ReturnType<typeof useFormattingOptions> }) {
+type OptionsProps = {
+  editorRef: Props["editorRef"];
+  options: ReturnType<typeof useFormattingOptions>;
+  openSettings?: () => void;
+};
+
+function FormattingOptions({ editorRef, options, openSettings }: OptionsProps) {
   const { expanded, setExpanded, toolbarId } = options;
   const editor = editorRef.current?.editor;
-  return <>
-    <button type="button" className="rich-text-format-toggle" title="Formatting options"
-      aria-label="Formatting options" aria-expanded={expanded} aria-controls={expanded ? toolbarId : undefined}
+  const label = expanded ? "Close formatting options" : "Formatting options";
+  return <div role={expanded ? "toolbar" : undefined} aria-label={expanded ? "Text formatting" : undefined}
+    className={expanded ? "rich-text-formatting" : "rich-text-trigger"}>
+    <button type="button" className="rich-text-format-toggle" title={label}
+      aria-label={label} aria-expanded={expanded} aria-controls={expanded ? toolbarId : undefined}
       onClick={event => {
         event.currentTarget.focus({ preventScroll: true });
         setExpanded(!expanded);
-      }}>A</button>
-    {expanded && editor && <FormattingToolbar id={toolbarId} editor={editor} />}
-  </>;
+      }}>{expanded ? <X size={14} /> : <u>A</u>}</button>
+    {expanded && editor && <FormattingToolbar id={toolbarId} editor={editor} openSettings={openSettings} />}
+  </div>;
 }
 
 export function UploadableQuill({ editorRef, choiceLabel, ...props }: Props) {
@@ -83,10 +96,7 @@ export function UploadableQuill({ editorRef, choiceLabel, ...props }: Props) {
     <div className="rich-text-controls" onKeyDownCapture={options.navigate}
       onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) options.setExpanded(false); }}>
       <ReactQuill {...props} theme="default" modules={editorModules} ref={editorRef} />
-      {!props.readOnly && <FormattingOptions editorRef={editorRef} options={options} />}
-      {openSettings && <button type="button" className="rich-text-image-action" title="Image settings" aria-label="Image settings" onClick={openSettings}>
-        <SvgIcon iconName="icon-image" size={20} />
-      </button>}
+      {!props.readOnly && <FormattingOptions editorRef={editorRef} options={options} openSettings={openSettings} />}
       {jobs.map(job => <TransferStatus key={job.id} job={job} />)}
     </div>
   );
