@@ -1,21 +1,9 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { Activity, CheckCircle2, ChevronRight } from "lucide-react";
 import type { FormDiagnosticsPlugin, AudienceCheck } from "../form-diagnostics-plugin";
 import { formatBytes } from "@/lib/utils/formatters";
 import { Badge } from "@/components/ui/badge";
 import type { choiceListCheck } from "../diagnostic-recommendations";
-
-export function Disclosure({ title, children, onInspect }: Readonly<{ title: string; children: ReactNode; onInspect?: () => void }>) {
-  const [visited, setVisited] = useState(false);
-  function inspect() { setVisited(true); onInspect?.(); }
-  return <details className="rounded-lg border bg-card">
-    <summary onClick={inspect} className="group flex cursor-pointer list-none items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium focus-visible:outline-ring">
-      <ChevronRight aria-hidden="true" className="size-4 shrink-0 transition-transform group-open:rotate-90" />
-      {title}
-    </summary>
-    {visited && <div className="space-y-3 px-4 pb-4">{children}</div>}
-  </details>;
-}
 
 const audienceLabels: Record<AudienceCheck, string> = {
   unavailable: "Not available", failed: "Could not complete check", checking: "Checking…", checked: "Checked",
@@ -44,7 +32,7 @@ function checkRows({model, image, audience, bytes, pages, choices}: CheckInputs)
   ];
 }
 const variants = { OK: "success", "Needs review": "warning", Unavailable: "secondary", Pending: "info", Setting: "outline" } as const;
-export function AllChecks({healthy, ...inputs}: Readonly<CheckInputs & {healthy: boolean}>) {
+export function AllChecks({healthy, optional, ...inputs}: Readonly<CheckInputs & {healthy: boolean; optional?: React.ReactNode}>) {
   const [choice, setChoice] = useState<boolean>();
   const rows = checkRows(inputs);
   const open = choice ?? healthy;
@@ -61,14 +49,19 @@ export function AllChecks({healthy, ...inputs}: Readonly<CheckInputs & {healthy:
       <div key={label} className="flex flex-wrap items-center justify-between gap-2 py-2">
         <dt className="font-medium">{label}</dt><dd className="flex flex-wrap items-center gap-2 text-muted-foreground">{value}<Badge variant={variants[status]}>{status}</Badge></dd>
       </div>)}</dl><p className="mt-2 text-xs text-muted-foreground">Settings describe the configuration; they are not failures.</p></>}
+    <div hidden={!open}>{optional}</div>
   </section>;
 }
 
+function overviewTitle(actions: number, notice: string) {
+  if (notice === "Conversion ready to save") return notice;
+  if (!actions) return notice || "No action needed";
+  return `${actions} ${actions === 1 ? "thing" : "things"} worth reviewing`;
+}
 export function OverviewHeader({ actions, notice, bytes, questions }: Readonly<{
   actions: number; notice: string; bytes: number; questions: number;
 }>) {
-  const status = notice === "Conversion ready to save" ? notice : actions ? `${actions} ${actions === 1 ? "thing" : "things"} worth reviewing`
-    : notice || "No action needed";
+  const status = overviewTitle(actions, notice);
   const Icon = !actions && !notice ? CheckCircle2 : Activity;
   return <header className="space-y-2 border-b pb-5">
     <p className="flex items-center gap-2 text-sm font-medium text-muted-foreground"><Icon aria-hidden="true" className="size-4" /> Diagnostics</p>

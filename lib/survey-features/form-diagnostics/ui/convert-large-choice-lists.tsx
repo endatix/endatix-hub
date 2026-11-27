@@ -30,6 +30,7 @@ import {
   normalizeChoicesToDataListItems,
 } from "@/lib/survey-features/data-lists/utils";
 import { Result } from "@/lib/result";
+import { formatBytes, formatCount } from "@/lib/utils/formatters";
 import { definitionBytes, sizeChange } from "../definition-size";
 import { useCallback, useMemo, useState } from "react";
 import { Model } from "survey-core";
@@ -57,10 +58,6 @@ type ConvertChoicesResult = Awaited<
 const DATA_LIST_NAME_ALREADY_EXISTS_ERROR_CODE =
   "data_list_name_already_exists";
 const MAX_DUPLICATE_NAME_RETRIES = 3;
-
-function formatNumber(n: number): string {
-  return n.toLocaleString();
-}
 
 function isDuplicateDataListNameError(result: { errorCode?: string }): boolean {
   return result.errorCode === DATA_LIST_NAME_ALREADY_EXISTS_ERROR_CODE;
@@ -624,15 +621,11 @@ export function ConvertLargeChoiceLists({
           <div className="text-xs text-muted-foreground">
             Convertible questions
           </div>
-          <div className="text-lg font-semibold">
-            {formatNumber(candidates.length)}
-          </div>
+          <div className="text-lg font-semibold">{formatCount(candidates.length)}</div>
         </div>
         <div className="rounded-md border bg-background p-3">
           <div className="text-xs text-muted-foreground">Choices to move</div>
-          <div className="text-lg font-semibold">
-            {formatNumber(totalChoicesToMove)}
-          </div>
+          <div className="text-lg font-semibold">{formatCount(totalChoicesToMove)}</div>
         </div>
       </div>
 
@@ -649,7 +642,7 @@ export function ConvertLargeChoiceLists({
               <li key={c.name}>
                 <span className="font-medium">{c.name}</span>{" "}
                 <span className="text-muted-foreground">
-                  ({c.type}, {c.choiceCount} choices)
+                  ({c.type}, {formatCount(c.choiceCount)} choices · {formatBytes(c.choiceBytes)})
                 </span>
               </li>
             ))}

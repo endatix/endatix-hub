@@ -1,5 +1,5 @@
-import { formatBytes } from "@/lib/utils/formatters";
 import type { FormDiagnosticsStats } from "./form-diagnostics-logic";
+import { formatBytes } from "@/lib/utils/formatters";
 
 export interface Benefit {
   basis: "Estimate" | "Not measured";
@@ -24,33 +24,37 @@ export function leadConversion(candidates: Conversion[]) {
 
 const qualitative = (headline: string, explanation: string): Benefit => ({ basis: "Not measured", headline, explanation });
 
-export function manualFindings(stats: FormDiagnosticsStats, remainingBytes: number, pages: number, audience: number) {
-  const findings: Finding[] = [];
-  if (stats.logicConditionsCount > 50) findings.push({
-    id: "logic", title: "Review complex logic", evidence: `${stats.logicConditionsCount.toLocaleString()} conditions · ${stats.invisibleLogicItemsCount} invisible logic items`,
+const descriptions = {
+  logic: { title: "Review complex logic",
     consequence: "Conditional rules control which parts of the form respondents see.",
     benefit: qualitative("Clearer rules", "Review related conditions together to identify duplicated or unnecessary rules."),
-  });
-  if (stats.totalQuestions > 100) findings.push({
-    id: "length", title: "Consider splitting the form", evidence: `${stats.totalQuestions.toLocaleString()} questions · ${pages} pages`,
+  },
+  length: { title: "Consider splitting the form",
     consequence: "Long sections can make the sequence of questions harder to follow.",
     benefit: qualitative("More focused sections", "Review page boundaries and keep related questions together."),
-  });
-  if (stats.fileUploadWithoutBlobCount) findings.push({
-    id: "files", title: "Check where uploaded files are stored", evidence: `${stats.fileUploadWithoutBlobCount} file questions store files inline`,
+  },
+  files: { title: "Check where uploaded files are stored",
     consequence: "Uploaded file contents become part of submission data.",
     benefit: qualitative("Keep file contents out of submissions", "Storage-backed questions reference the uploaded file instead. Savings depend on the files respondents send."),
-  });
-  if (remainingBytes > 1024 * 1024) findings.push({
-    id: "size", title: "Review the definition size", evidence: "Definition exceeds 1 MB",
+  },
+  size: { title: "Review the definition size",
     consequence: "The authored definition contains more than a megabyte of JSON.",
     benefit: qualitative("Less content to distribute", "Inspect the JSON for repeated content before deciding what to remove."),
-  });
-  if (audience) findings.push({
-    id: "audience", title: "Review personalization", evidence: `${audience} ${audience === 1 ? "finding" : "findings"}`,
+  },
+  audience: { title: "Review personalization",
     consequence: "The form’s personalization settings and participant properties may not agree.",
     benefit: qualitative("More predictable personalization", "Inspect the flagged references before applying a suggested fix."),
-  });
+  },
+};
+
+export function manualFindings(stats: FormDiagnosticsStats, context: {remainingBytes: number; pages: number; audience: number}) {
+  const findings: Finding[] = [];
+  const add = (id: keyof typeof descriptions, evidence: string) => findings.push({id, evidence, ...descriptions[id]});
+  if (stats.logicConditionsCount > 50) add("logic", `${stats.logicConditionsCount.toLocaleString()} conditions · ${stats.invisibleLogicItemsCount} invisible logic items`);
+  if (stats.totalQuestions > 100) add("length", `${stats.totalQuestions.toLocaleString()} questions · ${context.pages} pages`);
+  if (stats.fileUploadWithoutBlobCount) add("files", `${stats.fileUploadWithoutBlobCount} file questions store files inline`);
+  if (context.remainingBytes > 1024 * 1024) add("size", "Definition exceeds 1 MB");
+  if (context.audience) add("audience", `${context.audience} personalization findings`);
   return findings;
 }
 

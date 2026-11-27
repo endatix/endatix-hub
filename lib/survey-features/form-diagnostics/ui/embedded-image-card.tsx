@@ -93,6 +93,7 @@ function Actions({ controls, placements, session, detailsId }: Readonly<ActionPr
   const runtime = useOptionalDesignerRuntime()?.stateRef.current;
   const unsaved = controls.done && hasUnsavedChanges && Boolean(session.lastConversion);
   return <>
+      {unsaved && <Badge variant="warning">Not saved</Badge>}
       <output className="block text-sm">
         {controls.message} {unsaved && `Changes not saved. Use ${runtime?.templateId ? "Save Template" : "Save"} to keep this version.`}
       </output>
@@ -125,23 +126,36 @@ function ImageEvidence({ session, controls }: Readonly<{ session: ConversionSess
   return <p className="text-sm text-muted-foreground">{count(review.eligible.length, "placement")} can change · {count(remaining.length, "file")} to upload ({formatBytes(bytes)}) · {review.skipped.length} skipped.</p>;
 }
 
-export function EmbeddedImageCard({ session, controls, lead }: Readonly<{ session: ConversionSession; controls: Controls; lead: boolean }>) {
-  const detailsId = useId();
+function useImageEffect(controls: Controls) {
   const runtime = useOptionalDesignerRuntime()?.stateRef.current;
   const blocked = !controls.enabled || !runtime?.canConvertImages;
+  return { blocked, label: imageEffect(controls, runtime) };
+}
+
+type ImageCardProps = Readonly<{session: ConversionSession; controls: Controls; lead: boolean}>;
+function ImageLeadSummary({ session, controls, lead }: ImageCardProps) {
+  const {blocked,label} = useImageEffect(controls);
+  const heading = controls.done ? "Conversion result" : blocked ? "Review first" : "Recommended first";
+  return <>
+    <p className="flex flex-wrap items-center gap-2 text-xs font-medium">{lead && heading}
+      <Badge variant={blocked ? "secondary" : "info"}>{label}</Badge></p>
+    {controls.done && session.measuredChange ? <MeasuredSize change={session.measuredChange} /> :
+      <ImageOverview controls={controls} prominent={lead && !blocked} blocked={blocked} />}
+    {!controls.done && <ImageEvidence session={session} controls={controls} />}
+  </>;
+}
+export function EmbeddedImageCard({ session, controls, lead }: ImageCardProps) {
+  const detailsId = useId();
+  const {blocked} = useImageEffect(controls);
   const { review, message } = controls;
   if (!review) return message && <p role="alert">{message}</p>;
   if (!review.eligible.length && !review.skipped.length && !message) return null;
   return (
     <section
       aria-label="Embedded images"
-      className={lead ? "space-y-3 rounded-lg border-2 border-primary/35 bg-card p-5" : "space-y-2 rounded-lg border bg-card p-4"}
+      className={lead ? "space-y-3 rounded-lg border-2 border-primary/35 bg-card p-5" : "space-y-2 p-3"}
     >
-      <p className="flex flex-wrap items-center gap-2 text-xs font-medium">{lead && (controls.done ? "Conversion result" : blocked ? "Review first" : "Recommended first")}
-        <Badge variant={blocked ? "secondary" : "info"}>{imageEffect(controls, runtime)}</Badge></p>
-      {controls.done && session.measuredChange ? <MeasuredSize change={session.measuredChange} /> :
-        <ImageOverview controls={controls} prominent={lead && !blocked} blocked={blocked} />}
-      {!controls.done && <ImageEvidence session={session} controls={controls} />}
+      <ImageLeadSummary session={session} controls={controls} lead={lead} />
       {!controls.enabled && <p className="text-sm text-muted-foreground">Conversion is unavailable because storage is disabled.</p>}
       <div id={detailsId} hidden={!controls.expanded}>{controls.expanded && <PlacementList review={review} done={controls.done} blocked={blocked} />}</div>
       <Actions controls={controls} placements={review.eligible.length} session={session} detailsId={detailsId} />

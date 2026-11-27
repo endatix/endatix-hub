@@ -25,3 +25,13 @@ it("uses only convertible inline lists for size and count recommendations", () =
   expect(check([{ ...question, type: "tagbox" }])).toMatchObject({ recommended: true, count: 1 });
   expect(choiceListCheck({ elements: [{ ...question, type: "dropdown" }] }, false).count).toBe(0);
 });
+
+it("models the stored binding and applies the converter's default threshold when comparing actions", () => {
+  const values = Array.from({length:220}, (_,i) => `Choice ${i}`);
+  const eligible = {type:"dropdown", name:"city", choices:values};
+  const ineligible = {type:"dropdown",name:"other",choices:["x".repeat(200000)]};
+  const check = choiceListCheck({elements:[eligible,ineligible]},true);
+  const projected = {...eligible,choices:[],edxDataListId:"1000000000000000000",choicesLazyLoadEnabled:true};
+  expect(check.impact).toBe(definitionBytes(eligible)-definitionBytes(projected));
+  expect(check.recommended).toBe(true);
+});

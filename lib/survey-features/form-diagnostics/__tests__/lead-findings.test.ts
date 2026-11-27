@@ -13,7 +13,7 @@ it("ranks runnable conversions before blocked ones, then compares their definiti
 
 it("uses observed counts for evidence and qualitative benefits for every manual finding", () => {
   const stats = { ...analyzeSurvey("{}"), totalQuestions: 105, logicConditionsCount: 58, fileUploadWithoutBlobCount: 2 };
-  const findings = manualFindings(stats, 2 ** 21, 3, 1);
+  const findings = manualFindings(stats, {remainingBytes: 2 ** 21, pages: 3, audience: 1});
   expect(findings.map(f => f.id).sort()).toEqual(["audience", "files", "length", "logic", "size"]);
   for (const finding of findings) {
     expect(finding.benefit.basis).toBe("Not measured");
