@@ -14,9 +14,8 @@ const imageFile = new File(["sample pixels"], "sample.png", { type: "image/png" 
 const french = `<img src="${source}" alt="One"><img src="${source}" width="50" alt="Two"><strong>Légende</strong>`;
 
 beforeEach(() => {
-  // jsdom does not implement native modal presentation or blob URL previews.
-  HTMLDialogElement.prototype.showModal = function () { this.open = true; };
-  HTMLDialogElement.prototype.close = function () { this.open = false; };
+  HTMLElement.prototype.scrollIntoView = vi.fn();
+  HTMLElement.prototype.hasPointerCapture = vi.fn(() => false);
   URL.createObjectURL = vi.fn(() => "blob:preview");
   URL.revokeObjectURL = vi.fn();
 });
@@ -46,8 +45,8 @@ function change(label: string, value: string) {
   fireEvent.change(screen.getByLabelText(label, { exact: true }), { target: { value } });
 }
 
-function upload() {
-  fireEvent.change(screen.getByLabelText("Image file"), { target: { files: [imageFile] } });
+function upload(file = imageFile) {
+  fireEvent.change(screen.getByLabelText("Image file"), { target: { files: [file] } });
 }
 
 function click(name: string) {
@@ -58,7 +57,8 @@ it("edits the second French image from the grid without uploading or rewriting t
   const store = vi.fn<StoreImage>();
   const { creator, openRow } = setup(store);
   openRow(0);
-  change("Image", "1");
+  fireEvent.keyDown(screen.getByRole("combobox"), { key: "Enter" });
+  fireEvent.click(screen.getByRole("option", {name:"2. Two"}));
   expect(screen.getByLabelText<HTMLInputElement>("Width").value).toBe("50");
   change("Alt text", "Second image");
   change("Width", "240");
@@ -81,12 +81,32 @@ it("keeps a plain label while adding an inline image when storage is disabled", 
   expect(screen.getByRole("button", { name: "Apply" }).hasAttribute("disabled")).toBe(true);
   expect(screen.getByLabelText<HTMLInputElement>("Maximum width").value).toBe("100px");
   upload();
+  expect(screen.getByLabelText<HTMLInputElement>("Alt text").value).toBe("sample");
   click("Apply");
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   const label = creator.JSON.pages[0].elements[0].choices[1].text.fr;
   expect(label).toContain("data:image/png;base64,");
   expect(label).toContain("100px");
   expect(label).toContain("Plain");
+});
+
+it("keeps a cleared alt decorative across replacement and reopening", async () => {
+  const store = vi.fn<StoreImage>().mockResolvedValue("https://example.invalid/replacement.jpg");
+  const { editor } = setup(store);
+  fireEvent.click(editor.root.querySelector("img")!);
+  change("Alt text", "");
+  upload(new File(["pixels"], "Harbor_view.jpg", {type:"image/jpeg"}));
+  expect(screen.getByLabelText<HTMLInputElement>("Alt text").value).toBe("");
+  click("Apply");
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  const saved = editor.getSemanticHTML();
+  editor.setContents(editor.clipboard.convert({html:saved}));
+  const image = editor.root.querySelector("img")!;
+  expect(image.getAttribute("alt")).toBe("");
+  fireEvent.click(image);
+  expect(screen.getByRole("combobox").textContent).toBe("1. replacement");
+  expect(screen.getByLabelText<HTMLInputElement>("Alt text").value).toBe("");
+  expect(store).toHaveBeenCalledTimes(1);
 });
 
 it("retries a failed replacement from Quill, using only the stored reference", async () => {
@@ -128,18 +148,19 @@ it("uses only the row action for a choice label, while a click selects the exact
   expect(screen.getByLabelText<HTMLInputElement>("Alt text").value).toBe("Two");
 });
 
-it("opens field settings by icon and image, preserving an uncapped image when changing its alt", () => {
+it("opens field settings by icon and image, preserving an uncapped image when changing its alt", async () => {
   const store = vi.fn<StoreImage>();
   const { editor } = setup(store, { choiceLabel: false, readOnly: false });
   const opener = screen.getByRole("button", { name: "Image settings" });
   opener.focus();
   click("Image settings");
-  expect(screen.getByRole<HTMLSelectElement>("combobox").value).toBe("0");
-  change("Image", "-1");
+  expect(screen.getByRole("combobox").textContent).toBe("1. One");
+  fireEvent.keyDown(screen.getByRole("combobox"), { key: "Enter" });
+  fireEvent.click(screen.getByRole("option", {name:"Add an image"}));
   expect(screen.getByLabelText<HTMLInputElement>("Maximum width").value).toBe("");
   screen.getByRole("button", { name: "Cancel" }).focus();
   click("Cancel");
-  expect(document.activeElement).toBe(opener);
+  await waitFor(() => expect(document.activeElement).toBe(opener));
   fireEvent.click(editor.root.querySelector("img")!);
   change("Alt text", "Large image");
   click("Apply");

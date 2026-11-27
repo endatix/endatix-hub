@@ -82,18 +82,3 @@
   left: var(--sjs2-layout-component-input-medium-content-padding-horizontal);
   right: var(--sjs2-layout-component-input-medium-content-padding-horizontal);
 }
-.choice-image-dialog {
-  margin: auto;
-  padding: 1.5rem;
-  width: min(28rem, 95vw);
-  max-height: 90dvh;
-  overflow: auto;
-  border-radius: .75rem;
-  background: var(--background);
-  color: var(--foreground);
-  &::backdrop { background: rgb(0 0 0 / 45%); }
-  label { display: block; margin-block: .75rem; }
-  input:not([type=checkbox]), select { display: block; width: 100%; border: 1px solid; padding: .35rem; }
-  button { border: 1px solid; border-radius: .25rem; padding: .3rem .8rem; }
-  button:disabled { opacity: .5; }
-}

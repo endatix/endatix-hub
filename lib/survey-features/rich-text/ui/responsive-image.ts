@@ -17,6 +17,10 @@ class ResponsiveImage extends ImageBlot {
   }
 
   format(name: string, value: string) {
+    if (name === "alt" && value === "") {
+      this.domNode.alt = "";
+      return;
+    }
     const property = dimensions.get(name);
     if (property) this.domNode.style.setProperty(property, value || "");
     else super.format(name, value);

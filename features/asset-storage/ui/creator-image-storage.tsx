@@ -54,7 +54,7 @@ export function CreatorImageStorage(props: CreatorImageStorageProps) {
   return (
     <ImageUploadContext.Provider value={store}>
       <RichTextImageDisplay>
-        {props.creator ? <ChoiceImageSettings creator={props.creator}>{props.children}</ChoiceImageSettings> : props.children}
+        {props.creator ? <ChoiceImageSettings creator={props.creator} PreviewDisplay={RichTextImageDisplay}>{props.children}</ChoiceImageSettings> : props.children}
       </RichTextImageDisplay>
     </ImageUploadContext.Provider>
   );

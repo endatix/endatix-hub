@@ -2,6 +2,7 @@
 import Quill, { Delta } from "quill";
 import { describe, expect, it, vi } from "vitest";
 import { insertUploadedContent } from "../ui/insert-uploaded-content";
+import "../ui/responsive-image";
 import {
   bindImageTransfers,
   type ImageTransfer,
@@ -61,6 +62,26 @@ function paste(editor: Quill, html: string, files: File[]) {
 }
 
 describe("Quill image input", () => {
+  it.each([
+    ["", "Reef survey"],
+    ['alt="Authored label"', "Authored label"],
+    ['alt=""', ""],
+  ])("keeps authored alt on mixed paste and suggests a name only when absent (%s)", async (attribute, expected) => {
+    const editor = setupEditor();
+    const file = new File(["pixels"], "Reef_survey.png", { type: "image/png" });
+    const stop = bindImageTransfers(editor, async () => canonical, () => {});
+    paste(editor, `<strong>Caption</strong><img ${attribute} src="cid:1">`, [file]);
+    await vi.waitFor(() => expect(editor.root.querySelector("img")?.getAttribute("alt")).toBe(expected));
+    expect(editor.root.querySelector("strong")?.textContent).toBe("Caption");
+    stop();
+  });
+  it("uses the original file name for a new image even when storage returns an opaque key", async () => {
+    const editor = setupEditor();
+    const stop = bindImageTransfers(editor, async () => canonical, () => {});
+    editor.uploader.upload({ index: 0, length: 0 }, [new File(["pixels"], "Harbor_at-sunset.png", {type:"image/png"})]);
+    await vi.waitFor(() => expect(editor.root.querySelector("img")?.alt).toBe("Harbor at sunset"));
+    stop();
+  });
   it("keeps mixed paste and surrounding text intact across failure and retry", async () => {
     const editor = setupEditor();
     const store = vi

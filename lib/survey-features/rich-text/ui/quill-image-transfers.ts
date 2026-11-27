@@ -2,6 +2,7 @@ import { Delta, type default as Quill, type Range } from "quill";
 import type { StoreImage } from "./image-upload-context";
 import { insertUploadedContent } from "./insert-uploaded-content";
 import { pastedImageContent } from "./pasted-image-content";
+import { fileLabel } from "./image-label";
 
 export interface ImageTransfer {
   readonly id: string;
@@ -116,7 +117,8 @@ function fileContent(files: File[], store: StoreImage) {
     for (const file of files) {
       const url = uploaded.get(file) ?? (await store(file));
       uploaded.set(file, url);
-      content.insert({ image: url });
+      const alt = fileLabel(file.name);
+      content.insert({ image: url }, alt ? { alt } : undefined);
     }
     return content;
   };

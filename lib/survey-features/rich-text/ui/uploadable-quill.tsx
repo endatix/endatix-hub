@@ -19,7 +19,7 @@ function useTransfers({ editorRef, choiceLabel = false, bounds }: Props) {
   const [jobs, setJobs] = useState<ImageTransfer[]>([]);
   useLayoutEffect(() => {
     const editor = editorRef.current?.getEditor();
-    if (!editor || (!store && !choiceLabel)) return;
+    if (!editor) return;
     return bindImageTransfers(editor, store ?? inlineImage, { publish: setJobs, choiceLabel });
   }, [store, choiceLabel, editorRef, bounds]);
   return jobs;

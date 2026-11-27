@@ -1,5 +1,6 @@
 import type Quill from "quill";
 import type { StoreImage } from "./image-upload-context";
+import { fileLabel } from "./image-label";
 
 async function clipboardFile(source: string, attachment?: File) {
   if (!/^data:image\//i.test(source)) {
@@ -38,7 +39,12 @@ function localImages(template: HTMLTemplateElement, clipboard: DataTransfer, sto
     .map((image, index) => {
       const source = image.src;
       return async () => {
-        if (image.src === source) image.src = await store(await clipboardFile(source, attachments[index]));
+        if (image.src !== source) return;
+        const attachment = attachments[index];
+        const file = await clipboardFile(source, attachment);
+        image.src = await store(file);
+        const label = fileLabel(attachment?.name ?? file.name);
+        if (label && !image.hasAttribute("alt")) image.alt = label;
       };
     });
 }
