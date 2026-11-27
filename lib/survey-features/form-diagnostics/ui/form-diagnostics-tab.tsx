@@ -34,11 +34,12 @@ function useAudienceCheck(model: FormDiagnosticsPlugin) {
 
 function ChoiceTool({ model, check, allowed, lead }: ModelProps & { check: ReturnType<typeof choiceListCheck>; allowed: boolean; lead: boolean }) {
   const [change, setChange] = useState<ReturnType<typeof sizeChange> | null>(null);
-  const finding = choiceFinding(check.count, check.bytes);
+  const [minimum, setMinimum] = useState(10);
+  const finding = choiceFinding(minimum === 10 ? check : choiceListCheck(model.creator.JSON, true, minimum));
   if (!check.recommended) finding.title = "Optional: create a copy with data lists";
   const result = change && <span className="block"><strong className="block">Measured copy definition size</strong>{change.before.toLocaleString()} → {change.after.toLocaleString()} bytes ({change.percent.toFixed(1)}% {change.delta >= 0 ? "smaller" : "larger"}). The original form is unchanged.</span>;
   return <FindingPanel lead={lead} finding={finding} result={result} effect={allowed ? "Creates a copy" : "Needs create and edit access"} blocked={!allowed} cta="Review choice lists">
-    {allowed ? <ConvertLargeChoiceLists model={model} onCopy={setChange} /> : <p>Creating the copy requires permission to create and edit forms. No changes are available here.</p>}
+    {allowed ? <ConvertLargeChoiceLists model={model} onCopy={setChange} onThresholdChange={setMinimum} /> : <p>Creating the copy requires permission to create and edit forms. No changes are available here.</p>}
   </FindingPanel>;
 }
 

@@ -390,11 +390,13 @@ async function mapPool<T, R>(
 interface ConvertLargeChoiceListsProps {
   model: FormDiagnosticsPlugin;
   onCopy?: (change: ReturnType<typeof sizeChange> | null) => void;
+  onThresholdChange?: (minimum:number) => void;
 }
 
 export function ConvertLargeChoiceLists({
   model,
   onCopy,
+  onThresholdChange,
 }: Readonly<ConvertLargeChoiceListsProps>) {
   const [threshold, setThreshold] = useState(10);
   const [phase, setPhase] = useState<Phase>("idle");
@@ -435,25 +437,20 @@ export function ConvertLargeChoiceLists({
 
   const candidatePreview = candidates.slice(0, PREVIEW_LIMIT);
 
-  const resetRun = useCallback(() => {
+  const clearRunResults = useCallback(() => {
     onCopy?.(null);
-    setPhase("idle");
-    setPhaseLabel("");
-    setCompleted(0);
-    setDoneMessage(null);
     setErrorBanner(null);
+    setDoneMessage(null);
     setLastSummary(null);
     setLastFailures([]);
     setCreatedFormId(null);
   }, [onCopy]);
-
-  const clearRunResults = useCallback(() => {
-    setErrorBanner(null);
-    setDoneMessage(null);
-    setLastSummary(null);
-    setLastFailures([]);
-    setCreatedFormId(null);
-  }, []);
+  const resetRun = useCallback(() => {
+    clearRunResults();
+    setPhase("idle");
+    setPhaseLabel("");
+    setCompleted(0);
+  }, [clearRunResults]);
 
   const markDone = useCallback(() => {
     setPhase("done");
@@ -609,7 +606,9 @@ export function ConvertLargeChoiceLists({
             disabled={phase !== "idle" && phase !== "done"}
             onChange={(e) => {
               const v = Number(e.target.value);
-              setThreshold(Number.isFinite(v) && v >= 1 ? v : 1);
+              const minimum = Number.isFinite(v) && v >= 1 ? v : 1;
+              setThreshold(minimum);
+              onThresholdChange?.(minimum);
             }}
             className="w-28"
           />

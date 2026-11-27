@@ -1,5 +1,6 @@
 import type { FormDiagnosticsStats } from "./form-diagnostics-logic";
 import { formatBytes } from "@/lib/utils/formatters";
+import type { choiceListCheck } from "./diagnostic-recommendations";
 
 export interface Benefit {
   basis: "Estimate" | "Not measured";
@@ -68,11 +69,15 @@ export function imageBenefit(before: number, reduction: number): Benefit {
   };
 }
 
-export function choiceFinding(count: number, bytes: number): Finding {
+export function choiceFinding(check: ReturnType<typeof choiceListCheck>): Finding {
+  const {count, bytes, impact} = check;
   return {
     id: "choices", title: "Move large choice lists into data lists",
     evidence: `${count} inline ${count === 1 ? "list" : "lists"} · ${formatBytes(bytes)} of choice data`,
     consequence: "The original form and its submissions stay unchanged.",
-    benefit: qualitative("Reusable choices in a separate copy", "Selected lists are stored separately and the new form references them."),
+    benefit: check.eligible ? {
+      basis:"Estimate", headline: impact === 0 ? "Similar size copy" : `About ${formatBytes(Math.abs(impact))} ${impact > 0 ? "smaller" : "larger"} copy`,
+      explanation:`For ${check.eligible} eligible ${check.eligible === 1 ? "list" : "lists"}, the copy replaces inline choices with lazy-load settings and 19-digit list references.`,
+    } : qualitative("Reusable choices in a separate copy", "Select a threshold with matching lists to estimate how much the copy changes."),
   };
 }
