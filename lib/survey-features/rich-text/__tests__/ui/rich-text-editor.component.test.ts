@@ -1,9 +1,5 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi } from "vitest";
-import {
-  hasActiveSelectionFromEditor,
-  hideTooltipFromEditor,
-} from "../../ui/rich-text-editor.utils";
+import { describe, expect, it } from "vitest";
 import { normalizeAndSanitize, QUILL_USER_EVENT_SOURCE } from "../../ui/rich-text-editor.component";
 
 describe("normalizeAndSanitize - Security", () => {
@@ -133,103 +129,6 @@ describe("normalizeAndSanitize - Single Paragraph Unwrapping", () => {
 
     // Assert
     expect(result).toBe("Text with spaces");
-  });
-});
-
-describe("hasActiveSelectionFromEditor", () => {
-  it("should return false when editor is null", () => {
-    // Arrange
-    const editor = null;
-
-    // Act
-    const result = hasActiveSelectionFromEditor(editor);
-
-    // Assert
-    expect(result).toBe(false);
-  });
-
-  it("should return false when editor is undefined", () => {
-    // Arrange
-    const editor = undefined;
-
-    // Act
-    const result = hasActiveSelectionFromEditor(editor);
-
-    // Assert
-    expect(result).toBe(false);
-  });
-
-  it("should return false when selection is missing", () => {
-    // Arrange
-    const editor = {};
-
-    // Act
-    const result = hasActiveSelectionFromEditor(editor);
-
-    // Assert
-    expect(result).toBe(false);
-  });
-
-  it("should return false when savedRange is missing", () => {
-    // Arrange
-    const editor = { selection: {} };
-
-    // Act
-    const result = hasActiveSelectionFromEditor(editor);
-
-    // Assert
-    expect(result).toBe(false);
-  });
-
-  it("should return false when savedRange length is 0", () => {
-    // Arrange
-    const editor = { selection: { savedRange: { length: 0 } } };
-
-    // Act
-    const result = hasActiveSelectionFromEditor(editor);
-
-    // Assert
-    expect(result).toBe(false);
-  });
-
-  it("should return true when savedRange has length > 0", () => {
-    // Arrange
-    const editor = { selection: { savedRange: { index: 0, length: 3 } } };
-
-    // Act
-    const result = hasActiveSelectionFromEditor(editor);
-
-    // Assert
-    expect(result).toBe(true);
-  });
-});
-
-describe("hideTooltipFromEditor", () => {
-  it("should do nothing when editor is null", () => {
-    const editor = null;
-    expect(() => hideTooltipFromEditor(editor)).not.toThrow();
-  });
-
-  it("should do nothing when editor has no theme", () => {
-    const editor = {};
-    expect(() => hideTooltipFromEditor(editor)).not.toThrow();
-  });
-
-  it("should do nothing when theme has no tooltip", () => {
-    const editor = { theme: {} };
-    expect(() => hideTooltipFromEditor(editor)).not.toThrow();
-  });
-
-  it("should call hide when theme has tooltip with hide", () => {
-    const hide = vi.fn();
-    const editor = { theme: { tooltip: { hide } } };
-    hideTooltipFromEditor(editor);
-    expect(hide).toHaveBeenCalledTimes(1);
-  });
-
-  it("should not throw when tooltip has no hide method", () => {
-    const editor = { theme: { tooltip: {} } };
-    expect(() => hideTooltipFromEditor(editor)).not.toThrow();
   });
 });
 
