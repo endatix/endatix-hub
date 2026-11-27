@@ -3,8 +3,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { PlusIcon, Trash2Icon, Undo2Icon } from "lucide-react";
 import { ImageThumbnailPicker } from "./image-thumbnail-picker";
-import { fileLabel } from "./image-label";
+import { fileLabel, imageOption } from "./image-label";
 import { ImageUploadContext, type StoreImage } from "./image-upload-context";
 import { imageDraft, inlineImage, type ImageTarget } from "./image-settings-target";
 
@@ -135,7 +136,8 @@ function DraftEditor({target, close}: Readonly<Omit<EditorProps, "index">>) {
     <div className="grid min-h-0 gap-4 overflow-y-auto p-1">
       <fieldset className="grid min-w-0 gap-4" disabled={busy}>
         <ImageThumbnailPicker target={target} index={edit.index} select={edit.select} locked={edit.dirty || busy || removing} />
-        {edit.index >= 0 && <RemovalControl staged={removing} disabled={edit.dirty} toggle={() => setRemoving(!removing)} />}
+        {edit.index >= 0 && <SelectedImageActions label={imageOption(target.images[edit.index], edit.index)} staged={removing}
+          disabled={edit.dirty} add={() => edit.select(-1)} toggle={() => setRemoving(!removing)} />}
         {!removing && <DraftFields edit={edit} hasImages={target.images.length > 0} />}
       </fieldset>
       {!edit.valid && <p className="text-sm text-destructive" role="alert">Enter a positive size, or leave the field blank.</p>}
@@ -163,15 +165,21 @@ function DraftFields({edit, hasImages}: Readonly<{edit: ReturnType<typeof useIma
   </>;
 }
 
-function RemovalControl({ staged, disabled, toggle }: Readonly<{ staged: boolean; disabled: boolean; toggle(): void }>) {
-  const hint = useId();
+interface SelectedImageActionProps { label: string; staged: boolean; disabled: boolean; add(): void; toggle(): void }
+
+function SelectedImageActions({ label, staged, disabled, add, toggle }: Readonly<SelectedImageActionProps>) {
+  const removeLabel = "Remove selected image from this field";
   return <div className="grid gap-2">
-    <Button type="button" variant="outline" size="sm" className="justify-self-start" disabled={disabled}
-      aria-describedby={hint} onClick={toggle}>{staged ? "Keep image" : "Remove from this field"}</Button>
-    <p id={hint} role={staged ? "status" : undefined} className="text-sm text-muted-foreground">
-      {staged ? "Apply to remove this occurrence. The file and its other uses will stay intact." :
-        "Removal affects only this occurrence, not the stored file or its other uses."}
-    </p>
+    <div className="flex flex-wrap items-center gap-2">
+      <Button type="button" variant="outline" size="sm" disabled={disabled || staged} onClick={add}><PlusIcon aria-hidden />Add image</Button>
+      <Button type="button" variant="ghost" size="sm" disabled={disabled} onClick={toggle}
+        aria-label={staged ? undefined : removeLabel} title={staged ? undefined : removeLabel}>
+        {staged ? <><Undo2Icon aria-hidden />Keep image</> : <><Trash2Icon aria-hidden />Remove</>}
+      </Button>
+    </div>
+    {staged && <p role="status" className="break-words text-sm text-muted-foreground">
+      Apply to remove “{label}” from this field. The stored file is kept.
+    </p>}
   </div>;
 }
 

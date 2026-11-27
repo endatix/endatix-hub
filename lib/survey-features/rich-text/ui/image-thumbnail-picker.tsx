@@ -1,6 +1,4 @@
 import { useId } from "react";
-import { PlusIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { imageOption } from "./image-label";
@@ -26,11 +24,10 @@ export function ImageThumbnailPicker({ target, index, locked, select }: Readonly
   const title = useId();
   if (!target.images.length) return null;
   return <div className="grid gap-2">
-      <span id={title} className="text-sm font-medium">Select an image to edit</span>
-      <RadioGroup className="max-h-48 overflow-y-auto p-1 sm:grid-cols-2" aria-labelledby={title}
-        value={String(index)} disabled={locked} onValueChange={value => select(Number(value))}>
-        {target.images.map((image, i) => <Thumbnail key={i} image={image} index={i} />)}
-      </RadioGroup>
-    {index >= 0 && <Button type="button" variant="outline" size="sm" className="justify-self-start" disabled={locked} onClick={() => select(-1)}><PlusIcon />Add an image</Button>}
+    <span id={title} className="text-sm font-medium">Select an image to edit</span>
+    <RadioGroup className="max-h-48 overflow-y-auto p-1 sm:grid-cols-2" aria-labelledby={title}
+      value={String(index)} disabled={locked} onValueChange={value => select(Number(value))}>
+      {target.images.map((image, i) => <Thumbnail key={i} image={image} index={i} />)}
+    </RadioGroup>
   </div>;
 }

@@ -57,13 +57,14 @@ it("removes only the second French choice occurrence on Apply and restores it in
   const before = choices();
   openRow(0);
   fireEvent.click(screen.getByRole("radio", { name: "2. Two" }));
-  click("Remove from this field");
+  click("Remove selected image from this field");
+  expect(screen.getByRole("status").textContent).toContain("2. Two");
   expect(choices()).toEqual(before);
   click("Cancel");
   expect(choices()).toEqual(before);
   openRow(0);
   fireEvent.click(screen.getByRole("radio", { name: "2. Two" }));
-  click("Remove from this field");
+  click("Remove selected image from this field");
   click("Apply");
   expect(choices()[0]).toEqual({value:"key",text:{default:"Caption",fr:`<img src="${source}" alt="One"><strong>Légende</strong>`}});
   creator.undo();
@@ -76,16 +77,18 @@ it("shows the last image selected, stages removal reversibly and offers addition
   const before = editor.getContents();
   click("Image settings");
   expect(screen.getByRole("radio", {name:"1. Harbor"}).getAttribute("aria-checked")).toBe("true");
-  expect(screen.getByRole("button",{name:"Add an image"})).toBeTruthy();
-  click("Remove from this field");
+  expect(screen.getByRole("button",{name:"Add image"})).toBeTruthy();
+  expect(screen.queryByRole("status")).toBeNull();
+  click("Remove selected image from this field");
+  expect(screen.getByRole("button",{name:"Add image"}).hasAttribute("disabled")).toBe(true);
   click("Keep image");
   expect(screen.getByLabelText<HTMLInputElement>("Alt text").value).toBe("Harbor");
-  click("Remove from this field");
+  click("Remove selected image from this field");
   click("Apply");
   expect(editor.root.querySelector("img")).toBeNull();
   click("Image settings");
   expect(screen.queryByRole("radio")).toBeNull();
-  expect(screen.queryByRole("button",{name:"Remove from this field"})).toBeNull();
+  expect(screen.queryByRole("button",{name:"Remove selected image from this field"})).toBeNull();
   expect(screen.getByLabelText("New image file")).toBeTruthy();
   click("Cancel");
   editor.history.undo();
@@ -95,7 +98,7 @@ it("shows the last image selected, stages removal reversibly and offers addition
 it("refuses a staged removal when a concurrent caption edit makes the target stale", () => {
   const { editor } = setup();
   fireEvent.click(editor.root.querySelectorAll("img")[1]);
-  click("Remove from this field");
+  click("Remove selected image from this field");
   editor.insertText(0, "Later ", "user");
   click("Apply");
   expect(screen.getByRole("alert").textContent).toContain("content changed");
@@ -113,6 +116,7 @@ it("edits the second French image from the grid without uploading or rewriting t
   change("Maximum width", "160");
   expect(screen.getByRole("radio", {name:"1. One"}).hasAttribute("disabled")).toBe(true);
   expect(screen.getByRole("status").textContent).toContain("Apply or cancel");
+  expect(screen.getByRole("button",{name:"Remove selected image from this field"}).hasAttribute("disabled")).toBe(true);
   click("Apply");
   const choice = creator.JSON.pages[0].elements[0].choices[0];
   expect(choice.value).toBe("key");
@@ -203,7 +207,7 @@ it("opens field settings by icon and image, preserving an uncapped image when ch
   opener.focus();
   click("Image settings");
   expect(screen.getByRole("radio", {name:"1. One"}).getAttribute("aria-checked")).toBe("true");
-  click("Add an image");
+  click("Add image");
   expect(screen.getByLabelText<HTMLInputElement>("Maximum width").value).toBe("");
   screen.getByRole("button", { name: "Cancel" }).focus();
   click("Cancel");
