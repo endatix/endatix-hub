@@ -136,25 +136,25 @@ type LoadCookieSubmissionPageQuery = LoadPartialSubmissionQuery & {
 async function loadCookieSubmissionPage(
   query: LoadCookieSubmissionPageQuery,
 ): Promise<LoadPublicSurveyPageResult> {
-  const { formId, tokenStore, access } = query;
-  const [submissionResult, activeDefinitionResult] = await Promise.all([
-    loadPartialSubmission({ formId, tokenStore }),
-    getActiveDefinitionUseCase({ formId }),
-  ]);
-
+  const { formId, access } = query;
+  const submissionResult = await loadPartialSubmission(query);
   if (submissionResult.kind === "submissionLoadError") {
     return submissionResult;
   }
 
-  if (Result.isError(activeDefinitionResult)) {
+  const submission = submissionResult.value;
+  const definition = submission
+    ? resolveSubmissionFormDefinition(submission)
+    : await getActiveDefinitionUseCase({ formId });
+  if (Result.isError(definition)) {
     return { kind: "notFound" };
   }
 
   return loadedPage({
     formId,
     access,
-    activeDefinition: activeDefinitionResult.value,
-    submission: submissionResult.value,
+    activeDefinition: definition.value,
+    submission,
   });
 }
 

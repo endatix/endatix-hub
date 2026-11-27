@@ -1,4 +1,3 @@
-import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get-active-definition.use-case";
 import { getPartialSubmissionUseCase } from "@/features/public-form/use-cases/get-partial-submission.use-case";
 import { getPublicFormAccessUseCase } from "@/features/public-form/use-cases/get-public-form-access.use-case";
 import { loadPublicSurveyPageUseCase } from "@/features/public-form/use-cases/load-public-survey-page.use-case";
@@ -8,7 +7,6 @@ import { getSubmissionByAccessTokenUseCase } from "@/features/public-submissions
 import { ApiResult, type Submission } from "@/lib/endatix-api";
 import { PersonalizationSource } from "@/lib/endatix-api/submissions/types";
 import { Result } from "@/lib/result";
-import type { ActiveDefinition } from "@/types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock(
@@ -55,6 +53,15 @@ const cookieSubmission: Submission = {
   modifiedAt: createdAt,
   formId,
   formDefinitionId: "definition-1",
+  formDefinition: {
+    id: "definition-1",
+    formId,
+    jsonData: "{}",
+    createdAt,
+    modifiedAt: createdAt,
+    isDraft: false,
+    isActive: true,
+  },
   isComplete: false,
   jsonData: "{}",
   currentPage: 0,
@@ -74,13 +81,6 @@ const personTestSubmission: Submission = {
   },
 };
 
-/** A URL-token page reads the definition from its submission. */
-const formDefinition = {
-  id: "definition-1",
-  formId,
-  jsonData: "{}",
-} as Submission["formDefinition"];
-
 describe("loadPublicSurveyPageUseCase on a person's test submission", () => {
   beforeEach(() => {
     // A public form: the API never reports test mode for it.
@@ -98,9 +98,6 @@ describe("loadPublicSurveyPageUseCase on a person's test submission", () => {
         expiresAt: createdAt.toISOString(),
         eTag: "etag",
       }),
-    );
-    vi.mocked(getActiveDefinitionUseCase).mockResolvedValue(
-      Result.success({ id: "definition-1" } as ActiveDefinition),
     );
   });
 
@@ -161,7 +158,7 @@ describe("loadPublicSurveyPageUseCase on a person's test submission", () => {
 
   it("never calls auth() for a real respondent on a URL-token page", async () => {
     vi.mocked(getSubmissionByAccessTokenUseCase).mockResolvedValue(
-      Result.success({ ...cookieSubmission, formDefinition }),
+      Result.success(cookieSubmission),
     );
 
     await loadPublicSurveyPageUseCase({
@@ -175,7 +172,7 @@ describe("loadPublicSurveyPageUseCase on a person's test submission", () => {
 
   it("does not offer Start over on a URL-token test page, which ignores the cookie", async () => {
     vi.mocked(getSubmissionByAccessTokenUseCase).mockResolvedValue(
-      Result.success({ ...personTestSubmission, formDefinition }),
+      Result.success(personTestSubmission),
     );
     viewerMayTest(true);
 
