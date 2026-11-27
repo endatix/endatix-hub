@@ -23,6 +23,7 @@ import {
 import { JSON_CHANGED_TYPE } from "@/lib/survey-features/json-editor/json-editor-state";
 import { useJsonEditor } from "@/lib/survey-features/json-editor/use-json-editor.hook";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
+import { ChoiceImageSettings } from "@/lib/survey-features/rich-text/ui/choice-image-settings";
 import {
   SurveyDesignSaveButton,
   SurveyDesignStatusBadge,
@@ -451,7 +452,9 @@ function FormTemplateEditorContent({
             </div>
           </div>
         ) : creator ? (
-          <CreatorImageStorage itemType="template" itemId={templateId}><SurveyCreatorComponent creator={creator} /></CreatorImageStorage>
+          <CreatorImageStorage itemType="template" itemId={templateId}>
+            <ChoiceImageSettings creator={creator}><SurveyCreatorComponent creator={creator} /></ChoiceImageSettings>
+          </CreatorImageStorage>
         ) : (
           <div>Error loading form editor</div>
         )}

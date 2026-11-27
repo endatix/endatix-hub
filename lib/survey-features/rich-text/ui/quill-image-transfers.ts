@@ -50,7 +50,9 @@ class Transfer implements ImageTransfer {
 
 type Publish = (jobs: ImageTransfer[]) => void;
 
-export function bindImageTransfers(editor: Quill, store: StoreImage, publish: Publish) {
+export function bindImageTransfers(editor: Quill, store: StoreImage, options: Publish | { publish: Publish; choiceLabel: boolean }) {
+  const publish = typeof options === "function" ? options : options.publish;
+  const choice = typeof options !== "function" && options.choiceLabel;
   const active = new Set<Transfer>();
   const changed = () => publish([...active]);
   const start = (range: Range, load: () => Promise<Delta>) => {
@@ -62,7 +64,9 @@ export function bindImageTransfers(editor: Quill, store: StoreImage, publish: Pu
       changed();
     });
   };
-  const unbind = bindImageInputs(editor, store, start);
+  const unbind = bindImageInputs(editor, store, (range, load) => {
+    start(range, async () => choice ? sizeNewChoiceImages(await load()) : await load());
+  });
   return () => {
     unbind();
     active.forEach((job) => job.cancel());
@@ -70,6 +74,17 @@ export function bindImageTransfers(editor: Quill, store: StoreImage, publish: Pu
 }
 
 type Start = (range: Range, load: () => Promise<Delta>) => void;
+
+function sizeNewChoiceImages(delta: Delta) {
+  for (const op of delta.ops) {
+    if (typeof op.insert !== "object" || !op.insert.image) continue;
+    const attrs = op.attributes ?? {};
+    if (!attrs.width && !attrs.height && !attrs.imageWidth && !attrs.imageCap && !attrs.imageHeight) {
+      op.attributes = { ...attrs, imageCap: "min(100%, 100px)", imageHeight: "auto" };
+    }
+  }
+  return delta;
+}
 
 function bindImageInputs(editor: Quill, store: StoreImage, start: Start) {
   const original = editor.uploader.upload;

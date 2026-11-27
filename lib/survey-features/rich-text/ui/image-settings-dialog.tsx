@@ -1,0 +1,123 @@
+import { useContext, useEffect, useId, useRef, useState } from "react";
+import { ImageUploadContext } from "./image-upload-context";
+import { imageDraft, inlineImage, type ImageTarget } from "./image-settings-target";
+
+type Settings = { alt: string; width: string; cap: string };
+
+function settings(image: HTMLImageElement): Settings {
+  return {
+    alt: image.alt,
+    width: image.style.width || image.getAttribute("width") || "",
+    cap: image.style.maxWidth.replace(/^min\(100%,\s*(\d+px)\)$/, "$1"),
+  };
+}
+
+function dimension(value: string) {
+  return /^\d+$/.test(value) ? `${value}px` : value;
+}
+
+function applySettings(image: HTMLImageElement, draft: Settings) {
+  const saved = settings(image);
+  if (draft.alt !== saved.alt) image.alt = draft.alt;
+  if (draft.width === saved.width && draft.cap === saved.cap) return image;
+  image.removeAttribute("width");
+  image.removeAttribute("height");
+  image.style.width = dimension(draft.width);
+  image.style.maxWidth = draft.cap ? `min(100%, ${dimension(draft.cap)})` : "100%";
+  image.style.height = "auto";
+  return image;
+}
+
+function useLocalPreview(file?: File) {
+  const [url, setUrl] = useState("");
+  useEffect(() => {
+    if (!file) return;
+    const source = URL.createObjectURL(file);
+    setUrl(source);
+    return () => URL.revokeObjectURL(source);
+  }, [file]);
+  return file ? url : "";
+}
+
+function ImageFields({ draft, change }: { draft: Settings; change: (draft: Settings) => void }) {
+  return <>
+    <label>Alt text<input value={draft.alt} onChange={e => change({ ...draft, alt: e.target.value })} /></label>
+    <label>Width<input placeholder="Auto" value={draft.width} onChange={e => change({ ...draft, width: e.target.value })} /></label>
+    <label>Maximum width<input placeholder="No cap" value={draft.cap} onChange={e => change({ ...draft, cap: e.target.value })} /></label>
+    <small>Enter pixels or a CSS length. Height adjusts automatically when you resize.</small>
+  </>;
+}
+
+function validSize(value: string, saved: string) {
+  return value === saved || value === "" || /^(?:[1-9]\d*(?:\.\d+)?)(?:px|%|em|rem|vw)?$/.test(value);
+}
+
+interface EditorProps { target: ImageTarget; index: number; close(): void }
+
+function DraftEditor({ target, index, close }: EditorProps) {
+  const store = useContext(ImageUploadContext) ?? inlineImage;
+  const [draft, change] = useState(() => settings(imageDraft(target, index)));
+  const [file, choose] = useState<File>();
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [narrow, setNarrow] = useState(false);
+  const alive = useRef(false);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+  const url = useLocalPreview(file);
+  const image = imageDraft(target, index);
+  const saved = settings(image);
+  const valid = validSize(draft.width.trim(), saved.width) && validSize(draft.cap.trim(), saved.cap);
+  applySettings(image, draft);
+  async function apply() {
+    setBusy(true);
+    try {
+      if (file) {
+        image.src = await store(file);
+        image.removeAttribute("srcset");
+      }
+      if (!alive.current) return;
+      if (target.commit(index, image)) close();
+      else setError("The choice changed. Close and reopen image settings.");
+    } catch {
+      if (alive.current) setError("Could not store the image. Apply again to retry.");
+    } finally {
+      if (alive.current) setBusy(false);
+    }
+  }
+  return <>
+    <fieldset disabled={busy}>
+      <label>Image file<input type="file" accept="image/*" onChange={e => choose(e.target.files?.[0])} /></label>
+      <ImageFields draft={draft} change={change} />
+      <label><input type="checkbox" checked={narrow} onChange={e => setNarrow(e.target.checked)} /> Narrow preview</label>
+      <div style={{ width: narrow ? 72 : "100%", maxWidth: "100%" }}>
+        {(url || image.src) && <img data-choice-image-preview="" src={url || image.src} alt={draft.alt} style={{
+          width: image.style.width || image.getAttribute("width") || undefined,
+          maxWidth: image.style.maxWidth || undefined, height: image.style.height || undefined,
+        }} />}
+      </div>
+    </fieldset>
+    {!valid && <p role="alert">Enter a positive size, or leave the field blank.</p>}
+    {error && <p role="alert">{error}</p>}
+    <div className="flex gap-3"><button type="button" disabled={busy || !valid || (!file && !image.src)} onClick={apply}>{busy ? "Applying…" : "Apply"}</button>
+      <button type="button" onClick={close}>Cancel</button></div>
+  </>;
+}
+
+export function ImageSettingsDialog({ target, close }: { target: ImageTarget; close(): void }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const title = useId();
+  const [index, select] = useState(target.selected);
+  useEffect(() => {
+    const dialog = ref.current!;
+    dialog.showModal();
+    return () => dialog.close();
+  }, []);
+  return <dialog ref={ref} aria-labelledby={title} onCancel={close} className="choice-image-dialog">
+    <h2 id={title}>Choice image settings</h2>
+    <label>Image<select value={index} onChange={e => select(Number(e.target.value))}>
+      <option value="-1">Add an image</option>
+      {target.images.map((img, i) => <option key={i} value={i}>Image {i + 1}{img.alt && `: ${img.alt}`}</option>)}
+    </select></label>
+    <DraftEditor key={index} index={index} target={target} close={close} />
+  </dialog>;
+}

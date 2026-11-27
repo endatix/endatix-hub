@@ -42,6 +42,7 @@ import {
 } from "@/lib/survey-features/json-editor/use-json-editor.hook";
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
+import { ChoiceImageSettings } from "@/lib/survey-features/rich-text/ui/choice-image-settings";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
 import {
   useCreatorJson,
@@ -702,7 +703,9 @@ function FormEditor({
           </div>
         </div>
       ) : creator ? (
-        <CreatorImageStorage itemType="form" itemId={formId}><SurveyCreatorComponent creator={creator} /></CreatorImageStorage>
+        <CreatorImageStorage itemType="form" itemId={formId}>
+          <ChoiceImageSettings creator={creator}><SurveyCreatorComponent creator={creator} /></ChoiceImageSettings>
+        </CreatorImageStorage>
       ) : (
         <div>Error loading form editor</div>
       )}

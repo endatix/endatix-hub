@@ -1,4 +1,5 @@
 import ReactQuill from "react-quill-new";
+import "./responsive-image";
 import { UploadableQuill } from "./uploadable-quill";
 import "react-quill-new/dist/quill.bubble.css";
 import "./rich-text-editor.styles.scss";
@@ -7,6 +8,7 @@ import {
   ReactQuestionFactory,
 } from "survey-react-ui";
 import React from "react";
+import { ItemValue } from "survey-core";
 import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
 import { RICH_TEXT_EDITOR_TYPE } from "./rich-text-editor.model";
 import {
@@ -128,6 +130,8 @@ export class RichTextEditorComponent extends SurveyQuestionElementBase {
         className={`rich-text-editor ${hasActiveSelection ? "rich-text-editor--active" : ""}`}
       >
         <UploadableQuill
+          choiceLabel={this.question.name === "text" && this.question.obj instanceof ItemValue &&
+            this.question.obj.ownerPropertyName === "choices"}
           editorRef={this.quillRef}
           theme="bubble"
           readOnly={isReadOnly}
