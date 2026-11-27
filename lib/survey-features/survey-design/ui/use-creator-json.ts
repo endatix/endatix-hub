@@ -24,7 +24,8 @@ function alreadyLoaded(next: Applied, last: Applied | null) {
   return isSameDefinition(last.json, next.json) || isSameDefinition(next.creator.JSON, next.json);
 }
 
-/** Loads a saved canvas snapshot into the Creator without clobbering live edits. */
+/** Give Creator its own copy: it mutates nested locale objects during editing.
+ * The fetched definition remains the source for merging and Save readback. */
 export function useCreatorJson(
   creator: SurveyCreatorModel | null,
   json: object | null,
@@ -42,8 +43,6 @@ export function useCreatorJson(
     // Saving an active definition with submissions creates a new version. Its echo must not reset a newer edit.
     if (conversionSession(creator)?.consumeSaveEcho(json)) { last.current = next; return; }
     if (alreadyLoaded(next, last.current)) return;
-    // SurveyJS retains nested locale objects and mutates them as authors type.
-    // The fetched definition remains the source for merging and Save readback.
     creator.JSON = structuredClone(json);
     bindConversionSource(creator, json);
     last.current = next;
