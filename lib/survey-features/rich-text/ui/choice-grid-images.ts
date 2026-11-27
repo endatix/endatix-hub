@@ -8,7 +8,7 @@ function rowTarget({ question, row }: GetMatrixRowActionsEvent, creator: SurveyC
   const item = row.editingObj;
   const cell = row.getQuestionByColumnName("text");
   if (question.name !== "choices" || !(item instanceof ItemValue) || !cell) return;
-  const editable = () => !creator.readOnly && !question.isReadOnly && !cell.isReadOnly;
+  const editable = () => !creator.readOnly && !cell.isDisposed && !question.isReadOnly && !cell.isReadOnly;
   if (!editable()) return;
   const locale = item.getLocale();
   const value = item.text;
@@ -27,7 +27,8 @@ function rowTarget({ question, row }: GetMatrixRowActionsEvent, creator: SurveyC
 
 function rowAction(creator: SurveyCreatorModel, open: Open) {
   return (_: SurveyModel, event: GetMatrixRowActionsEvent) => {
-    if (event.question.name !== "choices" || creator.readOnly || event.question.isReadOnly) return;
+    if (event.question.name !== "choices" || creator.readOnly || event.question.isReadOnly ||
+      event.row.getQuestionByColumnName("text")?.isReadOnly) return;
     event.actions.push({ id: "choice-image", title: "Choice image settings", iconName: "icon-image",
       location: "end", showTitle: false, action: () => {
         const target = rowTarget(event, creator);

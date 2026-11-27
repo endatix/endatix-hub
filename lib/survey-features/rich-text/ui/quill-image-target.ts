@@ -3,34 +3,32 @@ import type { ImageTarget } from "./image-settings-target";
 
 export function quillImageTarget(editor: Quill, selected?: HTMLImageElement): ImageTarget {
   const images = Array.from(editor.root.querySelectorAll("img"));
-  const originals = images.map(image => image.outerHTML);
   const insertion = editor.getSelection()?.index ?? editor.getLength() - 1;
   const snapshot = editor.getContents();
   function commit(index: number, image: HTMLImageElement) {
     if (!editor.isEnabled() || !editor.root.isConnected) return false;
     const original = images[index];
-    if (original && !sameImage(editor, original, originals[index])) return false;
-    if (!original && snapshot.diff(editor.getContents()).length()) return false;
+    if (snapshot.diff(editor.getContents()).length()) return false;
     const position = original ? imagePosition(editor, original) : insertion;
     if (position < 0) return false;
     const embed = editor.clipboard.convert({ html: image.outerHTML });
     if (original) retainInlineFormats(editor, position, embed);
-    editor.history.cutoff();
-    editor.updateContents(new Delta().retain(position).delete(original ? 1 : 0).concat(embed), "user");
-    editor.history.cutoff();
+    applyEdit(editor, new Delta().retain(position).delete(original ? 1 : 0).concat(embed));
     return true;
   }
   return { images, selected: selected ? images.indexOf(selected) : -1, commit };
+}
+
+function applyEdit(editor: Quill, edit: Delta) {
+  editor.history.cutoff();
+  editor.updateContents(edit, "user");
+  editor.history.cutoff();
 }
 
 function retainInlineFormats(editor: Quill, position: number, embed: Delta) {
   const previous = { ...editor.getContents(position, 1).ops[0]?.attributes };
   for (const key of ["alt", "width", "height", "imageWidth", "imageHeight", "imageCap"]) delete previous[key];
   embed.ops[0].attributes = { ...previous, ...embed.ops[0].attributes };
-}
-
-function sameImage(editor: Quill, image: HTMLImageElement, original: string) {
-  return editor.root.contains(image) && image.outerHTML === original;
 }
 
 function imagePosition(editor: Quill, image: HTMLImageElement) {

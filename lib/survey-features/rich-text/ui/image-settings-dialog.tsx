@@ -21,10 +21,14 @@ function applySettings(image: HTMLImageElement, draft: Settings) {
   const saved = settings(image);
   if (draft.alt !== saved.alt) image.alt = draft.alt;
   if (draft.width === saved.width && draft.cap === saved.cap) return image;
-  image.removeAttribute("width");
+  if (draft.width !== saved.width) {
+    image.removeAttribute("width");
+    image.style.width = dimension(draft.width);
+  }
   image.removeAttribute("height");
-  image.style.width = dimension(draft.width);
-  image.style.maxWidth = draft.cap ? `min(100%, ${dimension(draft.cap)})` : "100%";
+  if (draft.cap !== saved.cap || !saved.cap) {
+    image.style.maxWidth = draft.cap ? `min(100%, ${dimension(draft.cap)})` : "100%";
+  }
   image.style.height = "auto";
   return image;
 }
