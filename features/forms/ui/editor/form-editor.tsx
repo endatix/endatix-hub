@@ -250,7 +250,7 @@ function FormEditor({
     creator,
     markFormModified,
   });
-  useCreatorJson(creator, formJson);
+  useCreatorJson(creator, formJson, designerRuntime.definitionId);
   useCreatorTabUrl(creator);
 
   const saveCustomQuestion = useCallback(

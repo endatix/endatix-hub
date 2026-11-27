@@ -37,6 +37,7 @@ export interface DesignerRuntimeState extends DesignerScope {
  * The context value of the designer runtime.
  */
 export interface DesignerRuntimeContextValue {
+  definitionId?: string;
   stateRef: React.RefObject<DesignerRuntimeState>;
   /** Bumped on each updateState call so consumers can react to ref changes. */
   revision: number;
@@ -53,6 +54,7 @@ const DesignerRuntimeContext =
  * The props for the designer runtime provider.
  */
 export interface DesignerRuntimeProviderProps {
+  definitionId?: string;
   children: React.ReactNode;
   initialState: DesignerRuntimeState;
 }
@@ -63,6 +65,7 @@ export interface DesignerRuntimeProviderProps {
 export function DesignerRuntimeProvider({
   children,
   initialState,
+  definitionId,
 }: Readonly<DesignerRuntimeProviderProps>) {
   const stateRef = useRef<DesignerRuntimeState>({ ...initialState });
   const [revision, setRevision] = useState(0);
@@ -77,11 +80,12 @@ export function DesignerRuntimeProvider({
 
   const contextValue = useMemo(
     () => ({
+      definitionId,
       stateRef,
       revision,
       updateState,
     }),
-    [revision, updateState],
+    [definitionId, revision, updateState],
   );
 
   return (

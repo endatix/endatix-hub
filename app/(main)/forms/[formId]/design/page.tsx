@@ -141,7 +141,8 @@ export default async function FormDesignerPage({
       <Suspense fallback={<FormEditorLoader />}>
         <SurveyLicenseProvider value={getSurveyLicenseKey()}>
           <DesignerRuntimeProvider
-            key={`${formId}:${form.activeDefinitionId}`}
+            key={formId}
+            definitionId={form.activeDefinitionId ?? undefined}
             initialState={designerScope(form, (await checkPermission(Permissions.Forms.Edit)).success)}
           >
             <AssetStorageProvider>

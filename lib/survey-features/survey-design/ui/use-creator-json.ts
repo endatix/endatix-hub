@@ -17,18 +17,18 @@ function isSameDefinition(left: object | null, right: object): boolean {
   return Helpers.checkIfValuesEqual(left, right, SAME_DEFINITION);
 }
 
-type Applied = { creator: SurveyCreatorModel; json: object };
+type Applied = { creator: SurveyCreatorModel; json: object; definitionId?: string };
 
-function alreadyLoaded(creator: SurveyCreatorModel, json: object, last: Applied | null) {
-  if (last?.creator !== creator) return false;
-  return conversionSession(creator)?.isSubmitted(json) || isSameDefinition(last.json, json) ||
-    isSameDefinition(creator.JSON, json);
+function alreadyLoaded(next: Applied, last: Applied | null) {
+  if (last?.creator !== next.creator || last.definitionId !== next.definitionId) return false;
+  return isSameDefinition(last.json, next.json) || isSameDefinition(next.creator.JSON, next.json);
 }
 
 /** Loads a saved canvas snapshot into the Creator without clobbering live edits. */
 export function useCreatorJson(
   creator: SurveyCreatorModel | null,
   json: object | null,
+  definitionId?: string,
 ) {
   const last = useRef<Applied | null>(null);
   useEffect(() => () => {
@@ -37,9 +37,13 @@ export function useCreatorJson(
   }, [creator]);
 
   useEffect(() => {
-    if (!creator || !json || alreadyLoaded(creator, json, last.current)) return;
+    if (!creator || !json) return;
+    const next = { creator, json, definitionId };
+    // Saving an active definition with submissions creates a new version. Its echo must not reset a newer edit.
+    if (conversionSession(creator)?.isSubmitted(json)) { last.current = next; return; }
+    if (alreadyLoaded(next, last.current)) return;
     creator.JSON = json;
     bindConversionSource(creator, json);
-    last.current = { creator, json };
-  }, [creator, json]);
+    last.current = next;
+  }, [creator, json, definitionId]);
 }
