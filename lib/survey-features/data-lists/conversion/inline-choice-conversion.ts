@@ -14,6 +14,7 @@ export interface ConvertibleChoiceQuestionRef {
   name: string;
   type: "dropdown" | "tagbox";
   choiceCount: number;
+  choiceBytes: number;
   title: string;
 }
 
@@ -52,6 +53,7 @@ function collectConvertibleChoiceQuestions(
       name: element.name,
       type: qType,
       choiceCount: count,
+      choiceBytes: new TextEncoder().encode(JSON.stringify(element.choices)).length,
       title: resolveLocalizedText(element.title) || element.name || qType,
     });
   });

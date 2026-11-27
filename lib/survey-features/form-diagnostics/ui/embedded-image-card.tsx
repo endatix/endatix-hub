@@ -5,24 +5,18 @@ import Image from "next/image";
 import { useOptionalDesignerRuntime } from "@/lib/designer-runtime";
 import { formatBytes } from "@/lib/utils/formatters";
 import { useSurveyDesigner } from "../../designer/design-survey.context";
-import {
-  conversionSession,
-  type ConversionSession,
-} from "../conversion-session";
-import type { FormDiagnosticsPlugin } from "../form-diagnostics-plugin";
+import type { ConversionSession } from "../conversion-session";
+import { SURVEY_CREATOR_BUILT_IN_TAB } from "@/lib/survey-js";
+import { ESTIMATED_LINK_BYTES } from "../definition-size";
 import { placementsByField, type ImageReview } from "../embedded-images";
 import { count, useImageConversion } from "./use-image-conversion";
 
-function ReviewDescription({ review }: Readonly<{ review: ImageReview }>) {
-  const bytes = review.eligible.reduce(
-    (sum, { span }) => sum + span.source.length,
-    0,
-  );
+function ReviewDescription() {
   return (
       <p className="text-sm">
         Only the source changes. Captions, dimensions and styling stay the same.
-        Images are not resized. Stored links replace {formatBytes(bytes)} of
-        embedded sources. Use Save to keep your changes.
+        Original files are uploaded without resizing. The estimate assumes a {ESTIMATED_LINK_BYTES}-byte
+        stored link per placement. Actual link lengths vary.
       </p>
   );
 }
@@ -46,7 +40,7 @@ function groupedPlacements(review: ImageReview) {
 
 function PlacementList({ review }: Readonly<{ review: ImageReview }>) {
   return <>
-      <ReviewDescription review={review} />
+      <ReviewDescription />
       <ul
         aria-label="Image placements"
         className="max-h-64 space-y-2 overflow-y-auto rounded-md border p-3 text-sm"
@@ -76,18 +70,19 @@ function ReviewActions({ controls, placements }: Readonly<ActionProps>) {
   </>;
 }
 
-function Actions({ controls, placements }: Readonly<ActionProps>) {
+function Actions({ controls, placements, session }: Readonly<ActionProps & { session: ConversionSession }>) {
   const { hasUnsavedChanges } = useSurveyDesigner();
-  const canEdit = useOptionalDesignerRuntime()?.stateRef.current.canConvertImages;
-  const unsaved = controls.done && hasUnsavedChanges;
+  const runtime = useOptionalDesignerRuntime()?.stateRef.current;
+  const unsaved = controls.done && hasUnsavedChanges && Boolean(session.lastConversion);
   return (
     <>
-      <p role="status" className="text-sm">
-        {controls.message} {unsaved && "Changes not saved."}
-      </p>
+      <output className="block text-sm">
+        {controls.message} {unsaved && `Changes not saved. Use ${runtime?.templateId ? "Save Template" : "Save"} to keep this version.`}
+      </output>
       <div className="flex flex-wrap gap-2">
         <ReviewActions controls={controls} placements={placements} />
-        {unsaved && canEdit && (
+        {controls.done && <Button variant="outline" onClick={() => { session.creator.activeTab = SURVEY_CREATOR_BUILT_IN_TAB.preview; }}>Preview</Button>}
+        {unsaved && runtime?.canConvertImages && (
           <Button variant="outline" onClick={controls.undo}>
             Undo conversion
           </Button>
@@ -97,19 +92,24 @@ function Actions({ controls, placements }: Readonly<ActionProps>) {
   );
 }
 
-function ImageSummary({ session, review }: Readonly<{ session: ConversionSession; review: ImageReview }>) {
+function ImageSummary({ session, controls }: Readonly<{ session: ConversionSession; controls: Controls }>) {
+  const { snapshot } = controls;
+  if (!snapshot) return null;
+  const review = snapshot.inventory;
   const remaining = review.files.filter(
     (file) => !session.uploads.has(file.key),
   );
   const bytes = remaining.reduce((sum, file) => sum + file.bytes.length, 0);
-  return <p className="text-sm">
-    Moving embedded images to storage can make this definition smaller.{" "}
-    {count(review.eligible.length, "placement")} can change · {count(remaining.length, "file")} to upload ({formatBytes(bytes)}) · {review.skipped.length} skipped.
-  </p>;
+  const estimate = snapshot.estimatedSavings;
+  return <div className="space-y-1 text-sm">
+    {review.eligible.length > 0 && <p className="font-medium">
+      Estimated definition size: {formatBytes(Math.abs(estimate))} {estimate < 0 ? "larger" : "smaller"} with stored links.
+    </p>}
+    <p className="text-muted-foreground">{count(review.eligible.length, "placement")} can change · {count(remaining.length, "file")} to upload ({formatBytes(bytes)}) · {review.skipped.length} skipped.</p>
+  </div>;
 }
 
-function ImageCard({ session }: Readonly<{ session: ConversionSession }>) {
-  const controls = useImageConversion(session);
+export function EmbeddedImageCard({ session, controls }: Readonly<{ session: ConversionSession; controls: Controls }>) {
   const { review, message } = controls;
   if (!review) return message && <p role="alert">{message}</p>;
   if (!review.eligible.length && !review.skipped.length && !message) return null;
@@ -118,18 +118,20 @@ function ImageCard({ session }: Readonly<{ session: ConversionSession }>) {
       aria-label="Embedded images"
       className="space-y-3 rounded-lg border bg-card p-4"
     >
-      <h3 className="font-semibold">Embedded images</h3>
-      {!controls.done && <ImageSummary session={session} review={review} />}
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{controls.done ? "Result" : review.eligible.length ? "Optimization" : "Manual review"}</p>
+      <h3 className="font-semibold">{controls.done ? "Images moved to storage" : "Embedded images"}</h3>
+      {controls.done && session.measuredChange ? <MeasuredSize change={session.measuredChange} /> : <ImageSummary session={session} controls={controls} />}
       {!controls.enabled && <p className="text-sm text-muted-foreground">Conversion is unavailable because storage is disabled.</p>}
       {controls.expanded && <PlacementList review={review} />}
-      <Actions controls={controls} placements={review.eligible.length} />
+      <Actions controls={controls} placements={review.eligible.length} session={session} />
     </section>
   );
 }
 
-export function EmbeddedImageCard({
-  model,
-}: Readonly<{ model: FormDiagnosticsPlugin }>) {
-  const session = conversionSession(model.creator);
-  return session ? <ImageCard session={session} /> : null;
+function MeasuredSize({ change }: Readonly<{ change: NonNullable<ConversionSession["measuredChange"]> }>) {
+  const direction = change.delta < 0 ? "larger" : "smaller";
+  return <p className="text-sm font-medium">
+    Definition: {change.before.toLocaleString()} → {change.after.toLocaleString()} bytes
+    {" "}({change.percent.toLocaleString(undefined, { maximumFractionDigits: 1 })}% {direction}).
+  </p>;
 }

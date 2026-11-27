@@ -17,6 +17,7 @@ const LOGGER_NAME = "form-diagnostics.audience";
 
 /** One empty list, so a snapshot read before the first review stays the same reference. */
 const NO_FINDINGS: AudienceFinding[] = [];
+export type AudienceCheck = "unavailable" | "checking" | "checked" | "failed";
 
 /**
  * Survey Creator plugin for the Form Diagnostics feature.
@@ -100,6 +101,9 @@ export class FormDiagnosticsPlugin extends Base implements ICreatorPlugin {
 
   /** Set by the designer when the form has Audience variables (personalization). */
   public audience: DiagnosticsAudience | undefined;
+  public get audienceCheck(): AudienceCheck {
+    return this.getPropertyValue("audienceCheck", "unavailable");
+  }
 
   /** Warnings only: nothing here blocks a save. */
   public get audienceFindings(): AudienceFinding[] {
@@ -126,12 +130,15 @@ export class FormDiagnosticsPlugin extends Base implements ICreatorPlugin {
    * Only the latest review lands. A failing review shows nothing: warnings never stand in the way
    * of the designer.
    */
-  public async updateAudienceFindings(): Promise<void> {
+  public async updateAudienceFindings(refreshed = true): Promise<void> {
     const review = ++this.latestReview;
+    let status: AudienceCheck = this.audience ? "checked" : "unavailable";
+    this.setPropertyValue("audienceCheck", this.audience ? "checking" : "unavailable");
     let findings: AudienceFinding[] = [];
     try {
       findings = (await this.audience?.review())?.findings ?? [];
     } catch (error) {
+      status = "failed";
       TelemetryLogger.error(
         "Personalization review failed.",
         error,
@@ -139,7 +146,10 @@ export class FormDiagnosticsPlugin extends Base implements ICreatorPlugin {
         LOGGER_NAME,
       );
     }
-    if (review === this.latestReview) this.audienceFindings = findings;
+    if (review === this.latestReview) {
+      this.audienceFindings = findings;
+      this.setPropertyValue("audienceCheck", refreshed ? status : "failed");
+    }
   }
 
   /** The survey `update()` analyzed last: a call that brings no new one is skipped. */
@@ -186,8 +196,10 @@ export class FormDiagnosticsPlugin extends Base implements ICreatorPlugin {
       return;
     }
     this.analyze();
+    this.setPropertyValue("audienceCheck", "checking");
     void this.audience
       .refresh()
+      .then(() => true)
       .catch((error: unknown) => {
         TelemetryLogger.error(
           "Personalization refresh failed.",
@@ -195,8 +207,9 @@ export class FormDiagnosticsPlugin extends Base implements ICreatorPlugin {
           {},
           LOGGER_NAME,
         );
+        return false;
       })
-      .then(() => this.updateAudienceFindings());
+      .then(refreshed => this.updateAudienceFindings(refreshed));
   }
 
   /**

@@ -7,12 +7,15 @@ import { JSON_EDITOR_PLUGIN_NAME } from "../json-editor/json-editor-state";
 import { reviewEmbeddedImages, replaceEmbeddedImages } from "./embedded-images";
 import { equalDefinition, sourceWithEdits } from "./source-definition";
 import { applyImageEdit, matchEditorFields } from "./image-conversion-edit";
+import { definitionBytes, estimatedImageSavings, sizeChange } from "./definition-size";
 
 export interface ImageSnapshot {
   source: object;
   projection: object;
   survey: SurveyCreatorModel["survey"];
   revision: number;
+  bytes: number;
+  estimatedSavings: number;
   inventory: ReturnType<typeof reviewEmbeddedImages>;
 }
 
@@ -32,6 +35,7 @@ export class ConversionSession {
   };
   private undoPoint?: ReturnType<typeof applyImageEdit>;
   lastConversion?: ImageSnapshot;
+  measuredChange?: ReturnType<typeof sizeChange>;
 
   constructor(
     readonly creator: SurveyCreatorModel,
@@ -73,6 +77,8 @@ export class ConversionSession {
       survey: this.creator.survey,
       revision: this.revision,
       inventory,
+      bytes: definitionBytes(source),
+      estimatedSavings: estimatedImageSavings(inventory),
     };
   }
 
@@ -118,6 +124,7 @@ export class ConversionSession {
 
   private captureEdit(snapshot: ImageSnapshot, source: object) {
     let convertedBaseline: object;
+    const measurement = sizeChange(snapshot.bytes, definitionBytes(source));
     return (stored: boolean) => {
       this.source = stored ? source : snapshot.source;
       if (stored) convertedBaseline ??= this.creator.JSON;
@@ -125,6 +132,7 @@ export class ConversionSession {
       this.pending = true;
       this.generation++;
       this.lastConversion = stored ? snapshot : undefined;
+      this.measuredChange = stored ? measurement : undefined;
     };
   }
   undo() {

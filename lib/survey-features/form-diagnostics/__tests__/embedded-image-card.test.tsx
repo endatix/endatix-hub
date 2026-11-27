@@ -9,7 +9,7 @@ import {
 } from "../../rich-text/ui/image-upload-context";
 import { bindConversionSource } from "../conversion-session";
 import { FormDiagnosticsPlugin } from "../form-diagnostics-plugin";
-import { EmbeddedImageCard } from "../ui/embedded-image-card";
+import { FormDiagnosticsView } from "../ui/form-diagnostics-tab";
 
 function open(canEdit: boolean, store: StoreImage | null) {
   const creator = new SurveyCreatorModel();
@@ -23,7 +23,7 @@ function open(canEdit: boolean, store: StoreImage | null) {
     <DesignerRuntimeProvider initialState={{ canConvertImages: canEdit }}>
       <DesignSurveyProvider>
         <OriginalImageUploadContext.Provider value={store}>
-          <EmbeddedImageCard model={new FormDiagnosticsPlugin(creator)} />
+          <FormDiagnosticsView model={new FormDiagnosticsPlugin(creator)} />
         </OriginalImageUploadContext.Provider>
       </DesignSurveyProvider>
     </DesignerRuntimeProvider>,
@@ -34,6 +34,22 @@ function open(canEdit: boolean, store: StoreImage | null) {
   fireEvent.click(region.getByRole("button", { name: "Review images" }));
   return region;
 }
+
+it("shows a compact no-action result and keeps settings behind a keyboard disclosure", () => {
+  const creator = new SurveyCreatorModel();
+  const source = { elements: [{ type: "text", name: "comment" }] };
+  creator.JSON = source;
+  bindConversionSource(creator, source);
+  render(<FormDiagnosticsView model={new FormDiagnosticsPlugin(creator)} />);
+  expect(screen.getByRole("heading", { name: "No actions recommended" })).toBeTruthy();
+  const details = screen.getByText("All checks and settings").closest("details")!;
+  expect(details.open).toBe(false);
+  fireEvent.click(screen.getByText("All checks and settings"));
+  expect(details.open).toBe(true);
+  expect(details.textContent).toContain("Checked · none embedded");
+  expect(details.textContent).toContain("Not available");
+  expect(details.textContent).toContain("Disabled");
+});
 
 it("reviews a single placement without making an upload", () => {
   // Arrange & Act

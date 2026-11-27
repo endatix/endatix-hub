@@ -59,6 +59,9 @@ describe("Audience findings in Diagnostics", () => {
       />,
     );
 
+    const disclosure = screen.getByText(/Review personalization/);
+    expect(disclosure.closest("details")?.open).toBe(false);
+    fireEvent.click(disclosure);
     const section = screen.getByRole("region", { name: /Personalization/ });
     expect(within(section).getByText("{tierr} is not declared")).toBeTruthy();
     expect(within(section).getByText(/Did you mean \{tier\}\?/)).toBeTruthy();
@@ -72,6 +75,8 @@ describe("Audience findings in Diagnostics", () => {
     render(<FormDiagnosticsView model={plugin} />);
     vi.mocked(audience.review).mockResolvedValue({ findings: [] });
 
+    fireEvent.click(screen.getByText(/Review personalization/));
+    expect(audience.applyFix).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Use {tier}" }));
 
     expect(audience.applyFix).toHaveBeenCalledWith(MISSPELLED);
@@ -88,6 +93,7 @@ describe("Audience findings in Diagnostics", () => {
     vi.mocked(audience.review).mockResolvedValue({ findings: [] });
 
     // Act
+    fireEvent.click(screen.getByText(/Review personalization/));
     fireEvent.click(
       screen.getByRole("button", { name: "Add as participant property" }),
     );
@@ -157,7 +163,8 @@ describe("Audience findings in Diagnostics", () => {
     vi.mocked(audience.review).mockResolvedValue({ findings: [UNUSED] });
     plugin.activate();
 
-    expect(await screen.findByText("{seats} is never used")).toBeTruthy();
+    fireEvent.click(await screen.findByText(/Review personalization/));
+    expect(screen.getByText("{seats} is never used")).toBeTruthy();
   });
 
   it("reviews again when the Creator loads the form with Diagnostics open", async () => {
@@ -222,6 +229,7 @@ describe("Audience findings in Diagnostics", () => {
       />,
     );
 
+    fireEvent.click(screen.getByText(/Review personalization/));
     expect(
       screen.getByText(
         "A calculated value shares its name with the Property {seats}",

@@ -89,8 +89,15 @@ class ImageReviewView {
     else this.update({ expanded: false });
   };
   stop = () => {
-    this.request?.abort();
+    if (!this.request) return;
+    this.request.abort();
     this.request = undefined;
+    this.update({ busy: false, message: "Cancelled. No changes applied." });
+  };
+  resume = () => {
+    const snapshot = this.state.snapshot;
+    if (snapshot && !this.state.done && this.session.current(snapshot)) return;
+    this.scan();
   };
   undo = () => {
     if (!this.session.undo()) {
@@ -125,21 +132,35 @@ class ImageReviewView {
   };
 }
 
-export function useImageConversion(session: ConversionSession) {
+const emptyView: State = { expanded: false, busy: false, done: false, retry: false, stale: false, message: "" };
+const readEmpty = () => emptyView;
+const subscribeEmpty = () => () => {};
+const views = new WeakMap<ConversionSession, { store: StoreImage | null; view: ImageReviewView }>();
+function reviewView(session: ConversionSession, store: StoreImage | null) {
+  const previous = views.get(session);
+  if (previous?.store === store) return previous.view;
+  const view = new ImageReviewView(session, store);
+  views.set(session, { store, view });
+  return view;
+}
+
+export function useImageConversion(session?: ConversionSession) {
   const store = useContext(OriginalImageUploadContext);
-  const view = useMemo(() => new ImageReviewView(session, store), [session, store]);
+  const view = useMemo(() => session && reviewView(session, store), [session, store]);
   useEffect(() => {
-    view.scan();
-    return view.stop;
+    view?.resume();
+    return view?.stop;
   }, [view]);
-  const { snapshot, ...state } = useSyncExternalStore(view.subscribe, view.read, view.read);
+  const read = view?.read ?? readEmpty;
+  const { snapshot, ...state } = useSyncExternalStore(view?.subscribe ?? subscribeEmpty, read, read);
   return {
     ...state,
     review: snapshot?.inventory,
+    snapshot,
     enabled: Boolean(store),
-    convert: view.convert,
-    undo: view.undo,
-    open: view.open,
-    close: view.close,
+    convert: view?.convert,
+    undo: view?.undo,
+    open: view?.open,
+    close: view?.close,
   };
 }
