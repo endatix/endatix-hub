@@ -63,6 +63,12 @@ type Publish = (jobs: ImageTransfer[]) => void;
 export function bindImageTransfers(editor: Editor, store: StoreImage, options: Publish | { publish: Publish; choiceLabel: boolean }) {
   const publish = typeof options === "function" ? options : options.publish;
   const choice = typeof options !== "function" && options.choiceLabel;
+  const queue = transferQueue(editor, publish);
+  const inputs = bindImageInputs(editor, store, choice ? insertChoiceImages(queue.start) : queue.start);
+  return { upload: inputs.upload, dispose() { inputs.unbind(); queue.cancel(); } };
+}
+
+function transferQueue(editor: Editor, publish: Publish) {
   const active = new Set<Transfer>();
   const changed = () => publish([...active]);
   const start: Start = (range, load) => {
@@ -74,14 +80,7 @@ export function bindImageTransfers(editor: Editor, store: StoreImage, options: P
       changed();
     });
   };
-  const inputs = bindImageInputs(editor, store, choice ? insertChoiceImages(start) : start);
-  return {
-    upload: inputs.upload,
-    dispose() {
-      inputs.unbind();
-      active.forEach((job) => job.cancel());
-    },
-  };
+  return { start, cancel: () => active.forEach(job => job.cancel()) };
 }
 
 type Start = (range: Range, load: LoadContent) => void;
@@ -100,7 +99,7 @@ function sizeNewChoiceImages(template: HTMLTemplateElement) {
   return template;
 }
 
-function bindImageInputs(editor: Editor, store: StoreImage, start: Start) {
+function imageInputs(editor: Editor, store: StoreImage, start: Start) {
   const upload = (range: Range, files: ArrayLike<File>) => {
     const images = Array.from(files).filter(file => file.type.startsWith("image/"));
     if (!editor.isEditable || !images.length) return false;
@@ -115,6 +114,11 @@ function bindImageInputs(editor: Editor, store: StoreImage, start: Start) {
     event.preventDefault();
     event.stopImmediatePropagation();
   };
+  return { upload, paste };
+}
+
+function bindImageInputs(editor: Editor, store: StoreImage, start: Start) {
+  const { upload, paste } = imageInputs(editor, store, start);
   const drop = (event: DragEvent) => {
     if (!event.dataTransfer?.files.length) return;
     const pos = editor.view.posAtCoords({ left: event.clientX, top: event.clientY })?.pos;

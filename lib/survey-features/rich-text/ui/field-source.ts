@@ -1,5 +1,6 @@
 import type { Editor } from "@tiptap/core";
-import type { Node } from "@tiptap/pm/model";
+import { Mark, type Node } from "@tiptap/pm/model";
+import { isHistoryTransaction } from "@tiptap/pm/history";
 import type { Transaction } from "@tiptap/pm/state";
 import { parseFragment, type DefaultTreeAdapterTypes } from "parse5";
 import { htmlSanitizer } from "@/lib/utils/html-sanitizer";
@@ -23,7 +24,8 @@ function changedImage(before: Node, after: Node) {
   const end = before.content.findDiffEnd(after.content);
   const image = before.nodeAt(start);
   if (image?.type.name !== "image" || end?.a !== start + 1 || end.b !== start + 1) return;
-  if (after.nodeAt(start)?.type !== image.type) return;
+  const replacement = after.nodeAt(start);
+  if (replacement?.type !== image.type || !Mark.sameSet(image.marks, replacement.marks)) return;
   let index = 0;
   before.nodesBetween(0, start, node => { if (node.type === image.type) index++; });
   return { index, src: image.attrs.src };
@@ -44,14 +46,18 @@ function patchImage(source: string, html: string, change: NonNullable<ReturnType
 /** Preserve exact source around a single image edit, including markup that
  * the editor's schema does not model. Undo can return to the original spelling. */
 export class FieldSource {
-  private readonly history = new WeakMap<Node, string>();
+  private readonly history: { doc: Node; source: string }[] = [];
   constructor(public value: string) {}
 
   update(editor: Editor, transaction: Transaction) {
     const html = editor.getHTML();
     const change = changedImage(transaction.before, editor.state.doc);
-    const previous = this.history.get(editor.state.doc);
-    this.history.set(transaction.before, this.value);
+    const previous = isHistoryTransaction(transaction)
+      ? this.history.findLast(entry => entry.doc.eq(editor.state.doc))?.source : undefined;
+    if (change) {
+      this.history.push({ doc: transaction.before, source: this.value });
+      if (this.history.length > 100) this.history.shift();
+    }
     this.value = previous ?? (change && patchImage(this.value, html, change)) ?? normalizeAndSanitize(html);
     return this.value;
   }

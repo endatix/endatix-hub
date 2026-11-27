@@ -9,12 +9,16 @@ const marks = [
   { name: "strike", label: "Strikethrough", Icon: Strikethrough },
 ];
 
-function useFormatting(editor: Editor) {
-  const read = useCallback((): Record<string,string | boolean> => ({
+function selectedFormats(editor: Editor): Record<string, string | boolean> {
+  return {
     ...Object.fromEntries(marks.map(({name}) => [name, editor.isActive(name)])),
     color: editor.getAttributes("textStyle").color,
     background: editor.getAttributes("textStyle").backgroundColor,
-  }), [editor]);
+  };
+}
+
+function useFormatting(editor: Editor) {
+  const read = useCallback(() => selectedFormats(editor), [editor]);
   const [formats, setFormats] = useState(read);
   useEffect(() => {
     const update = () => setFormats(read());

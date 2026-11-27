@@ -27,6 +27,30 @@ it("mounts resize handles for an authored inline image without rewriting the pro
   expect(survey.data.description).toBe(authored);
 });
 
+it("saves new dimensions only for the resized occurrence in legacy source", () => {
+  // Arrange
+  stubResizeObserver();
+  registerRichTextEditorQuestion();
+  const survey = new Model({ elements: [{ type: RICH_TEXT_EDITOR_TYPE, name: "description" }] });
+  const prefix = "<span class='old'>Legend&nbsp;</span><IMG SRC='https://example.invalid/a.png'> · ";
+  const suffix = " <strong title='Compass'>North</strong>";
+  survey.data = { description: prefix + "<img src='https://example.invalid/a.png' style='width:25%' alt='Map'>" + suffix };
+  render(<Survey model={survey} />);
+  const editor = mountedEditor();
+  let lastImage = 0;
+  editor.state.doc.descendants((node, pos) => { if (node.type.name === "image") lastImage = pos; });
+
+  // Act: the official Image resize handle commits with this transaction.
+  act(() => { editor.chain().setNodeSelection(lastImage).updateAttributes("image", { width: 180, height: 90 }).run(); });
+
+  // Assert
+  expect(survey.data.description).toMatch(/^.*width="180".*$/);
+  expect(survey.data.description.startsWith(prefix)).toBe(true);
+  expect(survey.data.description.endsWith(suffix)).toBe(true);
+  act(() => { editor.commands.undo(); });
+  expect(survey.data.description).toBe(prefix + "<img src='https://example.invalid/a.png' style='width:25%' alt='Map'>" + suffix);
+});
+
 it("can open and dismiss formatting on an empty property without writing to the survey", () => {
   // Arrange
   stubResizeObserver();
