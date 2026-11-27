@@ -78,17 +78,23 @@ function bindSettings(editor: Editor, scope: "choice" | "field", open: NonNullab
     if (event.target instanceof HTMLImageElement && event.target.hasAttribute("src")) open(fieldImageTarget(editor, scope, event.target));
   };
   const key = (event: globalThis.KeyboardEvent) => {
-    const selection = editor.state.selection;
-    if (event.key !== "Enter" || !(selection instanceof NodeSelection) || selection.node.type.name !== "image") return;
-    const image = editor.view.nodeDOM(selection.from);
-    if (!(image instanceof Element)) return;
+    if (event.key !== "Enter") return;
+    const image = selectedImage(editor);
+    if (!image) return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    open(fieldImageTarget(editor, scope, image.querySelector("img") ?? undefined));
+    open(fieldImageTarget(editor, scope, image));
   };
   root.addEventListener("click", click);
   root.addEventListener("keydown", key, true);
   return () => { root.removeEventListener("click", click); root.removeEventListener("keydown", key, true); };
+}
+
+function selectedImage(editor: Editor) {
+  const selection = editor.state.selection;
+  if (!(selection instanceof NodeSelection)) return;
+  const node = editor.view.nodeDOM(selection.from);
+  if (node instanceof Element) return node.querySelector<HTMLImageElement>("img[src]") ?? undefined;
 }
 
 function useSettings(editor: Editor | undefined, props: Readonly<Props>) {
@@ -100,10 +106,7 @@ function useSettings(editor: Editor | undefined, props: Readonly<Props>) {
   if (!editor || props.readOnly || !open) return;
   return () => {
     editor.view.focus();
-    const selection = editor.state.selection;
-    const node = selection instanceof NodeSelection ? editor.view.nodeDOM(selection.from) : null;
-    const image = node instanceof Element ? node.querySelector("img[src]") : null;
-    open(fieldImageTarget(editor, scope, image instanceof HTMLImageElement ? image : undefined));
+    open(fieldImageTarget(editor, scope, selectedImage(editor)));
   };
 }
 
