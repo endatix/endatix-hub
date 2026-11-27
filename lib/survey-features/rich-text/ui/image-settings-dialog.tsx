@@ -3,9 +3,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { fileLabel, imageOption } from "./image-label";
+import { ImageThumbnailPicker } from "./image-thumbnail-picker";
+import { fileLabel } from "./image-label";
 import { ImageUploadContext, type StoreImage } from "./image-upload-context";
 import { imageDraft, inlineImage, type ImageTarget } from "./image-settings-target";
 
@@ -38,17 +37,6 @@ function applySettings(image: HTMLImageElement, draft: Settings) {
   }
   image.style.height = "auto";
   return image;
-}
-
-function useLocalPreview(file?: File) {
-  const [url, setUrl] = useState("");
-  useEffect(() => {
-    if (!file) return;
-    const source = URL.createObjectURL(file);
-    setUrl(source);
-    return () => URL.revokeObjectURL(source);
-  }, [file]);
-  return file ? url : "";
 }
 
 function ImageFields({ draft, change }: Readonly<{ draft: Settings; change: (edit: Partial<Settings>) => void }>) {
@@ -111,89 +99,55 @@ function useMounted() {
   return alive;
 }
 
-function ImagePreview({ image, file }: Readonly<{ image: HTMLImageElement; file?: File }>) {
-  const url = useLocalPreview(file) || image.getAttribute("src");
-  const [narrow, setNarrow] = useState(false);
-  const width = image.style.width || dimension(image.getAttribute("width") ?? "");
-  const height = image.style.height || dimension(image.getAttribute("height") ?? "");
-  const id = useId();
-  return <section className="grid gap-2" aria-label="Image preview">
-    <div className="flex items-center justify-between gap-2">
-      <span className="text-sm font-medium">Preview</span>
-      <Label htmlFor={id}>Narrow preview <Switch id={id} checked={narrow} onCheckedChange={setNarrow} /></Label>
-    </div>
-    <div className="max-h-48 overflow-auto rounded-md border bg-muted/40 p-3">
-      <div style={{ width: narrow ? 72 : "100%", maxWidth: "100%" }}>
-        {url ? <img data-choice-image-preview="" src={url} alt={image.alt} style={{ width, height, maxWidth: image.style.maxWidth }} /> :
-          <span className="text-sm text-muted-foreground">Choose a file to preview it here.</span>}
-      </div>
-    </div>
-  </section>;
-}
-
-function useImageDraft({target, index}: EditorProps) {
+function useImageDraft(target: ImageTarget) {
+  const [index, setIndex] = useState(target.selected);
   const image = imageDraft(target, index);
   const saved = settings(image);
-  const [edits, setEdits] = useState(saved);
+  const [edits, setEdits] = useState<Partial<Settings>>({});
   const change = (edit: Partial<Settings>) => setEdits(previous => ({...previous, ...edit}));
   const [file, choose] = useState<File>();
   const suggestion = file && fileLabel(file.name);
-  const draft = { ...edits, alt: edits.alt ?? (suggestion || null) };
+  const draft = { ...saved, ...edits, alt: edits.alt ?? saved.alt ?? (suggestion || null) };
+  const dirty = !!file || draft.alt !== saved.alt || draft.width !== saved.width || draft.cap !== saved.cap;
+  const select = (next: number) => { setEdits({}); choose(undefined); setIndex(next); };
   const valid = validSize(draft.width.trim(), saved.width) && validSize(draft.cap.trim(), saved.cap);
   const validFile = file ? file.type.startsWith("image/") : Boolean(image.getAttribute("src"));
-  return { image: applySettings(image, draft), draft, change, file, choose, valid, validFile };
+  return { image: applySettings(image, draft), draft, change, file, choose, valid, validFile, dirty, index, select };
 }
 
-interface DraftProps extends EditorProps { children: ReactNode }
-
-function ImageFileField({choose}: Readonly<{choose(file?: File): void}>) {
+function ImageFileField({choose, index}: Readonly<{choose(file?: File): void; index: number}>) {
   const id = useId();
   return <div className="grid gap-2">
-    <Label htmlFor={id}>Image file</Label>
+    <Label htmlFor={id}>{index < 0 ? "New image file" : "Replace image file"}</Label>
     <Input id={id} type="file" accept="image/*" onChange={e => choose(e.target.files?.[0])} />
   </div>;
 }
 
-function DraftEditor(props: Readonly<DraftProps>) {
-  const { draft, change, image, file, choose, valid, validFile } = useImageDraft(props);
-  const { apply, busy, error } = useApplyImage(props);
+function DraftEditor({target, close}: Readonly<Omit<EditorProps, "index">>) {
+  const { draft, change, image, file, choose, valid, validFile, dirty, index, select } = useImageDraft(target);
+  const { apply, busy, error } = useApplyImage({target, index, close});
   return <>
     <div className="grid min-h-0 gap-4 overflow-y-auto p-1">
       <fieldset className="grid min-w-0 gap-4" disabled={busy}>
-        {props.children}
-        <ImageFileField choose={choose} />
+        <ImageThumbnailPicker target={target} index={index} select={select} locked={dirty || busy} />
+        {dirty && target.images.length > 0 && <p role="status" className="text-sm text-muted-foreground">Apply or cancel these changes before editing another image.</p>}
+        <ImageFileField key={index} choose={choose} index={index} />
         <ImageFields draft={draft} change={change} />
-        <ImagePreview image={image} file={file} />
       </fieldset>
       {!valid && <p className="text-sm text-destructive" role="alert">Enter a positive size, or leave the field blank.</p>}
       {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
     </div>
     <DialogFooter>
-      <Button type="button" variant="secondary" onClick={props.close}>Cancel</Button>
+      <Button type="button" variant="secondary" onClick={close}>Cancel</Button>
       <Button type="button" disabled={busy || !valid || !validFile} onClick={() => apply(image, file)}>{busy ? "Applying…" : "Apply"}</Button>
     </DialogFooter>
   </>;
-}
-
-function ImagePicker({ target, index, select }: Readonly<{target: ImageTarget; index: number; select(index: number): void}>) {
-  const id = useId();
-  return <div className="grid min-w-0 gap-2">
-    <Label htmlFor={id}>Image</Label>
-    <Select value={String(index)} onValueChange={value => select(Number(value))}>
-      <SelectTrigger id={id} className="w-full"><SelectValue /></SelectTrigger>
-      <SelectContent><SelectGroup>
-        <SelectItem value="-1">Add an image</SelectItem>
-        {target.images.map((img, i) => <SelectItem key={i} value={String(i)}>{imageOption(img, i)}</SelectItem>)}
-      </SelectGroup></SelectContent>
-    </Select>
-  </div>;
 }
 
 interface DialogProps { target: ImageTarget; close(): void; PreviewDisplay: ComponentType<{children: ReactNode}> }
 
 export function ImageSettingsDialog({ target, close, PreviewDisplay }: Readonly<DialogProps>) {
   const [opener] = useState(() => document.activeElement);
-  const [index, setIndex] = useState(target.selected);
   return <Dialog open onOpenChange={open => { if (!open) close(); }}>
     <DialogContent className="max-h-[90dvh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden" onOpenAutoFocus={focusApply} onCloseAutoFocus={event => {
       event.preventDefault();
@@ -201,11 +155,9 @@ export function ImageSettingsDialog({ target, close, PreviewDisplay }: Readonly<
     }}>
       <DialogHeader>
         <DialogTitle>{target.scope === "choice" ? "Choice image settings" : "Image settings"}</DialogTitle>
-        <DialogDescription>Choose an image to edit or add a new one.</DialogDescription>
+        <DialogDescription>Apply your changes to see the image in your survey.</DialogDescription>
       </DialogHeader>
-      <PreviewDisplay><DraftEditor key={index} index={index} target={target} close={close}>
-        <ImagePicker target={target} index={index} select={setIndex} />
-      </DraftEditor></PreviewDisplay>
+      <PreviewDisplay><DraftEditor target={target} close={close} /></PreviewDisplay>
     </DialogContent>
   </Dialog>;
 }

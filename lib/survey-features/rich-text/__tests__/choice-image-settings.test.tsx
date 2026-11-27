@@ -16,8 +16,6 @@ const french = `<img src="${source}" alt="One"><img src="${source}" width="50" a
 beforeEach(() => {
   HTMLElement.prototype.scrollIntoView = vi.fn();
   HTMLElement.prototype.hasPointerCapture = vi.fn(() => false);
-  URL.createObjectURL = vi.fn(() => "blob:preview");
-  URL.revokeObjectURL = vi.fn();
 });
 
 function setup(store: StoreImage | null = null, props = { choiceLabel: true, readOnly: false }) {
@@ -46,7 +44,7 @@ function change(label: string, value: string) {
 }
 
 function upload(file = imageFile) {
-  fireEvent.change(screen.getByLabelText("Image file"), { target: { files: [file] } });
+  fireEvent.change(screen.getByLabelText(/image file/i), { target: { files: [file] } });
 }
 
 function click(name: string) {
@@ -57,14 +55,13 @@ it("edits the second French image from the grid without uploading or rewriting t
   const store = vi.fn<StoreImage>();
   const { creator, openRow } = setup(store);
   openRow(0);
-  fireEvent.keyDown(screen.getByRole("combobox"), { key: "Enter" });
-  fireEvent.click(screen.getByRole("option", {name:"2. Two"}));
+  fireEvent.click(screen.getByRole("radio", {name:"2. Two"}));
   expect(screen.getByLabelText<HTMLInputElement>("Width").value).toBe("50");
   change("Alt text", "Second image");
   change("Width", "240");
   change("Maximum width", "160");
-  fireEvent.click(screen.getByLabelText("Narrow preview"));
-  expect(screen.getByAltText("Second image").style.width).toBe("240px");
+  expect(screen.getByRole("radio", {name:"1. One"}).hasAttribute("disabled")).toBe(true);
+  expect(screen.getByRole("status").textContent).toContain("Apply or cancel");
   click("Apply");
   const choice = creator.JSON.pages[0].elements[0].choices[0];
   expect(choice.value).toBe("key");
@@ -104,7 +101,7 @@ it("keeps a cleared alt decorative across replacement and reopening", async () =
   const image = editor.root.querySelector("img")!;
   expect(image.getAttribute("alt")).toBe("");
   fireEvent.click(image);
-  expect(screen.getByRole("combobox").textContent).toBe("1. Harbor view");
+  expect(screen.getByRole("radio", {name:"1. Harbor view"}).getAttribute("aria-checked")).toBe("true");
   expect(screen.getByLabelText<HTMLInputElement>("Alt text").value).toBe("");
   expect(store).toHaveBeenCalledTimes(1);
 });
@@ -137,7 +134,7 @@ it("discards a late upload after the author cancels", async () => {
   click("Cancel");
   await act(async () => pending.resolve("https://example.invalid/new.png"));
   expect(editor.root.querySelectorAll("img")).toHaveLength(2);
-  expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:preview");
+  expect(editor.root.querySelector("img")?.src).toBe(source);
 });
 
 it("uses only the row action for a choice label, while a click selects the exact image", () => {
@@ -154,9 +151,8 @@ it("opens field settings by icon and image, preserving an uncapped image when ch
   const opener = screen.getByRole("button", { name: "Image settings" });
   opener.focus();
   click("Image settings");
-  expect(screen.getByRole("combobox").textContent).toBe("1. One");
-  fireEvent.keyDown(screen.getByRole("combobox"), { key: "Enter" });
-  fireEvent.click(screen.getByRole("option", {name:"Add an image"}));
+  expect(screen.getByRole("radio", {name:"1. One"}).getAttribute("aria-checked")).toBe("true");
+  click("Add an image");
   expect(screen.getByLabelText<HTMLInputElement>("Maximum width").value).toBe("");
   screen.getByRole("button", { name: "Cancel" }).focus();
   click("Cancel");
