@@ -6,6 +6,8 @@ import {
   isKnownErrorCode,
 } from "./error-codes";
 
+import type { FormDraft } from "../forms/types";
+
 // API-specific error types
 export enum ApiErrorType {
   NetworkError = "NetworkError", // Network issues e.g. connection error, gateway timeout, etc.
@@ -13,6 +15,8 @@ export enum ApiErrorType {
   ForbiddenError = "ForbiddenError", // Forbidden error e.g. user does not have permission to access the resource
   ValidationError = "ValidationError", // Client data issues e.g. validation issues or bad request
   ConflictError = "ConflictError", // Resource conflict e.g. duplicate submission
+  PreconditionFailed = "PreconditionFailed",
+  PreconditionRequired = "PreconditionRequired",
   ServerError = "ServerError", // Server issues e.g. internal server error
   NotFoundError = "NotFoundError", // Resource not found e.g. form not found
   RateLimitError = "RateLimitError", // Rate limit exceeded e.g. too many requests
@@ -34,6 +38,9 @@ export interface ApiErrorDetails {
   problemMediaType?: string;
   /** The resource a 409 ran into, e.g. the existing submission of `submission_exists`. */
   existingId?: string;
+  version?: string;
+  draft?: FormDraft;
+  eTag?: string;
   previousSchemaRetained?: boolean;
   /** Undici/Node `error.cause.code` when `fetch` throws (e.g. ETIMEDOUT). */
   causeCode?: string;
@@ -241,26 +248,25 @@ export const ApiResult = {
       case 400:
         return ApiResult.validationError(
           message,
-          errorCode ?? ERROR_CODE.VALIDATION_ERROR,
+          errorCode,
           enrichedDetails,
           fields,
         );
       case 401:
-        return ApiResult.authError(
-          message,
-          errorCode ?? ERROR_CODE.AUTHENTICATION_REQUIRED,
-          enrichedDetails,
-        );
+        return ApiResult.authError(message, errorCode, enrichedDetails);
       case 403:
-        return ApiResult.forbiddenError(
-          message,
-          errorCode ?? ERROR_CODE.ACCESS_FORBIDDEN,
-          enrichedDetails,
-        );
+        return ApiResult.forbiddenError(message, errorCode, enrichedDetails);
       case 404:
         return ApiResult.notFoundError(message, enrichedDetails, errorCode);
       case 409:
         return ApiResult.conflictError(message, enrichedDetails, errorCode);
+      case 412:
+      case 428:
+        return preconditionError(statusCode, {
+          message,
+          errorCode,
+          details: enrichedDetails,
+        });
       case 429:
         return ApiResult.rateLimitError(message, enrichedDetails, errorCode);
       default:
@@ -309,7 +315,30 @@ export const ApiResult = {
   },
 };
 
-// Helper type guards for specific error types
+function preconditionError(
+  status: 412 | 428,
+  error: { message?: string; errorCode?: string; details: ApiErrorDetails },
+): ApiError {
+  const stale = status === 412;
+  return {
+    success: false,
+    error: {
+      ...error,
+      type: stale
+        ? ApiErrorType.PreconditionFailed
+        : ApiErrorType.PreconditionRequired,
+      message:
+        error.message ||
+        (stale ? "Precondition failed." : "Precondition required."),
+    },
+  };
+}
+
+export const isPreconditionFailed = <T>(
+  result: ApiResult<T>,
+): result is ApiError & { error: { type: ApiErrorType.PreconditionFailed } } =>
+  !result.success && result.error.type === ApiErrorType.PreconditionFailed;
+
 export const isNetworkError = <T>(result: ApiResult<T>): boolean =>
   !result.success && result.error.type === ApiErrorType.NetworkError;
 

@@ -72,6 +72,8 @@ const ExpectedApiErrorTypes = new Set<ApiErrorType>([
   ApiErrorType.ForbiddenError,
   ApiErrorType.NotFoundError,
   ApiErrorType.RateLimitError,
+  ApiErrorType.PreconditionFailed,
+  ApiErrorType.PreconditionRequired,
 ]);
 
 /**

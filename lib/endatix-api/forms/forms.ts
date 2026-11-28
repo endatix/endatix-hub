@@ -20,8 +20,22 @@ import {
   UpdateFormRequest,
 } from "./types";
 import { CreateFormRequest } from "@/lib/form-types";
+import { FormDrafts } from "./drafts";
+import { FormPublications } from "./publications";
+import { ifMatch, isFormVersion } from "./versioned-form-request";
 
 export class Forms {
+  private _drafts?: FormDrafts;
+  private _publications?: FormPublications;
+
+  get publications(): FormPublications {
+    return (this._publications ??= new FormPublications(this.endatix));
+  }
+
+  get drafts(): FormDrafts {
+    return (this._drafts ??= new FormDrafts(this.endatix));
+  }
+
   constructor(private readonly endatix: EndatixApi) {}
 
   async create(request: CreateFormRequest): Promise<ApiResult<Form>> {
@@ -79,8 +93,7 @@ export class Forms {
     const id = validateEndatixId(formId, "formId");
     if (Result.isError(id)) return ApiResult.validationError(id.message);
     if (
-      typeof settings?.version !== "string" ||
-      !/^\d{1,19}$/.test(settings.version) ||
+      !isFormVersion(settings?.version) ||
       typeof settings.pdf?.usesFormTheme !== "boolean"
     ) {
       return ApiResult.validationError("Invalid PDF settings or version.");
@@ -88,7 +101,7 @@ export class Forms {
     return this.endatix.patch(
       `/forms/${id.value}/settings`,
       { pdf: { usesFormTheme: settings.pdf.usesFormTheme } },
-      { headers: { "If-Match": `"${settings.version}"` } },
+      ifMatch(settings.version),
     );
   }
 

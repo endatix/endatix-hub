@@ -55,17 +55,29 @@ function enrichDetails(
   response: Response,
   problemDetails: ProblemDetails | null,
 ): ApiErrorDetails {
-  const problemMediaType = mediaTypeOf(response);
   return {
     ...details,
+    ...preconditionDetails(response, problemDetails),
     statusCode: details.statusCode ?? response.status,
     details: problemDetails?.detail ?? details.details,
     traceId: problemDetails?.traceId ?? details.traceId,
     problemTitle: problemDetails?.title ?? details.problemTitle,
-    problemMediaType: problemMediaType || details.problemMediaType,
+    problemMediaType: mediaTypeOf(response) || details.problemMediaType,
     existingId: problemDetails?.existingId ?? details.existingId,
     previousSchemaRetained:
       problemDetails?.previousSchemaRetained ?? details.previousSchemaRetained,
+  };
+}
+
+function preconditionDetails(
+  response: Response,
+  problem: ProblemDetails | null,
+): ApiErrorDetails {
+  if (response.status !== 412) return {};
+  return {
+    version: problem?.version,
+    draft: problem?.draft,
+    eTag: response.headers.get("ETag") ?? undefined,
   };
 }
 

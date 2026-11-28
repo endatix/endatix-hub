@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isDecimalDigitString } from "@/lib/utils/type-validators";
+import { formDraftSchema } from "../forms/types";
 
 /**
  * The schema for a ProblemDetails object. More information about the ProblemDetails object can be found here: https://datatracker.ietf.org/doc/html/rfc7807
@@ -22,6 +23,8 @@ export const ProblemDetailsSchema = z.object({
   errorCode: z.string().optional(),
   traceId: z.string().optional(),
   previousSchemaRetained: z.boolean().optional().catch(undefined),
+  version: z.string().regex(/^\d+$/).optional().catch(undefined),
+  draft: formDraftSchema.optional().catch(undefined),
   fields: z.record(z.string(), z.array(z.string())).optional(),
 });
 
@@ -38,6 +41,7 @@ export type ProblemDetails = z.infer<typeof ProblemDetailsSchema> & {
 /** The extension field each `ExistingResource` error code puts its id under. */
 const EXISTING_ID_FIELDS: Readonly<Record<string, string>> = {
   submission_exists: "submissionId",
+  publication_in_progress: "publicationId",
 };
 
 function readExistingId(record: Record<string, unknown>): string | undefined {

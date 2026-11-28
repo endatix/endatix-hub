@@ -8,6 +8,7 @@ export {
   isAuthError,
   isForbiddenError,
   isValidationError,
+  isPreconditionFailed,
   isServerError,
   isNotFoundError,
   isRateLimitError,
@@ -136,7 +137,16 @@ export type {
 } from "./submissions/types";
 
 // forms/types
-export type { FormsListRequest } from "./forms/types";
+export type {
+  FormsListRequest,
+  DraftAcknowledgement,
+  DraftJournalBatch,
+  FormCheckFinding,
+  FormCheckReport,
+  FormDraft,
+  FormPublication,
+  StartPublicationRequest,
+} from "./forms/types";
 
 // definitions/types
 export type { DefinitionField } from "./definitions/types";
