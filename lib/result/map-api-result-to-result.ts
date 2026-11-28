@@ -158,5 +158,10 @@ function logApiError<TApiResult, TResult>(
 }
 
 function shouldLogApiError(apiError: ApiError): boolean {
+  if (
+    apiError.error.type === ApiErrorType.ConflictError &&
+    apiError.error.errorCode === "publication_in_progress"
+  )
+    return false;
   return !ExpectedApiErrorTypes.has(apiError.error.type);
 }

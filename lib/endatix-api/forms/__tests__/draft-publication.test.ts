@@ -74,23 +74,31 @@ it("reads the draft with its version and journal cursor", async () => {
   expect(expectRequest(`${formId}/draft`, "GET")).toBeUndefined();
 });
 
-it.each([undefined, [{ afterRecord: 1, jsonData: '{"title":"first"}' }]])(
-  "appends ordered records and their supplied checkpoints in one conditional write: %j",
-  async (checkpoints) => {
+it.each([
+  { version: "10", checkpoints: undefined, nextVersion: "12", tail: 2 },
+  {
+    version: draft.version,
+    checkpoints: [{ afterRecord: 1, jsonData: '{"title":"first"}' }],
+    nextVersion: "9007199254740998",
+    tail: 1,
+  },
+])(
+  "appends ordered records and supplied checkpoints in one write at $version",
+  async ({ version, checkpoints, nextVersion, tail }) => {
     // Arrange
     const request = checkpoints ? { ...batch, checkpoints } : batch;
     const ack = {
-      version: "9007199254740998",
+      version: nextVersion,
       contentHash: draft.contentHash,
       saveNo: 8,
-      recordsSinceSnapshot: 1,
+      recordsSinceSnapshot: tail,
     };
     reply(ack);
     // Act
-    const result = await forms.drafts.append(formId, draft.version, request);
+    const result = await forms.drafts.append(formId, version, request);
     // Assert
     expect(result).toEqual({ success: true, data: ack });
-    expect(expectRequest(`${formId}/draft`, "PATCH", draft.version)).toBe(
+    expect(expectRequest(`${formId}/draft`, "PATCH", version)).toBe(
       JSON.stringify(request),
     );
   },
@@ -123,6 +131,19 @@ it("discards the version read and returns the restored draft", async () => {
   expect(
     expectRequest(`${formId}/draft`, "DELETE", draft.version),
   ).toBeUndefined();
+});
+
+it("keeps the largest Int64 version exact when checking a publication precondition", async () => {
+  // Arrange
+  const version = "9223372036854775807";
+  reply({ status: 412, version, draft: { ...draft, version } }, 412);
+  // Act
+  const result = await forms.publications.start(formId, version, publish);
+  // Assert
+  expectRequest(`${formId}/publications`, "POST", version);
+  expect(result).toMatchObject({
+    error: { details: { version, draft: { version } } },
+  });
 });
 
 it("starts publication of the reviewed draft and returns the operation to poll", async () => {
@@ -230,6 +251,7 @@ it("rejects invalid path IDs and malformed versions before sending a request", a
     forms.drafts.get("0"),
     forms.drafts.replace("bad", "0", "{}"),
     forms.drafts.discard(formId, "*"),
+    forms.drafts.discard(formId, "9223372036854775808"),
     forms.publications.get(formId, "bad"),
     forms.publications.get("bad", formId),
   ]);

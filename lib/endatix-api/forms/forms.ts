@@ -22,7 +22,7 @@ import {
 import { CreateFormRequest } from "@/lib/form-types";
 import { FormDrafts } from "./drafts";
 import { FormPublications } from "./publications";
-import { ifMatch, isFormVersion } from "./versioned-form-request";
+import { ifMatch } from "./versioned-form-request";
 
 export class Forms {
   private _drafts?: FormDrafts;
@@ -93,7 +93,8 @@ export class Forms {
     const id = validateEndatixId(formId, "formId");
     if (Result.isError(id)) return ApiResult.validationError(id.message);
     if (
-      !isFormVersion(settings?.version) ||
+      typeof settings?.version !== "string" ||
+      !/^\d{1,19}$/.test(settings.version) ||
       typeof settings.pdf?.usesFormTheme !== "boolean"
     ) {
       return ApiResult.validationError("Invalid PDF settings or version.");

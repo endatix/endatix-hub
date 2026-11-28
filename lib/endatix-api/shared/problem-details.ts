@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isDecimalDigitString } from "@/lib/utils/type-validators";
+import { isDecimalDigitString, isFormVersion } from "@/lib/utils/type-validators";
 import { formDraftSchema } from "../forms/types";
 
 /**
@@ -23,7 +23,7 @@ export const ProblemDetailsSchema = z.object({
   errorCode: z.string().optional(),
   traceId: z.string().optional(),
   previousSchemaRetained: z.boolean().optional().catch(undefined),
-  version: z.string().regex(/^\d+$/).optional().catch(undefined),
+  version: z.string().refine(isFormVersion).optional().catch(undefined),
   draft: formDraftSchema.optional().catch(undefined),
   fields: z.record(z.string(), z.array(z.string())).optional(),
 });

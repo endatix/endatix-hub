@@ -6,6 +6,15 @@ const NET_LONG_MAX_VALUE = BigInt("9223372036854775807");
 const NUMERIC_STRING_PATTERN = /^\d+$/;
 const HEX_STRING_PATTERN = /^[0-9A-Fa-f]+$/;
 
+/** A draft may be unsaved (version zero); persisted versions are nonnegative Int64s. */
+export function isFormVersion(version: unknown): version is string {
+  return (
+    typeof version === "string" &&
+    /^\d{1,19}$/.test(version) &&
+    BigInt(version) <= NET_LONG_MAX_VALUE
+  );
+}
+
 /**
  * True when `value` is non-empty and contains only ASCII decimal digits (0-9).
  * Rejects hex (`0x10`), scientific (`1e2`), signs, decimals, and other `Number()` coercions.

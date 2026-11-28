@@ -274,4 +274,21 @@ describe("mapApiResultToResult", () => {
     expect(result.kind).toBe(Kind.Error);
     expect(telemetryLoggerMock.error).not.toHaveBeenCalled();
   });
+
+  it("returns the publication to resume without logging an expected conflict", () => {
+    // Arrange
+    const conflict = ApiResult.conflictError(
+      "Already publishing",
+      { existingId: "9001" },
+      "publication_in_progress",
+    );
+    // Act
+    const result = mapToResult(conflict, { logMessage: "Unable to publish" });
+    // Assert
+    expect(result).toMatchObject({
+      existingId: "9001",
+      errorCode: "publication_in_progress",
+    });
+    expect(telemetryLoggerMock.error).not.toHaveBeenCalled();
+  });
 });

@@ -1,10 +1,6 @@
 import { Result } from "@/lib/result";
-import { validateEndatixId } from "@/lib/utils/type-validators";
+import { isFormVersion, validateEndatixId } from "@/lib/utils/type-validators";
 import { ApiResult } from "../shared/api-result";
-
-export function isFormVersion(version: unknown): version is string {
-  return typeof version === "string" && /^\d{1,19}$/.test(version);
-}
 
 export function ifMatch(version: string) {
   return { headers: { "If-Match": `"${version}"` } };

@@ -4,9 +4,10 @@ import type {
   SortRequest,
 } from "../shared/types";
 import { z } from "zod";
+import { isFormVersion } from "@/lib/utils/type-validators";
 
 export const formDraftSchema = z.object({
-  version: z.string().regex(/^\d+$/),
+  version: z.string().refine(isFormVersion),
   jsonData: z.string(),
   contentHash: z.string(),
   activeNumber: z.int().nullish(),
@@ -23,10 +24,12 @@ export const formDraftSchema = z.object({
 
 export type FormDraft = z.infer<typeof formDraftSchema>;
 
+type JsonValue = z.infer<ReturnType<typeof z.json>>;
+
 export interface DraftJournalBatch {
   saveNo: number;
   clientSessionId: string;
-  records: readonly object[];
+  records: readonly Record<string, JsonValue>[];
   jsonData: string;
   contentHash: string;
   checkpoints?: readonly { afterRecord: number; jsonData: string }[];
