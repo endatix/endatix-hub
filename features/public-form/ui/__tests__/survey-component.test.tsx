@@ -3,9 +3,11 @@ import { act, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import SurveyComponent from "../survey-component";
 import { SurveyModel, CompleteEvent } from "survey-core";
-import { ApiResult } from "@/lib/endatix-api";
+import { ApiResult, ApiErrorType, ERROR_CODE } from "@/lib/endatix-api";
 import { FormRuntimeProvider } from "@/lib/form-runtime/form-runtime.context";
 import { DEFAULT_FILL_BACKGROUND_COLOR } from "@/features/embed-form/height-mode";
+import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
+import { getReCaptchaToken } from "@/features/recaptcha/infrastructure/recaptcha-client";
 
 function cssColor(value: string): string {
   const probe = document.createElement("div");
@@ -162,45 +164,6 @@ vi.mock("survey-react-ui", () => ({
       Survey UI
     </div>
   ),
-}));
-
-vi.mock("@/lib/endatix-api", () => ({
-  ApiResult: {
-    isSuccess: (result: unknown) => {
-      return (
-        result !== null &&
-        typeof result === "object" &&
-        "success" in result &&
-        (result as { success: boolean }).success === true
-      );
-    },
-    isError: (result: unknown) => {
-      return (
-        result !== null &&
-        typeof result === "object" &&
-        "success" in result &&
-        (result as { success: boolean }).success === false
-      );
-    },
-    success: (data: unknown) => ({ success: true, data }),
-    networkError: (message?: string) => ({
-      success: false,
-      error: {
-        type: "NetworkError",
-        message: message || "Network error",
-        errorCode: "NETWORK_ERROR",
-      },
-    }),
-    validationError: (message?: string) => ({
-      success: false,
-      error: {
-        type: "ValidationError",
-        message: message || "Validation error",
-        errorCode: "VALIDATION_ERROR",
-      },
-    }),
-  },
-  Submission: {},
 }));
 
 const defaultProps = {
@@ -407,6 +370,28 @@ describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
     });
   });
 
+  it("includes the respondent's reCAPTCHA token when completing a protected form", async () => {
+    // Arrange
+    vi.mocked(recaptchaConfig.isReCaptchaEnabled).mockReturnValueOnce(true);
+    renderSurveyComponent({ requiresReCaptcha: true });
+
+    // Act
+    await act(async () => {
+      fireCompleteEvent();
+    });
+
+    // Assert
+    expect(getReCaptchaToken).toHaveBeenCalledWith("submit_form");
+    expect(mockSubmitPublicForm).toHaveBeenCalledWith(
+      defaultProps.formId,
+      expect.objectContaining({
+        isComplete: true,
+        reCaptchaToken: "mock-recaptcha-token",
+      }),
+      undefined,
+    );
+  });
+
   it("should reset the guard flag on submission failure", async () => {
     // Arrange
     realSurveyModel.completedHtml =
@@ -486,8 +471,8 @@ describe("SurveyComponent - submissionUpdateGuard Behavior", () => {
     expect(mockSendEmbedMessage).toHaveBeenCalledWith("form-error", {
       success: false,
       error: {
-        type: "NetworkError",
-        code: "NETWORK_ERROR",
+        type: ApiErrorType.NetworkError,
+        code: ERROR_CODE.NETWORK_ERROR,
         message: "Network error",
       },
     });

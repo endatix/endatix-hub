@@ -40,9 +40,12 @@ export type SurveyJsWrapperProps = {
  * The page's test corner. A tester gets the Test inspector, except in embeds, which keep the
  * notice plus Start over. Every other viewer of a test page gets the notice; a real respondent nothing.
  */
-function testCornerRenderer(
-  survey: PublicSurveyRuntimeProps,
-): RenderTestCorner {
+type StatusSurvey = Omit<
+  PublicSurveyRuntimeProps,
+  "activeDefinition" | "storageConfig"
+>;
+
+function testCornerRenderer(survey: StatusSurvey): RenderTestCorner {
   const corner = testCornerFor(survey);
   const view = survey.testInspector;
   if (corner === "none") return () => null;
@@ -65,7 +68,7 @@ function testCornerRenderer(
  * The test corner, and which Start over the page offers. A person's test submission never offers
  * the cookie one, which would only forget the token; a viewer with `forms.test` gets the corner's.
  */
-function testControls(survey: PublicSurveyRuntimeProps) {
+function testControls(survey: StatusSurvey) {
   const cookieStartOver =
     survey.canStartOver && !isPersonTestSubmission(survey.submission) ? (
       <StartNewResponseButton formId={survey.formId} />
@@ -78,13 +81,11 @@ function testControls(survey: PublicSurveyRuntimeProps) {
   };
 }
 
-type TestControls = ReturnType<typeof testControls>;
-
 /** A completed or closed submission: its status page, with the test corner when it applies. */
-function FinishedSubmission({
+export function FinishedSubmission({
   survey,
-  controls,
-}: Readonly<{ survey: PublicSurveyRuntimeProps; controls: TestControls }>) {
+}: Readonly<{ survey: StatusSurvey }>) {
+  const controls = testControls(survey);
   const StatusPage =
     survey.submissionPhase === "completed"
       ? SubmissionAlreadyCompleted
@@ -116,14 +117,14 @@ const SurveyJsWrapper = (props: SurveyJsWrapperProps) => {
     );
   }
 
-  const controls = testControls(survey);
   if (
     survey.submissionPhase === "completed" ||
     survey.submissionPhase === "closed"
   ) {
-    return <FinishedSubmission survey={survey} controls={controls} />;
+    return <FinishedSubmission survey={survey} />;
   }
 
+  const controls = testControls(survey);
   // Start over loads a new submission into the same page: remount so the survey starts empty.
   return (
     <FormRuntimeProvider

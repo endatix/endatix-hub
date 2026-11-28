@@ -29,6 +29,7 @@ import {
   REFUSED_TOKEN_CODES,
 } from "@/lib/endatix-api/shared/error-codes";
 import { Result, type ResultType } from "@/lib/result";
+import { parseSurveyJson } from "@/lib/survey-js/survey-json";
 import type { ActiveDefinition } from "@/types";
 
 /**
@@ -54,15 +55,11 @@ export type LoadPublicSurveyPageQuery = {
  * @param submission - The submission.
  */
 export type LoadPublicSurveyPageResult =
-  | {
-      kind: "success";
-      activeDefinition: ActiveDefinition;
-      submissionPhase: SubmissionGatePhase;
-      canStartOver: boolean;
-      isRespondentTestMode: boolean;
-      testInspector: TestInspectorView | null;
-      submission?: Submission;
-    }
+  | (PageSession & {
+      kind: "finished";
+      submissionPhase: "completed" | "closed";
+    })
+  | (PageSession & { kind: "success"; activeDefinition: ActiveDefinition })
   | {
       kind: "notFound";
     }
@@ -136,26 +133,61 @@ type LoadCookieSubmissionPageQuery = LoadPartialSubmissionQuery & {
 async function loadCookieSubmissionPage(
   query: LoadCookieSubmissionPageQuery,
 ): Promise<LoadPublicSurveyPageResult> {
-  const { formId, access } = query;
   const submissionResult = await loadPartialSubmission(query);
   if (submissionResult.kind === "submissionLoadError") {
     return submissionResult;
   }
 
   const submission = submissionResult.value;
-  const definition = submission
-    ? resolveSubmissionFormDefinition(submission)
-    : await getActiveDefinitionUseCase({ formId });
-  if (Result.isError(definition)) {
-    return { kind: "notFound" };
+  const session = await pageSession({ ...query, submission });
+  const { submissionPhase } = session;
+  if (submissionPhase === "completed" || submissionPhase === "closed") {
+    return { ...session, kind: "finished", submissionPhase };
   }
 
-  return loadedPage({
-    formId,
-    access,
-    activeDefinition: definition.value,
-    submission,
-  });
+  const current = await getActiveDefinitionUseCase({ formId: query.formId });
+  if (Result.isError(current)) {
+    return submission ? submissionUnavailable : { kind: "notFound" };
+  }
+  if (!submission || submissionPhase === "blocked") {
+    return { ...session, kind: "success", activeDefinition: current.value };
+  }
+  return resumeCookieSubmission(session, submission, current.value);
+}
+
+const submissionUnavailable = {
+  kind: "submissionLoadError",
+  errorCode: ERROR_CODE.RESOURCE_NOT_FOUND,
+} as const;
+
+function resumeCookieSubmission(
+  session: PageSession,
+  submission: Submission,
+  current: ActiveDefinition,
+): LoadPublicSurveyPageResult {
+  const bound = resolveSubmissionFormDefinition(submission);
+  if (Result.isError(bound) || !parseSurveyJson(bound.value.jsonData)) {
+    return submissionUnavailable;
+  }
+  return {
+    ...session,
+    kind: "success",
+    activeDefinition: withCurrentFormSettings(bound.value, current),
+  };
+}
+
+function withCurrentFormSettings(
+  bound: ActiveDefinition,
+  current: ActiveDefinition,
+): ActiveDefinition {
+  return {
+    ...bound,
+    customQuestions: current.customQuestions,
+    requiresReCaptcha: current.requiresReCaptcha,
+    limitOnePerUser: current.limitOnePerUser,
+    themeModel: current.themeModel,
+    metadata: current.metadata,
+  };
 }
 
 async function loadAccessTokenSurveyPage(
@@ -175,38 +207,40 @@ async function loadAccessTokenSurveyPage(
     return submissionResult;
   }
 
-  const activeDefinitionResult = resolveSubmissionFormDefinition(
-    submissionResult.value,
-  );
+  const submission = submissionResult.value;
+  const activeDefinitionResult = resolveSubmissionFormDefinition(submission);
   if (Result.isError(activeDefinitionResult)) {
     return { kind: "notFound" };
   }
 
-  return loadedPage({
-    formId,
-    access: publicFormAccessResult.value,
+  const access = publicFormAccessResult.value;
+  const session = await pageSession({ formId, access, submission, accessToken });
+  return {
+    ...session,
+    kind: "success",
     activeDefinition: activeDefinitionResult.value,
-    submission: submissionResult.value,
-    accessToken,
-  });
+  };
 }
 
 type LoadedPageQuery = {
   formId: string;
   access: PublicFormAccessResponse;
-  activeDefinition: ActiveDefinition;
   submission: Submission | undefined;
   accessToken?: string;
 };
 
 /** The page that loaded. A token page (URL, or a personalized link's cookie) never offers a new response. */
-async function loadedPage(
-  query: LoadedPageQuery,
-): Promise<LoadPublicSurveyPageResult> {
-  const { access, activeDefinition, submission, accessToken } = query;
+type PageSession = {
+  submissionPhase: SubmissionGatePhase;
+  canStartOver: boolean;
+  isRespondentTestMode: boolean;
+  testInspector: TestInspectorView | null;
+  submission?: Submission;
+};
+
+async function pageSession(query: LoadedPageQuery): Promise<PageSession> {
+  const { access, submission, accessToken } = query;
   return {
-    kind: "success",
-    activeDefinition,
     submissionPhase: submissionPhaseFor(
       access,
       submission,

@@ -3,7 +3,9 @@ import { FormTokenCookieStore } from "@/features/public-form/infrastructure/cook
 import type { PublicSurveyRuntimeProps } from "@/features/public-form/types";
 import { EmbedHeightReporter } from "@/features/public-form/ui/embed-height-reporter";
 import { PublicFormAccessError } from "@/features/public-form/ui/public-form-access-error";
-import SurveyJsWrapper from "@/features/public-form/ui/survey-js-wrapper";
+import SurveyJsWrapper, {
+  FinishedSubmission,
+} from "@/features/public-form/ui/survey-js-wrapper";
 import { TokenSubmissionError } from "@/features/public-form/ui/token-submission-error";
 import { loadPublicSurveyPageUseCase } from "@/features/public-form/use-cases/load-public-survey-page.use-case";
 import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
@@ -50,6 +52,16 @@ function tokenErrorProps(page: TokenErrorPage) {
     errorCode: page.errorCode,
     personalLink: page.kind === "tokenSubmissionError" && page.personalLink,
   };
+}
+
+function FormReCaptcha({ required }: Readonly<{ required?: boolean }>) {
+  if (!required || !recaptchaConfig.isReCaptchaEnabled()) return null;
+  return (
+    <>
+      <Script src={recaptchaConfig.JS_URL} strategy="afterInteractive" />
+      <ReCaptchaStyleFix />
+    </>
+  );
 }
 
 export async function PublicSurveyContent({
@@ -108,27 +120,20 @@ export async function PublicSurveyContent({
     );
   }
 
-  const shouldLoadReCaptcha =
-    pageResult.activeDefinition.requiresReCaptcha &&
-    recaptchaConfig.isReCaptchaEnabled();
-  const surveyRuntime = toSurveyRuntime(pageResult, {
-    formId,
-    urlToken,
-    variant,
-  });
-
+  const request = { formId, urlToken, variant };
   return (
     <>
-      {shouldLoadReCaptcha && (
+      {variant === "embed" && <EmbedHeightReporter />}
+      {pageResult.kind === "finished" ? (
+        <FinishedSubmission survey={{ ...pageResult, ...request }} />
+      ) : (
         <>
-          <Script src={recaptchaConfig.JS_URL} strategy="afterInteractive" />
-          <ReCaptchaStyleFix />
+          <FormReCaptcha
+            required={pageResult.activeDefinition.requiresReCaptcha}
+          />
+          <SurveyJsWrapper survey={toSurveyRuntime(pageResult, request)} />
         </>
       )}
-
-      {variant === "embed" && <EmbedHeightReporter />}
-
-      <SurveyJsWrapper survey={surveyRuntime} />
     </>
   );
 }

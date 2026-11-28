@@ -1,3 +1,4 @@
+import { getActiveDefinitionUseCase } from "@/features/public-form/use-cases/get-active-definition.use-case";
 import { getPartialSubmissionUseCase } from "@/features/public-form/use-cases/get-partial-submission.use-case";
 import { getPublicFormAccessUseCase } from "@/features/public-form/use-cases/get-public-form-access.use-case";
 import { loadPublicSurveyPageUseCase } from "@/features/public-form/use-cases/load-public-survey-page.use-case";
@@ -47,7 +48,7 @@ const formId = "form-1";
 const tokenStore = { getAccessToken: () => undefined } as never;
 const createdAt = new Date("2026-10-19T00:00:00.000Z");
 
-const cookieSubmission: Submission = {
+const cookieSubmission = {
   id: "submission-21",
   createdAt,
   modifiedAt: createdAt,
@@ -68,7 +69,7 @@ const cookieSubmission: Submission = {
   metadata: "{}",
   token: "submission-token",
   status: "draft",
-};
+} satisfies Submission;
 
 const personTestSubmission: Submission = {
   ...cookieSubmission,
@@ -83,6 +84,9 @@ const personTestSubmission: Submission = {
 
 describe("loadPublicSurveyPageUseCase on a person's test submission", () => {
   beforeEach(() => {
+    vi.mocked(getActiveDefinitionUseCase).mockResolvedValue(
+      Result.success(cookieSubmission.formDefinition),
+    );
     // A public form: the API never reports test mode for it.
     vi.mocked(getPublicFormAccessUseCase).mockResolvedValue(
       Result.success({

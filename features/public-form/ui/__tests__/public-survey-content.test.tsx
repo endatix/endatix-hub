@@ -4,6 +4,7 @@ import type { SurveyJsWrapperProps } from "@/features/public-form/ui/survey-js-w
 import { loadPublicSurveyPageUseCase } from "@/features/public-form/use-cases/load-public-survey-page.use-case";
 import type { LoadPublicSurveyPageResult } from "@/features/public-form/use-cases/load-public-survey-page.use-case";
 import { getClientStorageConfig } from "@/features/asset-storage/server";
+import { recaptchaConfig } from "@/features/recaptcha/recaptcha-config";
 import { ERROR_CODE } from "@/lib/endatix-api/shared/error-codes";
 import { render, screen } from "@testing-library/react";
 import { cookies } from "next/headers";
@@ -25,6 +26,7 @@ vi.mock("next/headers", () => ({
 
 vi.mock("next/navigation", () => ({
   notFound: vi.fn(),
+  useRouter: () => ({ refresh: vi.fn() }),
 }));
 
 vi.mock("next/script", () => ({
@@ -65,7 +67,8 @@ vi.mock("@/features/asset-storage/server", () => ({
   getClientStorageConfig: vi.fn(() => null),
 }));
 
-vi.mock("@/features/public-form/ui/survey-js-wrapper", () => ({
+vi.mock("@/features/public-form/ui/survey-js-wrapper", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../survey-js-wrapper")>()),
   default: (props: SurveyJsWrapperProps) => (
     <div
       data-definition-id={
@@ -179,6 +182,72 @@ describe("PublicSurveyContent", () => {
     ).toBeDefined();
     expect(screen.queryByTestId("survey-js-wrapper")).toBeNull();
   });
+
+  it("loads the reCAPTCHA script for a protected respondent page", async () => {
+    // Arrange
+    vi.mocked(recaptchaConfig.isReCaptchaEnabled).mockReturnValueOnce(true);
+    vi.mocked(loadPublicSurveyPageUseCase).mockResolvedValue({
+      ...successResult,
+      activeDefinition: {
+        ...successResult.activeDefinition,
+        requiresReCaptcha: true,
+      },
+    });
+
+    // Act
+    const { container } = render(
+      await PublicSurveyContent({ formId: "form-1", variant: "embed" }),
+    );
+
+    // Assert
+    expect(container.querySelector("script")?.src).toBe(recaptchaConfig.JS_URL);
+    expect(
+      screen.getByTestId("survey-js-wrapper").dataset.requiresRecaptcha,
+    ).toBe("true");
+  });
+
+  it("shows the submission-specific failure and keeps the cookie when bound questions are unavailable", async () => {
+    // Arrange
+    vi.mocked(loadPublicSurveyPageUseCase).mockResolvedValue({
+      kind: "submissionLoadError",
+      errorCode: ERROR_CODE.RESOURCE_NOT_FOUND,
+    });
+
+    // Act
+    render(await PublicSurveyContent({ formId: "form-1", variant: "share" }));
+
+    // Assert
+    expect(screen.getByText("We couldn't find that submission.")).toBeDefined();
+    expect(tokenStore.deleteToken).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("survey-js-wrapper")).toBeNull();
+  });
+
+  it.each([
+    ["closed", true, "This response is closed and cannot be continued."],
+    ["completed", false, "This form has already been completed."],
+  ] as const)(
+    "shows %s status without questions, respecting restart permission",
+    async (submissionPhase, canStartOver, message) => {
+      // Arrange
+      vi.mocked(loadPublicSurveyPageUseCase).mockResolvedValue({
+        kind: "finished",
+        submissionPhase,
+        canStartOver,
+        isRespondentTestMode: false,
+        testInspector: null,
+      });
+
+      // Act
+      render(await PublicSurveyContent({ formId: "form-1", variant: "embed" }));
+
+      // Assert
+      expect(screen.getByText(message)).toBeDefined();
+      expect(
+        Boolean(screen.queryByRole("button", { name: "Start a new response" })),
+      ).toBe(canStartOver);
+      expect(screen.queryByTestId("survey-js-wrapper")).toBeNull();
+    },
+  );
 
   it("delegates missing forms to notFound", async () => {
     vi.mocked(loadPublicSurveyPageUseCase).mockResolvedValue({
