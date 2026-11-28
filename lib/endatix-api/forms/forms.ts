@@ -29,11 +29,13 @@ export class Forms {
   private _publications?: FormPublications;
 
   get publications(): FormPublications {
-    return (this._publications ??= new FormPublications(this.endatix));
+    this._publications ??= new FormPublications(this.endatix);
+    return this._publications;
   }
 
   get drafts(): FormDrafts {
-    return (this._drafts ??= new FormDrafts(this.endatix));
+    this._drafts ??= new FormDrafts(this.endatix);
+    return this._drafts;
   }
 
   constructor(private readonly endatix: EndatixApi) {}
