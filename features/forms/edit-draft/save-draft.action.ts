@@ -1,7 +1,13 @@
 "use server";
 
 import { auth } from "@/auth";
-import { authorization, Permissions } from "@/features/auth/authorization";
+import {
+  authorization,
+  Permissions,
+  isAuthenticationRequired,
+  isInvalidTokenError,
+} from "@/features/auth/authorization";
+import { formPublishFlag } from "@/lib/feature-flags/flags";
 import { EndatixApi } from "@/lib/endatix-api";
 import {
   isAuthError,
@@ -37,7 +43,7 @@ export async function saveDraftAction(
   request: DraftWrite,
 ): Promise<WriteResult> {
   const session = await auth();
-  if (!session?.accessToken)
+  if (!session?.accessToken || session.error)
     return { kind: "auth", message: "Sign in to save your changes." };
   const { checkAllPermissions, getAuthorizationData } =
     await authorization(session);
@@ -45,7 +51,19 @@ export async function saveDraftAction(
     Permissions.Access.Hub,
     Permissions.Forms.Edit,
   ]);
-  if (!access.success) return { kind: "error", message: access.error.message };
+  if (!access.success)
+    return {
+      kind:
+        isAuthenticationRequired(access) || isInvalidTokenError(access)
+          ? "auth"
+          : "error",
+      message: access.error.message,
+    };
+  if (!(await formPublishFlag()))
+    return {
+      kind: "error",
+      message: "Draft editing is not enabled for this deployment.",
+    };
   const actor = await getAuthorizationData();
   if (
     !actor.success ||

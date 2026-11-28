@@ -13,12 +13,11 @@ import { useFormAssistant } from "@/features/forms/use-cases/design-form/form-as
 import type { FormDesignReturn } from "../../form-workspace";
 import type { DesignerAudience } from "../editor/form-editor";
 import { DraftEditorProvider } from "../../edit-draft/draft-editor-context";
-import type { FormDraft } from "@/lib/endatix-api/forms/types";
+import type { EditorSource } from "../../edit-draft/editor-source.server";
 
 export interface FormDesignerWrapperProps {
   formId: string;
-  head: FormDraft;
-  scope: string;
+  source: EditorSource;
   formName: string;
   options?: ICreatorOptions;
   themeId?: string;
@@ -31,9 +30,9 @@ export interface FormDesignerWrapperProps {
 
 interface FormDesignerContentProps extends Omit<
   FormDesignerWrapperProps,
-  "head" | "scope"
+  "source"
 > {
-  formJson: object;
+  formJson: object | null;
   isCurrentThemeModified: boolean;
   setIsCurrentThemeModified: (value: boolean) => void;
   formSaveHandlerRef: React.RefObject<(() => Promise<void>) | null>;
@@ -122,40 +121,30 @@ function FormDesignerContent({
 }
 
 export default function FormDesignerWrapper({
-  formId,
-  head,
-  scope,
-  formName,
-  options,
-  themeId,
-  isPublic,
-  formIsEnabled,
-  designReturn,
-  audience,
+  source,
+  ...props
 }: FormDesignerWrapperProps) {
   const [isCurrentThemeModified, setIsCurrentThemeModified] = useState(false);
   const formSaveHandlerRef = useRef<(() => Promise<void>) | null>(null);
 
+  const editor = (formJson: object | null) => (
+    <FormDesignerContent
+      {...props}
+      formJson={formJson}
+      isCurrentThemeModified={isCurrentThemeModified}
+      setIsCurrentThemeModified={setIsCurrentThemeModified}
+      formSaveHandlerRef={formSaveHandlerRef}
+    />
+  );
   return (
     <DesignSurveyProvider>
-      <DraftEditorProvider formId={formId} scope={scope} head={head}>
-        {(formJson) => (
-          <FormDesignerContent
-            formId={formId}
-            formJson={formJson}
-            formName={formName}
-            options={options}
-            themeId={themeId}
-            isPublic={isPublic}
-            formIsEnabled={formIsEnabled}
-            designReturn={designReturn}
-            audience={audience}
-            isCurrentThemeModified={isCurrentThemeModified}
-            setIsCurrentThemeModified={setIsCurrentThemeModified}
-            formSaveHandlerRef={formSaveHandlerRef}
-          />
-        )}
-      </DraftEditorProvider>
+      {source.kind === "active" ? (
+        editor(source.formJson)
+      ) : (
+        <DraftEditorProvider formId={props.formId} {...source}>
+          {editor}
+        </DraftEditorProvider>
+      )}
     </DesignSurveyProvider>
   );
 }

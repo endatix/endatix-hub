@@ -4,6 +4,7 @@ import type {
   FormDraft,
 } from "@/lib/endatix-api/forms/types";
 import { journalBatch, type LocalEdit } from "./journal-batch";
+import { queueEdit } from "./queue-edit";
 
 export type DraftWrite = {
   version: string;
@@ -125,20 +126,7 @@ export class DraftAutosave {
   edit(jsonData: string, records: LocalEdit["records"] = []) {
     if (this.closed || this.remote) return;
     if (!records.length && jsonData === this.localDocument) return;
-    const edits = [...this.queue.edits];
-    const last = edits.at(-1);
-    const merge =
-      last &&
-      last.saveNo > this.queue.sealed &&
-      !!last.records.length === !!records.length;
-    const saveNo = merge ? last.saveNo : this.queue.next;
-    if (merge) edits.pop();
-    edits.push({
-      saveNo,
-      jsonData,
-      records: merge ? [...last.records, ...records] : records,
-    });
-    this.queue = { ...this.queue, edits, next: saveNo + 1 };
+    this.queue = queueEdit(this.queue, jsonData, records);
     const persisted = this.persist();
     if (this.status !== "auth") this.show("saving");
     void persisted.then(
@@ -206,15 +194,13 @@ export class DraftAutosave {
     }
     this.queue = { ...this.queue, request };
     await this.persist();
-    const result = await this.ports
-      .send(request)
-      .catch(
-        () =>
-          ({
-            kind: "offline",
-            message: "Could not reach the server.",
-          }) as const,
-      );
+    const result = await this.ports.send(request).catch(
+      () =>
+        ({
+          kind: "offline",
+          message: "Could not reach the server.",
+        }) as const,
+    );
     return this.applyResult(result, retry);
   }
 
@@ -258,7 +244,7 @@ export class DraftAutosave {
     const resume =
       keepLocal &&
       !this.queue.recovery &&
-      !this.queue.request &&
+      (!this.queue.request || this.queue.request.version === remote.version) &&
       this.queue.base.contentHash === remote.contentHash;
     if (resume) this.queue = { ...this.queue, base: remote };
     else this.queue = DraftAutosave.empty(remote);

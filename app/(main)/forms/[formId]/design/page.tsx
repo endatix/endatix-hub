@@ -24,14 +24,18 @@ import {
 } from "@/features/audience/server";
 import { FormAssistantProvider } from "@/features/forms/use-cases/design-form/form-assistant.context";
 import { getCurrentConversationUseCase } from "@/features/forms/use-cases/design-form/get-current-conversation.use-case";
-import { aiFeaturesFlag } from "@/lib/feature-flags/flags";
+import { aiFeaturesFlag, formPublishFlag } from "@/lib/feature-flags/flags";
+import {
+  activeEditorSource,
+  draftEditorSource,
+} from "@/features/forms/edit-draft/editor-source.server";
 import { getFormDesignReturn } from "@/features/forms/form-workspace";
 import {
   firstSearchParam,
   type SearchParamValue,
 } from "@/lib/utils/next-utils";
 import { EndatixApi } from "@/lib/endatix-api";
-import { ErrorType, Kind, Result, toResult } from "@/lib/result";
+import { Result, toResult } from "@/lib/result";
 import { Form } from "@/types";
 import type { DesignerAudience } from "@/lib/personalization/authoring";
 import Link from "next/link";
@@ -61,9 +65,8 @@ export default async function FormDesignerPage({
   searchParams,
 }: Readonly<Params>) {
   const session = await auth();
-  const { requireAllPermissions, checkPermission, getAuthorizationData } =
-    await authorization(session);
-  await requireAllPermissions([Permissions.Access.Hub, Permissions.Forms.Edit]);
+  const access = await authorization(session);
+  await access.requireHubAccess();
 
   const { formId } = await params;
   const aiFeaturesEnabled = await aiFeaturesFlag();
@@ -75,8 +78,7 @@ export default async function FormDesignerPage({
     foldersRes,
     formResult,
     audienceForDesign,
-    draftResult,
-    actor,
+    draftsEnabled,
   ] = await Promise.all([
     api.tenant.getSettings(),
     api.folders.list(),
@@ -87,15 +89,12 @@ export default async function FormDesignerPage({
         loggerName: "forms.design",
       }),
     ),
-    loadDesignerAudience({ api, formId, checkPermission }),
-    api.forms.drafts.get(formId).then((result) =>
-      toResult(result, {
-        fallbackMessage: "Could not load draft.",
-        logMessage: "Draft read failed.",
-        loggerName: "forms.design",
-      }),
-    ),
-    getAuthorizationData(),
+    loadDesignerAudience({
+      api,
+      formId,
+      checkPermission: access.checkPermission,
+    }),
+    formPublishFlag(),
   ]);
 
   if (Result.isError(formResult)) {
@@ -114,23 +113,15 @@ export default async function FormDesignerPage({
       ? foldersRes.data.map((f) => ({ id: f.id, name: f.name }))
       : [];
 
-  if (Result.isError(draftResult))
-    return <HubPageLoadError result={draftResult} />;
-  if (!actor.success)
-    return (
-      <HubPageLoadError
-        result={{
-          kind: Kind.Error,
-          errorType: ErrorType.Error,
-          message: actor.error.message,
-        }}
-      />
-    );
+  if (draftsEnabled) await access.requirePermission(Permissions.Forms.Edit);
+  const source = draftsEnabled
+    ? await draftEditorSource(api, formId, access)
+    : await activeEditorSource(api, form);
+  if (Result.isError(source)) return <HubPageLoadError result={source} />;
 
   const props: FormDesignerWrapperProps = {
     formId: formId,
-    head: draftResult.value,
-    scope: JSON.stringify([actor.data.tenantId, actor.data.userId, formId]),
+    source: source.value,
     formName: form.name,
     themeId: form.themeId ?? undefined,
     isPublic: form.isPublic,

@@ -7,13 +7,11 @@ import { useStorageWithCreator } from "@/features/asset-storage/client";
 import { useSurveyLicenseKey } from "@/features/config/survey-license-provider";
 import { designerRuntimeDeps } from "./designer-runtime-deps";
 import {
-  DEFAULT_THEME_ID,
   ThemeDeleteDialog,
   ThemeSaveDialog,
   useThemeManagement,
 } from "@/features/themes/manage-theme-editor";
 import { StoredTheme } from "@/features/themes/types";
-import { updateFormThemeAction } from "@/features/themes/update-form-theme";
 import { useDesignerRuntime } from "@/lib/designer-runtime";
 import type { DesignerAudience } from "@/lib/personalization/authoring";
 import { registerAudioQuestionUI } from "@/lib/questions/audio-recorder";
@@ -76,6 +74,7 @@ import {
 } from "./custom-question-dialog";
 import { createCustomQuestionAction } from "../../application/actions/create-custom-question.action";
 import { captureJournal } from "@endatix/survey-journal";
+import { saveEditorDocument, saveEditorTheme } from "./save-editor-document";
 import { useEditorDraft } from "../../edit-draft/draft-editor-context";
 import type { LocalEdit } from "@/lib/survey-features/draft-autosave/journal-batch";
 import {
@@ -102,8 +101,6 @@ Serializer.addProperty("survey", {
 
 registerAudioQuestionUI();
 addRandomizeGroupFeature();
-
-const DEFAULT_THEME_NAME = "default";
 
 const translations = getLocaleStrings("en");
 
@@ -339,36 +336,17 @@ function FormEditor({
 
     const acknowledgeJsonSave = captureJsonSave();
     const theme = creator?.theme as StoredTheme;
-    let isThemeUpdated = false;
-
-    if (!controller) return;
-    if (isJsonModified) controller.edit(JSON.stringify(jsonResult.value));
-    await controller.resume();
-    if (!controller.isSaved) return;
-
-    const newThemeId =
-      theme?.themeName?.toLowerCase() === DEFAULT_THEME_NAME
-        ? DEFAULT_THEME_ID
-        : (theme?.id ?? themeId);
-    const currentThemeId = themeId ?? DEFAULT_THEME_ID;
-
-    if (newThemeId !== currentThemeId) {
-      const updateThemeResult = await updateFormThemeAction({
-        formId,
-        themeId: newThemeId,
-      });
-
-      if (updateThemeResult === undefined) {
-        toast.error("Could not proceed with updating form theme");
-        return;
-      }
-
-      if (Result.isError(updateThemeResult)) {
-        toast.error(updateThemeResult.message || "Failed to update form theme");
-        return;
-      }
-
-      isThemeUpdated = true;
+    const json = JSON.stringify(jsonResult.value);
+    if (isJsonModified) controller?.edit(json);
+    const saved = await saveEditorDocument(formId, json, controller);
+    if (Result.isError(saved)) {
+      toast.error(saved.message);
+      return;
+    }
+    const selection = await saveEditorTheme(formId, themeId, theme);
+    if (Result.isError(selection)) {
+      toast.error(selection.message);
+      return;
     }
 
     if (acknowledgeJsonSave()) {
@@ -378,9 +356,9 @@ function FormEditor({
     toast.success(
       <p>
         Form changes saved.{" "}
-        {isThemeUpdated && (
+        {selection.value && (
           <span>
-            Theme set to <b>{theme.themeName}</b>
+            Theme set to <b>{selection.value}</b>
           </span>
         )}
       </p>,

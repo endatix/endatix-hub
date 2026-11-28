@@ -41,7 +41,11 @@ export function verifiedCheckpoints(
     return { afterRecord, jsonData: document };
   });
   const terminal = replaySegment(document, records.slice(previous));
-  if (canonicalSurvey(terminal) !== canonicalSurvey(survey.terminal)) {
+  const expected = canonicalSurvey(survey.terminal);
+  if (
+    canonicalSurvey(terminal) !== expected ||
+    canonicalSurvey(replaySegment(survey.base, records)) !== expected
+  ) {
     throw new Error("Draft journal differs from the local document.");
   }
   return checkpoints;

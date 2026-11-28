@@ -9,6 +9,7 @@ import {
 import { FormEditorHeaderState } from "./use-form-editor-header.hook";
 import FormPublicStatus from "./form-public-status";
 import { DraftStatusBadges } from "../../edit-draft/draft-status";
+import { useEditorDraft } from "../../edit-draft/draft-editor-context";
 
 interface FormEditorHeaderProps extends FormEditorHeaderState {
   isCurrentThemeModified: boolean;
@@ -38,6 +39,7 @@ export default function FormEditorHeader({
   setIsEditingName,
   setName,
 }: FormEditorHeaderProps) {
+  const draft = useEditorDraft();
   const saveDisabled = isPending || isSaving || hasJsonErrors;
   const showInvalidJson = isOnJsonTab && hasJsonErrors;
   const showUnsavedChanges =
@@ -78,7 +80,7 @@ export default function FormEditorHeader({
       </div>
       <div className="flex items-center gap-2">
         <DraftStatusBadges />
-        {(showInvalidJson || isCurrentThemeModified) && (
+        {(!draft || showInvalidJson || isCurrentThemeModified) && (
           <SurveyDesignStatusBadge
             isOnJsonTab={isOnJsonTab}
             isJsonModified={isJsonModified}
