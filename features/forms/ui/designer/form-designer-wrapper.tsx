@@ -14,6 +14,7 @@ import type { FormDesignReturn } from "../../form-workspace";
 import type { DesignerAudience } from "../editor/form-editor";
 import { DraftEditorProvider, LegacyScope } from "../../edit-draft/draft-editor-context";
 import type { EditorSource } from "../../edit-draft/editor-source.server";
+import { LegacyEditorSource } from "./legacy-editor-source";
 
 export interface FormDesignerWrapperProps {
   formId: string;
@@ -142,7 +143,9 @@ function ScopedFormDesigner({source: refreshed, ...props}: FormDesignerWrapperPr
         <p role="alert">The editor mode changed. Save or download your local changes before reopening the designer.</p>
       )}
       {source.kind === "active" ? (
-        <LegacyScope.Provider value={source.scope}>{editor(source.formJson)}</LegacyScope.Provider>
+        <LegacyScope.Provider value={source.scope}>
+          <LegacyEditorSource frozen={refreshed.kind !== "active"} source={refreshed.kind === "active" ? refreshed.formJson : source.formJson}>{editor}</LegacyEditorSource>
+        </LegacyScope.Provider>
       ) : (
         <DraftEditorProvider key={source.scope} formId={props.formId} {...source}>
           {editor}

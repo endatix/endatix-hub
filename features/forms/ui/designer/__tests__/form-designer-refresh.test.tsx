@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import type { EditorSource } from "../../../edit-draft/editor-source.server";
 import FormDesignerWrapper from "../form-designer-wrapper";
+import { useSurveyDesigner } from "@/lib/survey-features/designer/design-survey.context";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 vi.mock("../../../use-cases/design-form/form-assistant.context", () => ({ useFormAssistant: () => ({ isAssistantEnabled: false }) }));
@@ -9,7 +10,10 @@ vi.mock("../../editor/form-editor-with-chat", () => ({ default: () => null }));
 vi.mock("../../editor/form-editor-header", () => ({ default: () => null }));
 vi.mock("../../editor/use-form-editor-header.hook", () => ({ useFormEditorHeader: () => ({}) }));
 vi.mock("../../editor/form-editor-container", () => ({
-  default: ({ formJson }: { formJson: { title: string } }) => <input aria-label="Canvas" defaultValue={formJson.title} />,
+  default: function Editor({ formJson }: { formJson: { title: string } }) {
+    const {setHasUnsavedChanges} = useSurveyDesigner();
+    return <input aria-label="Canvas" defaultValue={formJson.title} onChange={() => setHasUnsavedChanges(true)} />;
+  },
 }));
 vi.mock("../../../edit-draft/draft-editor-context", async () => ({
   LegacyScope: (await import("react")).createContext(""),
@@ -42,4 +46,20 @@ it.each(["draft", "active"] as const)("preserves the %s editor across cutover bu
     mounted.rerender(view(source(otherMode, scope)));
     expect(screen.getByLabelText("Canvas")).toHaveProperty("value", `Loaded from ${scope}`);
   }
+});
+
+it("adopts a clean active refresh, preserves a later dirty canvas, and loads the peer copy only by choice", () => {
+  const view = (title: string) => <FormDesignerWrapper formId="1" formName="Form" source={{kind: "active", scope: "scope", formJson: {title}}}/>;
+  const mounted = render(view("Original"));
+  mounted.rerender(view("Peer save"));
+  const canvas = screen.getByLabelText("Canvas");
+  expect(canvas).toHaveProperty("value", "Peer save");
+  fireEvent.change(canvas, {target: {value: "Local pending"}});
+  mounted.rerender(view("Another peer save"));
+  expect(canvas).toHaveProperty("value", "Local pending");
+  fireEvent.click(screen.getByRole("button", {name: "Keep editing my copy"}));
+  expect(screen.getByLabelText("Canvas")).toBe(canvas);
+  mounted.rerender(view("Latest peer save"));
+  fireEvent.click(screen.getByRole("button", {name: "Load saved form"}));
+  expect(screen.getByLabelText("Canvas")).toHaveProperty("value", "Latest peer save");
 });

@@ -9,9 +9,11 @@ import { keepLegacyEdit } from "@/lib/survey-features/draft-autosave/idb-draft-s
 import { downloadText } from "@/lib/utils/files-download";
 
 import { LegacyScope } from "../../edit-draft/draft-editor-context";
+import { LegacySubmission } from "../designer/legacy-editor-source";
 
 export function useSaveEditorDocument(formId: string, draft?: DraftAutosave) {
   const scope = useContext(LegacyScope);
+  const submit = useContext(LegacySubmission);
   const session = useRef<string | undefined>(undefined);
   return useCallback(async (json: string) => {
     if (draft) {
@@ -20,11 +22,13 @@ export function useSaveEditorDocument(formId: string, draft?: DraftAutosave) {
       await draft.resume();
       return draft.isSaved ? Result.success(formId) : Result.error("The draft has not reached the server.");
     }
+    submit(json);
     const saved = await saveActiveDefinitionAction(formId, json, scope);
+    if (Result.isError(saved)) submit(null);
     if (!Result.isError(saved) || saved.errorCode !== "editor_mode_changed") return saved;
     session.current ??= crypto.randomUUID();
     return preserveOnCutover({formId, scope}, session.current, json);
-  }, [scope, formId, draft]);
+  }, [scope, formId, draft, submit]);
 }
 
 async function preserveOnCutover(editor: { formId: string; scope: string }, sessionId: string, json: string) {

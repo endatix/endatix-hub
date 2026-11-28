@@ -41,7 +41,7 @@ function useAssistantDefinition(formJson: object | null) {
   const { setHasUnsavedChanges } = useSurveyDesigner();
   const draft = useEditorDraft();
   const { chatContext } = useFormAssistant();
-  const [initialProposal] = useState(() => !draft && !chatContext?.error ? chatContext?.resultDefinition : undefined);
+  const [initialProposal] = useState(() => !draft && !formJson && !chatContext?.error ? chatContext?.resultDefinition : undefined);
   const [json, setJson] = useState(initialProposal ?? formJson);
   useEffect(() => {
     if (initialProposal) setHasUnsavedChanges(true);
