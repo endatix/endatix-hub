@@ -1,8 +1,8 @@
 "use client";
 
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode, type Dispatch, type SetStateAction } from "react";
 
-type Input = [string, (text: string) => void];
+type Input = [string, Dispatch<SetStateAction<string>>];
 const ComposerInput = createContext<Input | null>(null);
 
 /** Mounted at the designer's tenant/user/form boundary, outside canvas revisions. */

@@ -19,20 +19,19 @@ function acceptPeer(prior: Snapshot, source: Document, dirty: boolean): Snapshot
 
 function useSubmissions(source: Document) {
   const [pending, setPending] = useState<Submission[]>([]);
-  function retire(ticket: Submission) {
-    setPending(prior => prior.filter(entry => entry !== ticket));
-  }
   function submit(json: string) {
     const ticket = { document: canonicalSurvey(json) };
     // A theme-only manual save can return the same active document and no changed-source refresh.
     if (!pending.length && ticket.document === canonicalSurvey(JSON.stringify(source))) return () => {};
     setPending(prior => [...prior, ticket]);
-    return () => retire(ticket);
+    return () => setPending(prior => prior.filter(entry => entry !== ticket));
   }
   function acknowledge(fresh: string) {
-    const ticket = pending.find(entry => entry.document === fresh);
-    if (ticket) retire(ticket);
-    return Boolean(ticket);
+    if (!pending.some(entry => entry.document === fresh)) return false;
+    // Identical writes can produce only one changed source. No identical ticket may
+    // survive that observation and classify a later peer revert as our save.
+    setPending(prior => prior.filter(entry => entry.document !== fresh));
+    return true;
   }
   return { submit, acknowledge };
 }

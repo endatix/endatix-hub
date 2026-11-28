@@ -6,6 +6,7 @@ import type { DefineFormResponse } from "@/lib/endatix-api/agents/types";
 import { defineFormAction } from "../../../application/actions/define-form.action";
 import { FormAssistantProvider } from "../../../use-cases/design-form";
 import ChatBox from "../chat-box";
+import { EditorComposerProvider } from "../composer-input";
 
 vi.mock("../../../application/actions/define-form.action", () => ({ defineFormAction: vi.fn() }));
 vi.mock("../../../use-cases/design-form/generate-form-for-conversation.action", () => ({ generateFormForConversationAction: vi.fn() }));
@@ -40,4 +41,22 @@ it.each([
   await screen.findByText(message);
   expect(apply).toHaveBeenCalledTimes(1);
   expect(field).toHaveProperty("value", "Second request");
+});
+
+it("a successful response cannot clear a different, unsent prompt", async () => {
+  const pending = Promise.withResolvers<Awaited<ReturnType<typeof defineFormAction>>>();
+  vi.mocked(defineFormAction).mockReturnValueOnce(pending.promise);
+  const apply = vi.fn();
+  renderWithBrand(<FormAssistantProvider isAssistantEnabled><EditorComposerProvider>
+    <ChatBox onFormGenerated={apply} />
+  </EditorComposerProvider></FormAssistantProvider>);
+  const field = screen.getByRole("textbox");
+  fireEvent.change(field, {target: {value: "First prompt"}});
+  fireEvent.click(field.closest("form")!.querySelector('button[type="submit"]')!);
+  await waitFor(() => expect(defineFormAction).toHaveBeenCalledTimes(1));
+  fireEvent.change(field, {target: {value: "Next prompt"}});
+  pending.resolve(reply('{"title":"First reply"}'));
+  await waitFor(() => expect(apply).toHaveBeenCalledTimes(1));
+  expect(field).toHaveProperty("value", "Next prompt");
+  expect(defineFormAction).toHaveBeenCalledTimes(1);
 });

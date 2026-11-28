@@ -170,7 +170,7 @@ const ChatBox = ({
     }
 
     onFormGenerated?.(reply.value, currentDefinition);
-    setInput("");
+    setInput(current => current === prompt ? "" : current);
     return reply.value;
   };
 

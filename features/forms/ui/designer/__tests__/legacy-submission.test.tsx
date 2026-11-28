@@ -67,3 +67,19 @@ it.each(["refused", "threw"])("retires only the %s save when another submission 
   expect(screen.getByRole("dialog")).toBeTruthy();
   expect(screen.getByLabelText("Canvas")).toHaveProperty("value", "Next edit");
 });
+
+it("does not mistake a peer revert for a second acknowledgement of identical writes", async () => {
+  vi.mocked(saveActiveDefinitionAction).mockResolvedValue(Result.success({}));
+  const mounted = render(editor("Original"));
+  submit("Identical");
+  submit("Identical");
+  type("Keep this local edit");
+  await waitFor(() => expect(saveActiveDefinitionAction).toHaveBeenCalledTimes(2));
+  mounted.rerender(editor("Identical"));
+  mounted.rerender(editor("Identical"));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  mounted.rerender(editor("Peer"));
+  fireEvent.click(screen.getByRole("button", {name: "Keep editing my copy"}));
+  mounted.rerender(editor("Identical"));
+  expect(screen.getByRole("dialog")).toBeTruthy();
+});
