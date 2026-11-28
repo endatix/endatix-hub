@@ -19,16 +19,19 @@ async function claim(key: string) {
   });
 }
 
-export async function openDraftStore(scope: string) {
+export async function openDraftStore(scope: string, signal: AbortSignal) {
   const prefix = `draft:${scope}:`;
   const candidates = (await keys<string>(store)).filter((key) =>
     key.startsWith(prefix),
   );
   candidates.push(prefix + crypto.randomUUID());
   for (const key of candidates) {
+    // A discarded React mount must never take the recoverable queue from its replacement.
+    signal.throwIfAborted();
     const release = await claim(key);
     if (!release) continue;
     try {
+      signal.throwIfAborted();
       const queue = await get<DraftQueue>(key, store);
       const persist = (state: DraftQueue) =>
         state.edits.length ? set(key, state, store) : del(key, store);

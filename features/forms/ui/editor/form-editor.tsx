@@ -34,10 +34,7 @@ import {
   useFormDiagnostics,
 } from "@/lib/survey-features/form-diagnostics";
 import { JSON_CHANGED_TYPE } from "@/lib/survey-features/json-editor/json-editor-state";
-import {
-  JsonEditorState,
-  useJsonEditor,
-} from "@/lib/survey-features/json-editor/use-json-editor.hook";
+import { useFormJsonEditor } from "./use-form-json-editor";
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
@@ -73,10 +70,7 @@ import {
   type CustomQuestionRequest,
 } from "./custom-question-dialog";
 import { createCustomQuestionAction } from "../../application/actions/create-custom-question.action";
-import { captureJournal } from "@endatix/survey-journal";
 import { saveEditorDocument, saveEditorTheme } from "./save-editor-document";
-import { useEditorDraft } from "../../edit-draft/draft-editor-context";
-import type { LocalEdit } from "@/lib/survey-features/draft-autosave/journal-batch";
 import {
   customizeQuestionClassesOnCreator,
   loadBuiltInCustomQuestionClasses,
@@ -188,8 +182,6 @@ function FormEditor({
   const unbindCreatorRef = useRef<(() => void) | null>(null);
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const draft = useEditorDraft();
-  const controller = draft?.controller;
   const [bindAudience, findParticipantDialog] = useDesignerAudience(
     formId,
     audience,
@@ -199,8 +191,6 @@ function FormEditor({
     hasUnsavedChanges,
     isJsonModified,
     setHasUnsavedChanges,
-    setHasJsonErrors,
-    setIsOnJsonTab,
     setIsJsonModified,
   } = useSurveyDesigner();
 
@@ -208,26 +198,8 @@ function FormEditor({
     itemId: formId,
     itemType: "form",
   });
-  const onJsonStateChange = useCallback(
-    (state: JsonEditorState) => {
-      setHasJsonErrors(state.hasErrors);
-      setIsOnJsonTab(state.isOnJsonTab);
-      setIsJsonModified(state.isJsonModified);
-      if (state.isJsonModified) {
-        setHasUnsavedChanges(true);
-      }
-    },
-    [setHasJsonErrors, setIsOnJsonTab, setIsJsonModified, setHasUnsavedChanges],
-  );
-  const { registerJsonEditor, getJsonModel, captureJsonSave } = useJsonEditor({
-    onJsonStateChange,
-    onJsonEdit(model) {
-      const parsed = getJsonModel(model);
-      if (Result.isSuccess(parsed))
-        controller?.edit(JSON.stringify(parsed.value));
-    },
-    downloadName: formName,
-  });
+  const { registerJsonEditor, getJsonModel, captureJsonSave, controller } =
+    useFormJsonEditor(creator, formName);
   const { isReady: isExtensionsReady, onCreatorCreated } = useSurveyExtensions({
     runtimeDeps: designerRuntimeDeps(designerRuntime.stateRef),
   });
@@ -260,12 +232,6 @@ function FormEditor({
     markFormModified,
   });
   useCreatorJson(creator, formJson);
-  useEffect(() => {
-    if (!creator || !controller) return;
-    return captureJournal(creator, (records, json) =>
-      controller.edit(json, records as unknown as LocalEdit["records"]),
-    );
-  }, [creator, controller]);
   useCreatorTabUrl(creator);
 
   const saveCustomQuestion = useCallback(
@@ -371,30 +337,6 @@ function FormEditor({
     creator,
     formId,
     themeId,
-    setHasUnsavedChanges,
-    setIsJsonModified,
-  ]);
-
-  useEffect(() => {
-    if (draft?.view.status !== "saved" || !creator) return;
-    const parsed = getJsonModel(creator);
-    if (
-      isJsonModified &&
-      (!Result.isSuccess(parsed) ||
-        JSON.stringify(parsed.value) !== controller?.localDocument)
-    )
-      return;
-    if (captureJsonSave()()) {
-      setHasUnsavedChanges(false);
-      setIsJsonModified(false);
-    }
-  }, [
-    draft?.view,
-    creator,
-    getJsonModel,
-    captureJsonSave,
-    controller,
-    isJsonModified,
     setHasUnsavedChanges,
     setIsJsonModified,
   ]);

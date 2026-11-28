@@ -1,14 +1,6 @@
 "use server";
 
-import { auth } from "@/auth";
-import {
-  authorization,
-  Permissions,
-  isAuthenticationRequired,
-  isInvalidTokenError,
-} from "@/features/auth/authorization";
-import { formPublishFlag } from "@/lib/feature-flags/flags";
-import { EndatixApi } from "@/lib/endatix-api";
+import type { EndatixApi } from "@/lib/endatix-api";
 import {
   isAuthError,
   isNetworkError,
@@ -20,7 +12,9 @@ import type {
   DraftWrite,
   WriteResult,
 } from "@/lib/survey-features/draft-autosave/controller";
+import { draftWriter } from "./draft-writer.server";
 
+type DraftClient = EndatixApi["forms"]["drafts"];
 function failure(error: ApiError): WriteResult {
   if (isPreconditionFailed(error) && error.error.details?.draft)
     return { kind: "stale", head: error.error.details.draft };
@@ -37,46 +31,33 @@ function failure(error: ApiError): WriteResult {
   return { kind, message: error.error.message };
 }
 
+async function readAcknowledgedHead(
+  client: DraftClient,
+  formId: string,
+  version: string,
+): Promise<WriteResult> {
+  const current = await client.get(formId);
+  if (!current.success)
+    return {
+      kind: "error",
+      message:
+        "The server accepted the save, but the draft could not be read back.",
+    };
+  if (current.data.version !== version)
+    return { kind: "stale", head: current.data, acknowledged: true };
+  return { kind: "saved", head: current.data };
+}
+
 export async function saveDraftAction(
   formId: string,
   scope: string,
   request: DraftWrite,
 ): Promise<WriteResult> {
-  const session = await auth();
-  if (!session?.accessToken || session.error)
-    return { kind: "auth", message: "Sign in to save your changes." };
-  const { checkAllPermissions, getAuthorizationData } =
-    await authorization(session);
-  const access = await checkAllPermissions([
-    Permissions.Access.Hub,
-    Permissions.Forms.Edit,
-  ]);
-  if (!access.success)
-    return {
-      kind:
-        isAuthenticationRequired(access) || isInvalidTokenError(access)
-          ? "auth"
-          : "error",
-      message: access.error.message,
-    };
-  if (!(await formPublishFlag()))
-    return {
-      kind: "error",
-      message: "Draft editing is not enabled for this deployment.",
-    };
-  const actor = await getAuthorizationData();
-  if (
-    !actor.success ||
-    JSON.stringify([actor.data.tenantId, actor.data.userId, formId]) !== scope
-  ) {
-    return {
-      kind: "auth",
-      message: "Sign in to the account that opened this draft.",
-    };
-  }
-  const drafts = new EndatixApi(session.accessToken).forms.drafts;
+  const writer = await draftWriter(formId, scope);
+  if (!("client" in writer)) return writer;
+  const { client } = writer;
   if (!request.batch) {
-    const result = await drafts.replace(
+    const result = await client.replace(
       formId,
       request.version,
       request.jsonData,
@@ -85,21 +66,12 @@ export async function saveDraftAction(
       ? { kind: "saved", head: result.data }
       : failure(result);
   }
-  const result = await drafts.append(formId, request.version, request.batch);
+  const result = await client.append(formId, request.version, request.batch);
   if (!result.success) return failure(result);
   if (result.data.saveNo !== request.batch.saveNo)
     return {
       kind: "error",
       message: "The server did not acknowledge this save.",
     };
-  const current = await drafts.get(formId);
-  if (!current.success)
-    return {
-      kind: "error",
-      message:
-        "The server accepted the save, but the draft could not be read back.",
-    };
-  return current.data.version === result.data.version
-    ? { kind: "saved", head: current.data }
-    : { kind: "stale", head: current.data, acknowledged: true };
+  return readAcknowledgedHead(client, formId, result.data.version);
 }

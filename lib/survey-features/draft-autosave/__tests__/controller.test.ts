@@ -132,3 +132,24 @@ it("resumes offline and expired-session saves in their original order", async ()
     ["9007199254740994", '{"title":"two"}'],
   ]);
 });
+
+it("never reapplies an uncertain save after a 401 and an equal-hash stale reply", async () => {
+  const { controller, ports, status } = editor();
+  controller.edit(base.jsonData, [
+    { ...fixture.records[0], payload: { target: "/title", value: "" } },
+  ]);
+  ports.send
+    .mockRejectedValueOnce(new Error("Response lost"))
+    .mockResolvedValueOnce({ kind: "auth", message: "Sign in" })
+    .mockResolvedValueOnce({
+      kind: "stale",
+      head: { ...base, version: "9007199254740996" },
+    });
+  await controller.flush();
+  await controller.resume();
+  await controller.resume();
+  expect(status()).toBe("conflict");
+  expect(ports.send.mock.calls.map(([request]) => request)).toEqual(
+    Array(3).fill(ports.send.mock.calls[0][0]),
+  );
+});

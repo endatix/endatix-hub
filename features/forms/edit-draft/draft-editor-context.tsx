@@ -44,11 +44,11 @@ export function DraftEditorProvider({
   const [revision, setRevision] = useState(0);
   const [dismissed, setDismissed] = useState(false);
   useEffect(() => {
-    let active = true;
+    const abort = new AbortController();
     let cleanup: (() => void) | undefined;
-    void openDraftStore(scope)
+    void openDraftStore(scope, abort.signal)
       .then((store) => {
-        if (!active) return store.release();
+        if (abort.signal.aborted) return store.release();
         const autosave = new DraftAutosave(
           store.queue ?? DraftAutosave.empty(head),
           {
@@ -81,10 +81,10 @@ export function DraftEditorProvider({
         };
       })
       .catch(() => {
-        if (active) setError(true);
+        if (!abort.signal.aborted) setError(true);
       });
     return () => {
-      active = false;
+      abort.abort();
       cleanup?.();
     };
   }, [scope, formId, head]);

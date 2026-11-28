@@ -157,7 +157,7 @@ export class DraftAutosave {
   }
 
   private async drain() {
-    while (!this.closed && !this.remote && this.queue.edits.length) {
+    while (this.canDrain()) {
       const edit = this.queue.edits[0];
       if (edit.saveNo > this.queue.sealed) return;
       await this.persist();
@@ -165,8 +165,15 @@ export class DraftAutosave {
       if (this.status === "auth") return;
       if (!(await this.sendFirst(edit))) return;
     }
-    if (!this.remote && !this.queue.edits.length)
-      this.show(this.ports.online() ? "saved" : "offline");
+    if (!this.remote && !this.queue.edits.length) {
+      await this.persist();
+      if (!this.queue.edits.length)
+        this.show(this.ports.online() ? "saved" : "offline");
+    }
+  }
+
+  private canDrain() {
+    return !this.closed && !this.remote && this.queue.edits.length > 0;
   }
 
   private async prepare(edit: LocalEdit) {
@@ -183,38 +190,38 @@ export class DraftAutosave {
     try {
       request = this.queue.request ?? (await this.prepare(edit));
     } catch {
-      this.queue = { ...this.queue, recovery: true };
-      await this.persist();
-      this.remote = this.queue.base;
-      this.show(
-        "recovery",
-        "The changes could not be replayed. Your local copy is available.",
-      );
-      return false;
+      return this.requireRecovery();
     }
     this.queue = { ...this.queue, request };
     await this.persist();
-    const result = await this.ports.send(request).catch(
-      () =>
-        ({
-          kind: "offline",
-          message: "Could not reach the server.",
-        }) as const,
-    );
+    const result = await this.ports.send(request).catch(unreachable);
     return this.applyResult(result, retry);
   }
 
+  private async requireRecovery() {
+    this.remote = this.queue.base;
+    this.queue = { ...this.queue, recovery: true };
+    await this.persist();
+    this.show(
+      "recovery",
+      "The changes could not be replayed. Your local copy is available.",
+    );
+    return false;
+  }
+
+  private async acknowledge(head: FormDraft) {
+    this.queue = {
+      ...this.queue,
+      request: undefined,
+      base: head,
+      edits: this.queue.edits.slice(1),
+    };
+    await this.persist();
+    return true;
+  }
+
   private async applyResult(result: WriteResult, retry: boolean) {
-    if (result.kind === "saved") {
-      this.queue = {
-        ...this.queue,
-        request: undefined,
-        base: result.head,
-        edits: this.queue.edits.slice(1),
-      };
-      await this.persist();
-      return true;
-    }
+    if (result.kind === "saved") return this.acknowledge(result.head);
     if (result.kind === "stale") {
       if (
         !retry &&
@@ -227,8 +234,8 @@ export class DraftAutosave {
       }
       this.remote = result.head;
       this.show("conflict");
-    } else if ("message" in result) {
-      if (result.kind === "auth") {
+    } else {
+      if (result.kind === "auth" && !retry) {
         this.queue = { ...this.queue, request: undefined };
         await this.persist();
       }
@@ -267,4 +274,8 @@ export class DraftAutosave {
     await this.sending;
     await this.stored;
   }
+}
+
+function unreachable(): WriteResult {
+  return { kind: "offline", message: "Could not reach the server." };
 }

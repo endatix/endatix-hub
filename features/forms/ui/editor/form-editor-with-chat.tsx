@@ -72,19 +72,14 @@ export default function FormEditorWithChat({
   const shouldRenderEditor = hasNonEmptyFormJson || conversationLoaded;
 
   useEffect(() => {
-    const initializeConversation = () => {
-      if (chatContext?.error) {
-        setConversationLoaded(true);
-        return;
-      }
-
-      setConversationLoaded(true);
-    };
-
-    initializeConversation();
+    if (!draft && !chatContext?.error && chatContext?.resultDefinition) {
+      setUpdatedFormJson(chatContext.resultDefinition);
+      setHasUnsavedChanges(true);
+    }
+    setConversationLoaded(true);
   }, [
+    draft,
     chatContext?.error,
-    chatContext?.formId,
     chatContext?.resultDefinition,
     setHasUnsavedChanges,
   ]);
