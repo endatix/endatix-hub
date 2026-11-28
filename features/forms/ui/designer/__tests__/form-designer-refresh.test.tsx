@@ -1,12 +1,18 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { expect, it, vi } from "vitest";
+import { beforeEach, expect, it, vi } from "vitest";
+import { renderWithBrand } from "@/test/render-with-brand";
 import type { EditorSource } from "../../../edit-draft/editor-source.server";
 import FormDesignerWrapper from "../form-designer-wrapper";
 import { useSurveyDesigner } from "@/lib/survey-features/designer/design-survey.context";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
-vi.mock("../../../use-cases/design-form/form-assistant.context", () => ({ useFormAssistant: () => ({ isAssistantEnabled: false }) }));
-vi.mock("../../editor/form-editor-with-chat", () => ({ default: () => null }));
+const assistant = vi.hoisted(() => ({ isAssistantEnabled: false, sendPrompt: vi.fn() }));
+beforeEach(() => { assistant.isAssistantEnabled = false; });
+vi.mock("../../../use-cases/design-form/form-assistant.context", () => ({ useFormAssistant: () => assistant }));
+vi.mock("../../editor/form-editor-with-chat", async () => {
+  const { default: ChatBox } = await import("../../chat/chat-box");
+  return { default: ({ formJson }: {formJson: {title: string}}) => <><span>{formJson.title}</span><ChatBox placeholder="Unsent request" /></> };
+});
 vi.mock("../../editor/form-editor-header", () => ({ default: () => null }));
 vi.mock("../../editor/use-form-editor-header.hook", () => ({ useFormEditorHeader: () => ({}) }));
 vi.mock("../../editor/form-editor-container", () => ({
@@ -59,6 +65,19 @@ it("keeps a theme-only edit mounted when a peer changes the active form", () => 
   fireEvent.click(screen.getByRole("button", {name: "Keep editing my copy"}));
   expect(screen.getByLabelText("Theme")).toBe(theme);
   expect(theme).toHaveProperty("value", "Green");
+});
+
+it("keeps unsent chat text across a clean peer refresh, but never across identities", () => {
+  assistant.isAssistantEnabled = true;
+  const view = (title: string, scope: string) => <FormDesignerWrapper formId="1" formName="Form" source={{ kind: "active", formJson: {title}, scope }} />;
+  const mounted = renderWithBrand(view("Original", "tenant/user/form"));
+  fireEvent.change(screen.getByPlaceholderText("Unsent request"), {target: {value: "Unsent prompt"}});
+  mounted.rerender(view("Peer edit", "tenant/user/form"));
+  expect(screen.getByText("Peer edit")).toBeTruthy();
+  expect(screen.getByPlaceholderText("Unsent request")).toHaveProperty("value", "Unsent prompt");
+  mounted.rerender(view("Other form", "tenant/user/other-form"));
+  expect(screen.getByPlaceholderText("Unsent request")).toHaveProperty("value", "");
+  expect(assistant.sendPrompt).not.toHaveBeenCalled();
 });
 
 it("adopts a clean active refresh, preserves a later dirty canvas, and loads the peer copy only by choice", () => {

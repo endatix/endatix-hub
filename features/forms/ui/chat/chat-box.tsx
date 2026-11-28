@@ -2,6 +2,7 @@
 
 import { useBrand } from "@/lib/branding/client";
 import { Result } from "@/lib/result";
+import { useComposerInput } from "./composer-input";
 import {
   AlertCircle,
   ArrowUp,
@@ -101,7 +102,7 @@ const ChatBox = ({
   ...props
 }: ChatBoxProps) => {
   const brand = useBrand();
-  const [input, setInput] = useState("");
+  const [input, setInput] = useComposerInput();
   const [retryMode, setRetryMode] = useState(false);
   const { chatContext, sendPrompt } = useFormAssistant();
   const [isTranslationMode, setIsTranslationMode] = useState(false);

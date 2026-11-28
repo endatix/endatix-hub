@@ -11,6 +11,17 @@ import { downloadText } from "@/lib/utils/files-download";
 import { LegacyScope } from "../../edit-draft/draft-editor-context";
 import { LegacySubmission } from "../designer/legacy-editor-source";
 
+async function saveLegacy(editor: {formId: string; scope: string}, json: string, retire: () => void) {
+  try {
+    const saved = await saveActiveDefinitionAction(editor.formId, json, editor.scope);
+    if (Result.isError(saved)) retire();
+    return saved;
+  } catch (error) {
+    retire();
+    throw error;
+  }
+}
+
 export function useSaveEditorDocument(formId: string, draft?: DraftAutosave) {
   const scope = useContext(LegacyScope);
   const submit = useContext(LegacySubmission);
@@ -22,12 +33,11 @@ export function useSaveEditorDocument(formId: string, draft?: DraftAutosave) {
       await draft.resume();
       return draft.isSaved ? Result.success(formId) : Result.error("The draft has not reached the server.");
     }
-    submit(json);
-    const saved = await saveActiveDefinitionAction(formId, json, scope);
-    if (Result.isError(saved)) submit(null);
+    const editor = {formId, scope};
+    const saved = await saveLegacy(editor, json, submit(json));
     if (!Result.isError(saved) || saved.errorCode !== "editor_mode_changed") return saved;
     session.current ??= crypto.randomUUID();
-    return preserveOnCutover({formId, scope}, session.current, json);
+    return preserveOnCutover(editor, session.current, json);
   }, [scope, formId, draft, submit]);
 }
 

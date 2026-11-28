@@ -15,6 +15,7 @@ import type { DesignerAudience } from "../editor/form-editor";
 import { DraftEditorProvider, LegacyScope } from "../../edit-draft/draft-editor-context";
 import type { EditorSource } from "../../edit-draft/editor-source.server";
 import { LegacyEditorSource } from "./legacy-editor-source";
+import { EditorComposerProvider } from "../chat/composer-input";
 
 export interface FormDesignerWrapperProps {
   formId: string;
@@ -151,5 +152,5 @@ function ScopedFormDesigner({source: refreshed, ...props}: FormDesignerWrapperPr
 }
 
 export default function FormDesignerWrapper(props: FormDesignerWrapperProps) {
-  return <ScopedFormDesigner key={props.source.scope} {...props} />;
+  return <EditorComposerProvider key={props.source.scope}><ScopedFormDesigner {...props} /></EditorComposerProvider>;
 }
