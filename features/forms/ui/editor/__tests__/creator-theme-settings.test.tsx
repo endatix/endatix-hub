@@ -13,6 +13,7 @@ import {
 import { Result } from "@/lib/result";
 
 const surveyCreator = vi.hoisted(() => vi.fn());
+const canvas = vi.hoisted(() => ({ title: "Edited" }));
 
 vi.mock("survey-creator-react", () => {
   const event = () => ({ add: vi.fn(), remove: vi.fn() });
@@ -70,7 +71,7 @@ vi.mock("@/features/asset-storage/client", () => ({
 vi.mock("@/lib/survey-features/json-editor/use-json-editor.hook", () => ({
   useJsonEditor: () => ({
     registerJsonEditor: () => vi.fn(),
-    getJsonModel: () => Result.success({ title: "Edited" }),
+    getJsonModel: () => Result.success({ ...canvas }),
     captureJsonSave: () => () => true,
   }),
 }));
@@ -171,11 +172,12 @@ const draft = vi.hoisted(() => ({
   edit: vi.fn(),
   resume: vi.fn(),
   isSaved: false,
+  view: { status: "saving", head: { jsonData: "{}" } },
 }));
 vi.mock("@endatix/survey-journal", () => ({ captureJournal: () => vi.fn() }));
 vi.mock("../../../edit-draft/draft-editor-context", async () => ({
   LegacyScope: (await import("react")).createContext("test"),
-  useEditorDraft: () => ({ controller: draft, view: { status: "saving" } }),
+  useEditorDraft: () => ({ controller: draft, view: draft.view }),
 }));
 
 vi.mock("@/features/themes/update-form-theme", () => ({
@@ -231,6 +233,47 @@ it("preserves a rejected form edit so the same save can be retried", async () =>
   await save();
   expect(screen.getByRole("button", { name: "Clean" })).toBeTruthy();
   expect(draft.edit).toHaveBeenNthCalledWith(2, '{"title":"Edited"}');
+});
+
+function CanvasEditIndicator() {
+  const { hasUnsavedChanges, setHasUnsavedChanges } = useSurveyDesigner();
+  return <button onClick={() => setHasUnsavedChanges(true)}>{hasUnsavedChanges ? "Unsaved canvas" : "Clean canvas"}</button>;
+}
+
+it("keeps a newer unrecorded canvas dirty across a delayed save and a refocus acknowledgement", async () => {
+  // Arrange
+  const ready = vi.fn<(save: () => Promise<void>) => void>();
+  const latch = Promise.withResolvers<void>();
+  draft.resume.mockImplementationOnce(() => latch.promise);
+  const view = () => <DesignSurveyProvider>
+    <FormEditor formJson={{}} formId="1" formName="Form" themeId="default" onSaveHandlerReady={ready} />
+    <CanvasEditIndicator />
+  </DesignSurveyProvider>;
+  const mounted = render(view());
+  await waitFor(() => expect(surveyCreator).toHaveBeenCalled());
+  fireEvent.click(screen.getByText("Clean canvas"));
+  const pending = ready.mock.lastCall![0]();
+  await waitFor(() => expect(draft.resume).toHaveBeenCalled());
+  canvas.title = "Edited again during save";
+
+  // Act
+  draft.isSaved = true;
+  await act(async () => { latch.resolve(); await pending; });
+  draft.view = { status: "saved", head: { jsonData: '{"title":"Edited"}' } };
+  mounted.rerender(view());
+
+  // Assert
+  expect(screen.getByText("Unsaved canvas")).toBeTruthy();
+  expect(window.dispatchEvent(new Event("beforeunload", { cancelable: true }))).toBe(false);
+  await act(() => ready.mock.lastCall![0]());
+  expect(draft.edit).toHaveBeenLastCalledWith('{"title":"Edited again during save"}');
+  expect(screen.getByText("Clean canvas")).toBeTruthy();
+});
+
+beforeEach(() => {
+  canvas.title = "Edited";
+  draft.isSaved = false;
+  draft.view = { status: "saving", head: { jsonData: "{}" } };
 });
 
 describe("creator theme settings", () => {

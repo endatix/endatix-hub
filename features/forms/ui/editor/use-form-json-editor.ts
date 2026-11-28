@@ -60,7 +60,7 @@ function useJournalCapture(creator: SurveyCreatorModel | null, controller: Draft
   }, [creator, controller]);
 }
 
-function matchesSavedJson(model: SurveyCreatorModel, json: ReturnType<typeof useJsonEditor>, saved: string) {
+export function matchesSavedJson(model: SurveyCreatorModel | null, json: Pick<ReturnType<typeof useJsonEditor>, "getJsonModel">, saved: string) {
   const result = json.getJsonModel(model);
   return Result.isSuccess(result) && JSON.stringify(result.value) === saved;
 }
@@ -73,7 +73,7 @@ function useAcknowledgeDraft(
   const designer = useSurveyDesigner();
   const acknowledge = useEffectEvent(() => {
     if (draft?.view.status !== "saved" || !creator) return;
-    if (designer.isJsonModified && !matchesSavedJson(creator, json, draft.controller.localDocument)) return;
+    if (!matchesSavedJson(creator, json, draft.view.head.jsonData)) return;
     if (!json.captureJsonSave()()) return;
     designer.setIsJsonModified(false);
     designer.setHasUnsavedChanges(false);

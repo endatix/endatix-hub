@@ -22,7 +22,7 @@ function SaveIndicators({ themeModified, ...props }: React.ComponentProps<typeof
   const draft = useEditorDraft();
   const legacy = !draft || props.hasJsonErrors || themeModified;
   return <>
-    <DraftStatusBadges />
+    <DraftStatusBadges hasUnsavedChanges={props.hasUnsavedChanges} />
     {legacy && <SurveyDesignStatusBadge {...props} />}
   </>;
 }

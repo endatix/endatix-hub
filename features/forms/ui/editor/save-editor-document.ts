@@ -20,7 +20,7 @@ export function useSaveEditorDocument(formId: string, draft?: DraftAutosave) {
       await draft.resume();
       return draft.isSaved ? Result.success(formId) : Result.error("The draft has not reached the server.");
     }
-    const saved = await saveActiveDefinitionAction(formId, json);
+    const saved = await saveActiveDefinitionAction(formId, json, scope);
     if (!Result.isError(saved) || saved.errorCode !== "editor_mode_changed") return saved;
     session.current ??= crypto.randomUUID();
     return preserveOnCutover({formId, scope}, session.current, json);

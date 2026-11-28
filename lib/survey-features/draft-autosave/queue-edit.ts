@@ -12,14 +12,17 @@ export function journalPeriod(jsonData: string) {
   return new TextEncoder().encode(jsonData).byteLength > 500_000 ? 100 : 200;
 }
 
-function cursorBefore(queue: DraftQueue, saveNo: number) {
+function advance(cursor: number, count: number, period: number) {
+  return count ? ((cursor >= period ? 0 : cursor) + count) % period : 0;
+}
+
+function cursorBefore(queue: DraftQueue, previous?: LocalEdit) {
+  const last = queue.edits.at(-1)?.cursor;
+  if (last?.version === queue.base.version) return previous ? last.before : last.after;
   let cursor = queue.base.recordsSinceSnapshot;
   for (const prior of queue.edits) {
-    if (prior.saveNo === saveNo) break;
-    const period = journalPeriod(prior.jsonData);
-    cursor = prior.records.length
-      ? ((cursor >= period ? 0 : cursor) + prior.records.length) % period
-      : 0;
+    if (prior === previous) break;
+    cursor = advance(cursor, prior.records.length, prior.cursor?.period ?? journalPeriod(prior.jsonData));
   }
   return cursor;
 }
@@ -36,12 +39,12 @@ function containsCandidate(start: number, end: number, cursor: number) {
 function captureCandidate(
   queue: DraftQueue,
   previous: LocalEdit | undefined,
-  next: LocalEdit,
+  next: LocalEdit & { cursor: NonNullable<LocalEdit["cursor"]> },
 ) {
   const groups = previous?.groups ?? [];
   const start = previous?.records.length ?? 0;
   const end = next.records.length;
-  if (!containsCandidate(start, end, cursorBefore(queue, next.saveNo)))
+  if (!containsCandidate(start, end, next.cursor.before))
     return groups;
   const before = queue.edits.at(-1)?.jsonData ?? queue.base.jsonData;
   return [...groups, { start, end, before, after: next.jsonData }];
@@ -53,17 +56,21 @@ export function queueEdit(
   records: LocalEdit["records"],
 ): DraftQueue {
   const edits = [...queue.edits];
-  const last = edits.at(-1);
-  const sameWriter =
-    last && Boolean(last.records.length) === Boolean(records.length);
-  const previous =
-    sameWriter && last.saveNo > queue.sealed ? edits.pop() : undefined;
+  const previous = mergeable(edits.at(-1), queue.sealed, records) ? edits.pop() : undefined;
   const saveNo = previous?.saveNo ?? queue.next;
+  const before = cursorBefore(queue, previous);
+  const period = journalPeriod(jsonData);
+  const combined = previous ? [...previous.records, ...records] : records;
   const next = {
     saveNo,
     jsonData,
-    records: previous ? [...previous.records, ...records] : records,
+    records: combined,
+    cursor: { version: queue.base.version, before, after: advance(before, combined.length, period), period },
   };
   edits.push({ ...next, groups: captureCandidate(queue, previous, next) });
   return { ...queue, edits, next: saveNo + 1 };
+}
+
+function mergeable(last: LocalEdit | undefined, sealed: number, records: LocalEdit["records"]) {
+  return last && last.saveNo > sealed && Boolean(last.records.length) === Boolean(records.length);
 }

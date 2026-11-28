@@ -9,10 +9,13 @@ import type {
 export type LocalEdit = Pick<
   DraftJournalBatch,
   "saveNo" | "jsonData" | "records"
-> & { groups?: CandidateGroup[] };
+> & {
+  groups?: CandidateGroup[];
+  cursor?: { version: string; before: number; after: number; period: number };
+};
 
 function interiorOffsets(edit: LocalEdit, tail: number) {
-  const period = journalPeriod(edit.jsonData);
+  const period = edit.cursor?.period ?? journalPeriod(edit.jsonData);
   const offsets = [];
   for (
     let n = period - (tail >= period ? 0 : tail);

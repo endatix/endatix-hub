@@ -29,7 +29,7 @@ type ConversationAction =
         userMessage: Message;
         tempUserMessageId: string;
         agentResponse: Message;
-        resultDefinition: object;
+        resultDefinition?: object;
         definitionErrors?: string[];
         error?: string;
         threadId?: string;

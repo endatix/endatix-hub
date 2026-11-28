@@ -1,3 +1,9 @@
+// The wire hash orders UTF-16 code units, independent of the browser's locale.
+function ordinal(left: string, right: string) {
+  if (left === right) return 0;
+  return left < right ? -1 : 1;
+}
+
 /** Writer and replayer use the same key order, independently of the server's head hash. */
 export function canonicalSurvey(jsonData: string): string {
   return JSON.stringify(JSON.parse(jsonData), (_, value) => {
@@ -5,7 +11,7 @@ export function canonicalSurvey(jsonData: string): string {
       return value;
     return Object.fromEntries(
       Object.keys(value)
-        .sort()
+        .sort(ordinal)
         .map((key) => [key, value[key]]),
     );
   });

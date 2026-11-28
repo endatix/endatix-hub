@@ -140,6 +140,7 @@ export default async function FormDesignerPage({
           >
             <AssetStorageProvider>
               <FormAssistantProvider
+                key={source.value.scope}
                 isAssistantEnabled={aiFeaturesEnabled}
                 getConversationPromise={chatContextPromise}
                 requireFolderForNewForms={requireFolderForNewForms}

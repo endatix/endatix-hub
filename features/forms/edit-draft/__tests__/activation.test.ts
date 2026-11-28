@@ -4,9 +4,11 @@ import { Result } from "@/lib/result";
 import { saveActiveDefinitionAction } from "../save-active-definition.action";
 import { saveDraftAction } from "../save-draft.action";
 
-const { patch, replace } = vi.hoisted(() => ({
+const { patch, replace, append, get } = vi.hoisted(() => ({
   patch: vi.fn(),
   replace: vi.fn(),
+  append: vi.fn(),
+  get: vi.fn(),
 }));
 vi.mock("@/auth", () => ({
   auth: async () => ({ accessToken: "session-token" }),
@@ -21,7 +23,7 @@ vi.mock("@/lib/endatix-api", async (importActual) => ({
   ...(await importActual<typeof import("@/lib/endatix-api")>()),
   EndatixApi: class {
     patch = patch;
-    forms = { drafts: { replace } };
+    forms = { drafts: { replace, append, get } };
   },
 }));
 vi.mock("@/features/auth/authorization", async (importActual) => ({
@@ -49,11 +51,23 @@ beforeEach(() => {
   });
 });
 
+it.each([
+  { returned: "100", kind: "saved" },
+  { returned: "101", kind: "stale" },
+])("reads the exact acknowledged journal head before reporting $kind", async ({ returned, kind }) => {
+  vi.stubEnv("FLAG_FORM_PUBLISH", "true");
+  const batch = { jsonData: request.jsonData, records: [{ seq: 0 }], clientSessionId: "editor", saveNo: 4, contentHash: "writer" };
+  append.mockResolvedValue({ success: true, data: { version: "100", saveNo: 4 } });
+  get.mockResolvedValue({ success: true, data: { version: returned } });
+  expect(await saveDraftAction("17", scope, { ...request, batch })).toMatchObject({ kind, head: { version: returned } });
+  expect(append).toHaveBeenCalledWith("17", request.version, batch);
+});
+
 it("keeps the immediate save usable and rejects a stale draft tab when rollout is off", async () => {
   vi.stubEnv("FLAG_FORM_PUBLISH", undefined);
   expect(await formPublishFlag()).toBe(false);
   expect(
-    Result.isSuccess(await saveActiveDefinitionAction("17", request.jsonData)),
+    Result.isSuccess(await saveActiveDefinitionAction("17", request.jsonData, scope)),
   ).toBe(true);
   expect(patch).toHaveBeenCalledWith("/forms/17/definition", {
     isDraft: false,
@@ -67,7 +81,7 @@ it("writes only the draft after activation, including when an older tab attempts
   vi.stubEnv("FLAG_FORM_PUBLISH", "true");
   expect(await formPublishFlag()).toBe(true);
   expect(
-    Result.isError(await saveActiveDefinitionAction("17", request.jsonData)),
+    Result.isError(await saveActiveDefinitionAction("17", request.jsonData, scope)),
   ).toBe(true);
   expect(patch).not.toHaveBeenCalled();
   expect((await saveDraftAction("17", scope, request)).kind).toBe("saved");

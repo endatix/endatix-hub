@@ -36,14 +36,14 @@ function SaveAction({ view, controller }: { view: DraftView; controller: DraftAu
   return <Button size="sm" variant="outline" onClick={() => void controller.resume()}>Retry</Button>;
 }
 
-export function DraftStatusBadges() {
+export function DraftStatusBadges({ hasUnsavedChanges }: { hasUnsavedChanges: boolean }) {
   const draft = useEditorDraft();
   if (!draft) return null;
   const { view } = draft;
   const published = publishLabel(view);
   const detail = view.message ?? `Draft ${view.head.version} · ${view.head.lastModifiedAt ?? "No edits yet"}`;
   return <span className="flex items-center gap-2" role="status">
-    <Badge variant="outline" title={detail}>{saveLabel(view)}</Badge>
+    <Badge variant="outline" title={detail}>{hasUnsavedChanges && view.status === "saved" ? "Unsaved changes" : saveLabel(view)}</Badge>
     {published && <Badge variant="secondary">{published}</Badge>}
     <SaveAction {...draft} />
   </span>;

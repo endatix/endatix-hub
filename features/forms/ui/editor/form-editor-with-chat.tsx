@@ -38,16 +38,14 @@ function acceptReply(draft: ReturnType<typeof useEditorDraft>, proposal: object,
 }
 
 function useAssistantDefinition(formJson: object | null) {
-  const [json, setJson] = useState(formJson);
   const { setHasUnsavedChanges } = useSurveyDesigner();
   const draft = useEditorDraft();
   const { chatContext } = useFormAssistant();
+  const [initialProposal] = useState(() => !draft && !chatContext?.error ? chatContext?.resultDefinition : undefined);
+  const [json, setJson] = useState(initialProposal ?? formJson);
   useEffect(() => {
-    if (!draft && !chatContext?.error && chatContext?.resultDefinition) {
-      setJson(chatContext.resultDefinition);
-      setHasUnsavedChanges(true);
-    }
-  }, [draft, chatContext?.error, chatContext?.resultDefinition, setHasUnsavedChanges]);
+    if (initialProposal) setHasUnsavedChanges(true);
+  }, [initialProposal, setHasUnsavedChanges]);
   const apply = (conversation: ConversationState, original?: string) => {
     const proposal = conversation.resultDefinition;
     if (!proposal || conversation.definitionErrors?.length || !acceptReply(draft, proposal, original)) return;

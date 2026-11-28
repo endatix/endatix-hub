@@ -55,6 +55,7 @@ export default defineConfig({
         "extensions/**/*.ts",
         "features/**/*.ts",
         "lib/**/*.{ts,tsx}",
+        "packages/survey-journal/**/*.ts",
         "types/**/*.ts",
         "src/**/*.ts",
       ],

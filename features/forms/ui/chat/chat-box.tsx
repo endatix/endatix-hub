@@ -1,6 +1,7 @@
 "use client";
 
 import { useBrand } from "@/lib/branding/client";
+import { Result } from "@/lib/result";
 import {
   AlertCircle,
   ArrowUp,
@@ -161,15 +162,15 @@ const ChatBox = ({
 
     setRetryMode(false);
 
-    const newChatContext = await sendPrompt(prompt, currentDefinition);
-    if (newChatContext.error) {
+    const reply = await sendPrompt(prompt, currentDefinition);
+    if (Result.isError(reply)) {
       setRetryMode(true);
-      return newChatContext;
+      return undefined;
     }
 
-    onFormGenerated?.(newChatContext, currentDefinition);
+    onFormGenerated?.(reply.value, currentDefinition);
     setInput("");
-    return newChatContext;
+    return reply.value;
   };
 
   const handleAddLanguages = () => {

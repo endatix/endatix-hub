@@ -34,7 +34,7 @@ import {
   useFormDiagnostics,
 } from "@/lib/survey-features/form-diagnostics";
 import { JSON_CHANGED_TYPE } from "@/lib/survey-features/json-editor/json-editor-state";
-import { useFormJsonEditor } from "./use-form-json-editor";
+import { matchesSavedJson, useFormJsonEditor } from "./use-form-json-editor";
 import { useQuestionLoops } from "@/lib/survey-features/question-loops";
 import { useRichTextEditing } from "@/lib/survey-features/rich-text";
 import { useLoopAwareSummaryTableEditing } from "@/lib/survey-features/summary-table";
@@ -315,10 +315,12 @@ function FormEditor({
       return;
     }
 
-    if (acknowledgeJsonSave()) {
-      setHasUnsavedChanges(false);
-      setIsJsonModified(false);
+    if (!matchesSavedJson(creator, { getJsonModel }, json) || !acknowledgeJsonSave()) {
+      setHasUnsavedChanges(true);
+      return;
     }
+    setHasUnsavedChanges(false);
+    setIsJsonModified(false);
     toast.success(
       <p>
         Form changes saved.{" "}

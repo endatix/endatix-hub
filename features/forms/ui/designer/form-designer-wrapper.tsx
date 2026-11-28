@@ -120,24 +120,27 @@ function FormDesignerContent({
   );
 }
 
-export default function FormDesignerWrapper({
-  source,
-  ...props
-}: FormDesignerWrapperProps) {
+function EditorContent(props: Omit<FormDesignerWrapperProps, "source"> & { formJson: object | null }) {
   const [isCurrentThemeModified, setIsCurrentThemeModified] = useState(false);
   const formSaveHandlerRef = useRef<(() => Promise<void>) | null>(null);
-
-  const editor = (formJson: object | null) => (
+  return (
     <FormDesignerContent
       {...props}
-      formJson={formJson}
       isCurrentThemeModified={isCurrentThemeModified}
       setIsCurrentThemeModified={setIsCurrentThemeModified}
       formSaveHandlerRef={formSaveHandlerRef}
     />
   );
+}
+
+function ScopedFormDesigner({source: refreshed, ...props}: FormDesignerWrapperProps) {
+  const [source] = useState(refreshed);
+  const editor = (formJson: object | null) => <EditorContent {...props} formJson={formJson} />;
   return (
     <DesignSurveyProvider>
+      {source.kind !== refreshed.kind && (
+        <p role="alert">The editor mode changed. Save or download your local changes before reopening the designer.</p>
+      )}
       {source.kind === "active" ? (
         <LegacyScope.Provider value={source.scope}>{editor(source.formJson)}</LegacyScope.Provider>
       ) : (
@@ -147,4 +150,8 @@ export default function FormDesignerWrapper({
       )}
     </DesignSurveyProvider>
   );
+}
+
+export default function FormDesignerWrapper(props: FormDesignerWrapperProps) {
+  return <ScopedFormDesigner key={props.source.scope} {...props} />;
 }

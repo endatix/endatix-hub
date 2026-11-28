@@ -21,8 +21,20 @@ import { defineFormAction } from "../../application/actions/define-form.action";
 import { resolveAssistantFolderGateError } from "./assistant-folder-gate";
 import { generateFormForConversationAction } from "./generate-form-for-conversation.action";
 import { ChatMessage } from "@/lib/endatix-api/conversations/types";
+import { Result, type ResultType } from "@/lib/result";
 
 export type AssistantFolderOption = { id: string; name: string };
+
+function readProposal(text?: string | null) {
+  if (!text) return { definition: undefined, errors: [] };
+  const parsed = JSON.parse(text);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new TypeError("A form definition must be a JSON object.");
+  }
+  const survey = new Model();
+  survey.fromJSON(parsed);
+  return { definition: survey.toJSON(), errors: survey.jsonErrors?.map(error => error.message) ?? [] };
+}
 
 interface FormAssistantContext {
   isAssistantEnabled: boolean;
@@ -30,7 +42,7 @@ interface FormAssistantContext {
   sendPrompt: (
     prompt: string,
     definition?: string,
-  ) => Promise<ConversationState>;
+  ) => Promise<ResultType<ConversationState>>;
   generateAssociatedForm: () => Promise<string | undefined>;
   /** When tenant policy requires a folder, set before generating a form from the assistant. */
   requireFolderForNewForms: boolean;
@@ -105,7 +117,7 @@ export function FormAssistantProvider({
   const sendPrompt = async (
     prompt: string,
     definition?: string,
-  ): Promise<ConversationState> => {
+  ): Promise<ResultType<ConversationState>> => {
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
       isAi: false,
@@ -137,7 +149,7 @@ export function FormAssistantProvider({
         type: ConversationActionType.SET_ERROR,
         payload: { error: result.error.message },
       });
-      return chatContext;
+      return Result.error(result.error.message);
     }
 
     const promptResponse = result.data;
@@ -145,15 +157,9 @@ export function FormAssistantProvider({
     let validatedDefinition: object | undefined = undefined;
 
     try {
-      const resultJson = JSON.parse(
-        promptResponse.agentResponse.definition ?? "{}",
-      );
-      const surveyModel = new Model();
-      surveyModel.fromJSON(resultJson);
-      if (surveyModel.jsonErrors?.length > 0) {
-        definitionErrors = surveyModel.jsonErrors.map((error) => error.message);
-      }
-      validatedDefinition = surveyModel.toJSON();
+      const proposal = readProposal(promptResponse.agentResponse.definition);
+      validatedDefinition = proposal.definition;
+      definitionErrors = proposal.errors;
     } catch {
       dispatch({
         type: ConversationActionType.SET_ERROR,
@@ -162,7 +168,7 @@ export function FormAssistantProvider({
           definitionErrors: [],
         },
       });
-      return chatContext;
+      return Result.validationError("Error parsing definition");
     }
 
     const isNewConversation = !chatContext?.threadId || !chatContext?.agentId;
@@ -173,7 +179,7 @@ export function FormAssistantProvider({
         userMessage: userMessage,
         tempUserMessageId: userMessage.id,
         agentResponse: promptResponse.agentResponse,
-        resultDefinition: validatedDefinition ?? {},
+        resultDefinition: validatedDefinition,
         definitionErrors,
         error: undefined,
         threadId: isNewConversation ? promptResponse.threadId : undefined,
@@ -181,7 +187,7 @@ export function FormAssistantProvider({
       },
     });
 
-    return {
+    return Result.success({
       ...chatContext,
       resultDefinition: validatedDefinition,
       definitionErrors,
@@ -199,7 +205,7 @@ export function FormAssistantProvider({
         },
       ],
       error: undefined,
-    };
+    });
   };
 
   const generateAssociatedForm = async (): Promise<string | undefined> => {
