@@ -121,22 +121,17 @@ function FormDesignerContent({
   );
 }
 
-function EditorContent(props: Omit<FormDesignerWrapperProps, "source"> & { formJson: object | null }) {
-  const [isCurrentThemeModified, setIsCurrentThemeModified] = useState(false);
+function useEditorContent(props: Omit<FormDesignerWrapperProps, "source">) {
+  const [themeModified, setThemeModified] = useState(false);
   const formSaveHandlerRef = useRef<(() => Promise<void>) | null>(null);
-  return (
-    <FormDesignerContent
-      {...props}
-      isCurrentThemeModified={isCurrentThemeModified}
-      setIsCurrentThemeModified={setIsCurrentThemeModified}
-      formSaveHandlerRef={formSaveHandlerRef}
-    />
-  );
+  const editor = (formJson: object | null) => <FormDesignerContent {...props} formJson={formJson}
+    isCurrentThemeModified={themeModified} setIsCurrentThemeModified={setThemeModified} formSaveHandlerRef={formSaveHandlerRef} />;
+  return { editor, themeModified };
 }
 
 function ScopedFormDesigner({source: refreshed, ...props}: FormDesignerWrapperProps) {
   const [source] = useState(refreshed);
-  const editor = (formJson: object | null) => <EditorContent {...props} formJson={formJson} />;
+  const { editor, themeModified } = useEditorContent(props);
   return (
     <DesignSurveyProvider>
       {source.kind !== refreshed.kind && (
@@ -144,7 +139,7 @@ function ScopedFormDesigner({source: refreshed, ...props}: FormDesignerWrapperPr
       )}
       {source.kind === "active" ? (
         <LegacyScope.Provider value={source.scope}>
-          <LegacyEditorSource frozen={refreshed.kind !== "active"} source={refreshed.kind === "active" ? refreshed.formJson : source.formJson}>{editor}</LegacyEditorSource>
+          <LegacyEditorSource themeModified={themeModified} frozen={refreshed.kind !== "active"} source={refreshed.kind === "active" ? refreshed.formJson : source.formJson}>{editor}</LegacyEditorSource>
         </LegacyScope.Provider>
       ) : (
         <DraftEditorProvider key={source.scope} formId={props.formId} {...source}>

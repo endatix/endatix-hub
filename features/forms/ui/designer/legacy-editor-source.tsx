@@ -32,12 +32,13 @@ function LegacyRefreshDialog({ load, keep }: { load(): void; keep(): void }) {
   </Dialog>;
 }
 
-export function LegacyEditorSource({ source, frozen, children }: { source: Document; frozen: boolean; children(json: Document): ReactNode }) {
+interface LegacySourceProps { source: Document; frozen: boolean; themeModified: boolean; children(json: Document): ReactNode }
+export function LegacyEditorSource({ source, frozen, themeModified, children }: LegacySourceProps) {
   const designer = useSurveyDesigner();
   const [submitted, setSubmitted] = useState<string | null>(null);
   const [view, setView] = useState<Snapshot>(() => ({ source, canvas: source, revision: 0, conflict: false }));
   if (!frozen && view.source !== source) {
-    setView(acceptRefresh(view, source, {dirty: designer.hasUnsavedChanges || designer.isJsonModified, submitted}));
+    setView(acceptRefresh(view, source, {dirty: designer.hasUnsavedChanges || designer.isJsonModified || themeModified, submitted}));
     setSubmitted(null);
   }
   function load() {

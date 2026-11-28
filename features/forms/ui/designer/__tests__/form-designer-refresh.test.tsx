@@ -10,9 +10,10 @@ vi.mock("../../editor/form-editor-with-chat", () => ({ default: () => null }));
 vi.mock("../../editor/form-editor-header", () => ({ default: () => null }));
 vi.mock("../../editor/use-form-editor-header.hook", () => ({ useFormEditorHeader: () => ({}) }));
 vi.mock("../../editor/form-editor-container", () => ({
-  default: function Editor({ formJson }: { formJson: { title: string } }) {
+  default: function Editor({ formJson, onThemeModificationChange }: { formJson: { title: string }; onThemeModificationChange(value: boolean): void }) {
     const {setHasUnsavedChanges} = useSurveyDesigner();
-    return <input aria-label="Canvas" defaultValue={formJson.title} onChange={() => setHasUnsavedChanges(true)} />;
+    return <><input aria-label="Canvas" defaultValue={formJson.title} onChange={() => setHasUnsavedChanges(true)} />
+      <input aria-label="Theme" defaultValue="Blue" onChange={() => onThemeModificationChange(true)} /></>;
   },
 }));
 vi.mock("../../../edit-draft/draft-editor-context", async () => ({
@@ -46,6 +47,18 @@ it.each(["draft", "active"] as const)("preserves the %s editor across cutover bu
     mounted.rerender(view(source(otherMode, scope)));
     expect(screen.getByLabelText("Canvas")).toHaveProperty("value", `Loaded from ${scope}`);
   }
+});
+
+it("keeps a theme-only edit mounted when a peer changes the active form", () => {
+  const view = (title: string) => <FormDesignerWrapper formId="1" formName="Form" source={{kind: "active", scope: "scope", formJson: {title}}}/>;
+  const mounted = render(view("Original"));
+  const theme = screen.getByLabelText("Theme");
+  fireEvent.change(theme, {target: {value: "Green"}});
+  mounted.rerender(view("Peer edit"));
+  expect(screen.getByRole("dialog")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", {name: "Keep editing my copy"}));
+  expect(screen.getByLabelText("Theme")).toBe(theme);
+  expect(theme).toHaveProperty("value", "Green");
 });
 
 it("adopts a clean active refresh, preserves a later dirty canvas, and loads the peer copy only by choice", () => {
