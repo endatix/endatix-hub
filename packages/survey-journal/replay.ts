@@ -27,6 +27,10 @@ export function replaySegment(
   }
 }
 
+function assertTerminal(actual: string, expected: string) {
+  if (canonicalSurvey(actual) !== expected) throw new Error("Draft journal differs from the local document.");
+}
+
 export function verifiedCheckpoints(
   survey: { base: string; terminal: string },
   records: readonly IJournalRecord[],
@@ -42,11 +46,7 @@ export function verifiedCheckpoints(
   });
   const terminal = replaySegment(document, records.slice(previous));
   const expected = canonicalSurvey(survey.terminal);
-  if (
-    canonicalSurvey(terminal) !== expected ||
-    canonicalSurvey(replaySegment(survey.base, records)) !== expected
-  ) {
-    throw new Error("Draft journal differs from the local document.");
-  }
+  assertTerminal(terminal, expected);
+  assertTerminal(replaySegment(survey.base, records), expected);
   return checkpoints;
 }

@@ -6,7 +6,7 @@ import {
   isAuthenticationRequired,
   isInvalidTokenError,
 } from "@/features/auth/authorization";
-import { formPublishFlag } from "@/lib/feature-flags/flags";
+import { formPublishFlag } from "@/lib/feature-flags/form-publish.server";
 import { EndatixApi } from "@/lib/endatix-api";
 import type { WriteResult } from "@/lib/survey-features/draft-autosave/controller";
 
@@ -16,6 +16,18 @@ const signIn = {
 } as const;
 type DraftClient = EndatixApi["forms"]["drafts"];
 type Denied = Extract<WriteResult, { message: string }>;
+type Access = Awaited<ReturnType<typeof authorization>>;
+const grant = [Permissions.Access.Hub, Permissions.Forms.Edit];
+
+async function editorAccess(service: Access, formId: string, scope: string): Promise<Denied | undefined> {
+  const access = await service.checkAllPermissions(grant);
+  if (!access.success) {
+    const kind = isAuthenticationRequired(access) || isInvalidTokenError(access) ? "auth" : "error";
+    return { kind, message: access.error.message };
+  }
+  const actor = await service.getAuthorizationData();
+  if (!actor.success || JSON.stringify([actor.data.tenantId, actor.data.userId, formId]) !== scope) return signIn;
+}
 
 export async function draftWriter(
   formId: string,
@@ -24,27 +36,12 @@ export async function draftWriter(
   const session = await auth();
   if (!session?.accessToken || session.error) return signIn;
   const service = await authorization(session);
-  const access = await service.checkAllPermissions([
-    Permissions.Access.Hub,
-    Permissions.Forms.Edit,
-  ]);
-  if (!access.success) {
-    const kind =
-      isAuthenticationRequired(access) || isInvalidTokenError(access)
-        ? "auth"
-        : "error";
-    return { kind, message: access.error.message };
-  }
+  const denied = await editorAccess(service, formId, scope);
+  if (denied) return denied;
   if (!(await formPublishFlag()))
     return {
-      kind: "error",
-      message: "Draft editing is not enabled for this deployment.",
+      kind: "modeChanged",
+      message: "The editor mode changed. Your draft is kept on this device. Download a copy before reopening the designer.",
     };
-  const actor = await service.getAuthorizationData();
-  if (
-    !actor.success ||
-    JSON.stringify([actor.data.tenantId, actor.data.userId, formId]) !== scope
-  )
-    return signIn;
   return { client: new EndatixApi(session.accessToken).forms.drafts };
 }

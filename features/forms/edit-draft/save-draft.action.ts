@@ -48,6 +48,11 @@ async function readAcknowledgedHead(
   return { kind: "saved", head: current.data };
 }
 
+async function replace(client: DraftClient, formId: string, request: DraftWrite): Promise<WriteResult> {
+  const result = await client.replace(formId, request.version, request.jsonData);
+  return result.success ? { kind: "saved", head: result.data } : failure(result);
+}
+
 export async function saveDraftAction(
   formId: string,
   scope: string,
@@ -56,16 +61,7 @@ export async function saveDraftAction(
   const writer = await draftWriter(formId, scope);
   if (!("client" in writer)) return writer;
   const { client } = writer;
-  if (!request.batch) {
-    const result = await client.replace(
-      formId,
-      request.version,
-      request.jsonData,
-    );
-    return result.success
-      ? { kind: "saved", head: result.data }
-      : failure(result);
-  }
+  if (!request.batch) return replace(client, formId, request);
   const result = await client.append(formId, request.version, request.batch);
   if (!result.success) return failure(result);
   if (result.data.saveNo !== request.batch.saveNo)

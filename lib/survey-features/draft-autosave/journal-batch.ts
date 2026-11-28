@@ -24,6 +24,18 @@ function interiorOffsets(edit: LocalEdit, tail: number) {
   return offsets;
 }
 
+type CheckpointReplay = typeof import("@endatix/survey-journal/replay").verifiedCheckpoints;
+
+function groupCheckpoints(group: CandidateGroup, offsets: number[], context: { records: IJournalRecord[]; replay: CheckpointReplay }) {
+  const inside = offsets.filter(offset => group.start < offset && offset < group.end);
+  const relative = inside.map(offset => offset - group.start);
+  const records = context.records.slice(group.start, group.end);
+  const checkpoints = context.replay({base: group.before, terminal: group.after}, records, relative)
+    .map(point => ({ ...point, afterRecord: group.start + point.afterRecord }));
+  if (offsets.includes(group.end)) checkpoints.push({afterRecord: group.end, jsonData: group.after});
+  return checkpoints;
+}
+
 async function captureCheckpoints(
   edit: LocalEdit,
   base: string,
@@ -33,29 +45,11 @@ async function captureCheckpoints(
   const { verifiedCheckpoints } =
     await import("@endatix/survey-journal/replay");
   const records = edit.records as unknown as IJournalRecord[];
-  const checkpoints = [];
-  for (const offset of offsets) {
-    const group = edit.groups?.find((g) => g.start < offset && offset <= g.end);
-    if (!group) {
-      // An unforeseen remote cursor: only a verified reconstruction can supply its missing prefix.
-      return verifiedCheckpoints(
-        { base, terminal: edit.jsonData },
-        records,
-        offsets,
-      );
-    }
-    if (group.end === offset)
-      checkpoints.push({ afterRecord: offset, jsonData: group.after });
-    else {
-      const [prefix] = verifiedCheckpoints(
-        { base: group.before, terminal: group.after },
-        records.slice(group.start, group.end),
-        [offset - group.start],
-      );
-      checkpoints.push({ afterRecord: offset, jsonData: prefix.jsonData });
-    }
-  }
-  return checkpoints;
+  const context = {records, replay: verifiedCheckpoints};
+  const checkpoints = edit.groups?.flatMap(group => groupCheckpoints(group, offsets, context)) ?? [];
+  if (checkpoints.length === offsets.length) return checkpoints;
+  // A different remote cursor can require a prefix outside the retained candidates.
+  return verifiedCheckpoints({ base, terminal: edit.jsonData }, records, offsets);
 }
 
 export async function journalBatch(

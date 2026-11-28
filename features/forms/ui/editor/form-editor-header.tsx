@@ -18,6 +18,15 @@ interface FormEditorHeaderProps extends FormEditorHeaderState {
   backLabel: string;
 }
 
+function SaveIndicators({ themeModified, ...props }: React.ComponentProps<typeof SurveyDesignStatusBadge> & { themeModified: boolean }) {
+  const draft = useEditorDraft();
+  const legacy = !draft || props.hasJsonErrors || themeModified;
+  return <>
+    <DraftStatusBadges />
+    {legacy && <SurveyDesignStatusBadge {...props} />}
+  </>;
+}
+
 export default function FormEditorHeader({
   isEditingName,
   name,
@@ -39,7 +48,6 @@ export default function FormEditorHeader({
   setIsEditingName,
   setName,
 }: FormEditorHeaderProps) {
-  const draft = useEditorDraft();
   const saveDisabled = isPending || isSaving || hasJsonErrors;
   const showInvalidJson = isOnJsonTab && hasJsonErrors;
   const showUnsavedChanges =
@@ -79,9 +87,7 @@ export default function FormEditorHeader({
         <FormPublicStatus isPublic={isPublic} />
       </div>
       <div className="flex items-center gap-2">
-        <DraftStatusBadges />
-        {(!draft || showInvalidJson || isCurrentThemeModified) && (
-          <SurveyDesignStatusBadge
+          <SaveIndicators themeModified={isCurrentThemeModified}
             isOnJsonTab={isOnJsonTab}
             isJsonModified={isJsonModified}
             hasJsonErrors={showInvalidJson}
@@ -90,7 +96,6 @@ export default function FormEditorHeader({
             showSavedSuccess={showSavedSuccess}
             onSavedSuccessDismiss={clearSavedSuccess}
           />
-        )}
         <SurveyDesignSaveButton
           disabled={saveDisabled}
           onClick={saveFormHandler}

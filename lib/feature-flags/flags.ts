@@ -6,11 +6,6 @@ export const aiFeaturesFlag = flag<boolean>({
   defaultValue: false,
 });
 
-export const formPublishFlag = flag<boolean>({
-  key: "form-publish",
-  defaultValue: false,
-});
-
 export const experimentalFeaturesFlag = flag<boolean>({
   key: "experimental-features",
   defaultValue: false,

@@ -12,7 +12,7 @@ import { useState, useCallback, useRef } from "react";
 import { useFormAssistant } from "@/features/forms/use-cases/design-form/form-assistant.context";
 import type { FormDesignReturn } from "../../form-workspace";
 import type { DesignerAudience } from "../editor/form-editor";
-import { DraftEditorProvider } from "../../edit-draft/draft-editor-context";
+import { DraftEditorProvider, LegacyScope } from "../../edit-draft/draft-editor-context";
 import type { EditorSource } from "../../edit-draft/editor-source.server";
 
 export interface FormDesignerWrapperProps {
@@ -139,9 +139,9 @@ export default function FormDesignerWrapper({
   return (
     <DesignSurveyProvider>
       {source.kind === "active" ? (
-        editor(source.formJson)
+        <LegacyScope.Provider value={source.scope}>{editor(source.formJson)}</LegacyScope.Provider>
       ) : (
-        <DraftEditorProvider formId={props.formId} {...source}>
+        <DraftEditorProvider key={source.scope} formId={props.formId} {...source}>
           {editor}
         </DraftEditorProvider>
       )}

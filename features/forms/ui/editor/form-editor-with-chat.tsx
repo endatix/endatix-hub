@@ -26,8 +26,30 @@ import { ICreatorOptions } from "survey-creator-core";
 import { useFormAssistant } from "../../use-cases/design-form/form-assistant.context";
 import type { DesignerAudience } from "./form-editor";
 import { useEditorDraft } from "../../edit-draft/draft-editor-context";
+import type { ConversationState } from "../../use-cases/design-form";
 
 const CRITICAL_WIDTH = 600;
+
+function useAssistantDefinition(formJson: object | null) {
+  const [json, setJson] = useState(formJson);
+  const { setHasUnsavedChanges } = useSurveyDesigner();
+  const draft = useEditorDraft();
+  const { chatContext } = useFormAssistant();
+  useEffect(() => {
+    if (!draft && !chatContext?.error && chatContext?.resultDefinition) {
+      setJson(chatContext.resultDefinition);
+      setHasUnsavedChanges(true);
+    }
+  }, [draft, chatContext?.error, chatContext?.resultDefinition, setHasUnsavedChanges]);
+  const apply = (conversation: ConversationState) => {
+    const proposal = conversation.resultDefinition;
+    if (!proposal || conversation.definitionErrors?.length) return;
+    draft?.controller.edit(JSON.stringify(proposal));
+    setJson(proposal);
+    setHasUnsavedChanges(true);
+  };
+  return { json, apply, current: draft?.controller.localDocument ?? JSON.stringify(json) };
+}
 
 export interface FormEditorWithChatProps {
   formId: string;
@@ -54,35 +76,15 @@ export default function FormEditorWithChat({
   onThemeModificationChange,
   onSaveHandlerReady,
 }: FormEditorWithChatProps) {
-  const { setHasUnsavedChanges } = useSurveyDesigner();
-  const draft = useEditorDraft();
+  const definition = useAssistantDefinition(formJson);
   const chatPanelRef = useRef<PanelImperativeHandle>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [updatedFormJson, setUpdatedFormJson] = useState<object | null>(
-    formJson,
-  );
-  const [conversationLoaded, setConversationLoaded] = useState(false);
   const propertyGridControllerRef = useRef<((visible: boolean) => void) | null>(
     null,
   );
   const { chatContext } = useFormAssistant();
   const isGeneratingResponse = chatContext?.isResponsePending ?? false;
-  const hasNonEmptyFormJson = formJson && Object.keys(formJson).length > 0;
-  const shouldRenderEditor = hasNonEmptyFormJson || conversationLoaded;
-
-  useEffect(() => {
-    if (!draft && !chatContext?.error && chatContext?.resultDefinition) {
-      setUpdatedFormJson(chatContext.resultDefinition);
-      setHasUnsavedChanges(true);
-    }
-    setConversationLoaded(true);
-  }, [
-    draft,
-    chatContext?.error,
-    chatContext?.resultDefinition,
-    setHasUnsavedChanges,
-  ]);
 
   useEffect(() => {
     const checkWidth = () => {
@@ -125,10 +127,9 @@ export default function FormEditorWithChat({
     <div className="flex flex-1 overflow-hidden">
       <ResizablePanelGroup orientation="horizontal" className="flex-1">
         <ResizablePanel defaultSize={70}>
-          {shouldRenderEditor ? (
             <FormEditorContainer
               formId={formId}
-              formJson={updatedFormJson}
+              formJson={definition.json}
               formName={formName}
               options={options}
               themeId={themeId}
@@ -142,7 +143,6 @@ export default function FormEditorWithChat({
                 propertyGridControllerRef.current = controller;
               }}
             />
-          ) : null}
         </ResizablePanel>
         <ResizableHandle />
         <ResizablePanel
@@ -241,15 +241,6 @@ export default function FormEditorWithChat({
                       </Button>
                     </AlertDescription>
                   </Alert>
-                ) : !conversationLoaded ? (
-                  <div className="flex h-full items-center justify-center">
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-                      <p className="text-muted-foreground">
-                        Loading conversation...
-                      </p>
-                    </div>
-                  </div>
                 ) : (
                   <>
                     <ChatThread />
@@ -258,15 +249,8 @@ export default function FormEditorWithChat({
                       <DotLoader className="m-auto flex flex-none items-center" />
                     )}
                     <ChatBox
-                      currentDefinition={
-                        draft?.controller.localDocument ??
-                        JSON.stringify(updatedFormJson || formJson)
-                      }
-                      onDefinitionGenerated={(json) => {
-                        draft?.controller.edit(JSON.stringify(json));
-                        setUpdatedFormJson(json);
-                        setHasUnsavedChanges(true);
-                      }}
+                      currentDefinition={definition.current}
+                      onFormGenerated={definition.apply}
                       className="flex-end flex-none"
                       placeholder="Ask for modifications to your form..."
                     />

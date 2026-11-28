@@ -70,7 +70,7 @@ import {
   type CustomQuestionRequest,
 } from "./custom-question-dialog";
 import { createCustomQuestionAction } from "../../application/actions/create-custom-question.action";
-import { saveEditorDocument, saveEditorTheme } from "./save-editor-document";
+import { useSaveEditorDocument, saveEditorTheme } from "./save-editor-document";
 import {
   customizeQuestionClassesOnCreator,
   loadBuiltInCustomQuestionClasses,
@@ -200,6 +200,7 @@ function FormEditor({
   });
   const { registerJsonEditor, getJsonModel, captureJsonSave, controller } =
     useFormJsonEditor(creator, formName);
+  const saveDocument = useSaveEditorDocument(formId, controller);
   const { isReady: isExtensionsReady, onCreatorCreated } = useSurveyExtensions({
     runtimeDeps: designerRuntimeDeps(designerRuntime.stateRef),
   });
@@ -304,7 +305,7 @@ function FormEditor({
     const theme = creator?.theme as StoredTheme;
     const json = JSON.stringify(jsonResult.value);
     if (isJsonModified) controller?.edit(json);
-    const saved = await saveEditorDocument(formId, json, controller);
+    const saved = await saveDocument(json);
     if (Result.isError(saved)) {
       toast.error(saved.message);
       return;
@@ -332,6 +333,7 @@ function FormEditor({
   }, [
     getJsonModel,
     captureJsonSave,
+    saveDocument,
     controller,
     isJsonModified,
     creator,

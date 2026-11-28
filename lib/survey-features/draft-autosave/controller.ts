@@ -14,7 +14,7 @@ export type DraftWrite = {
 export type WriteResult =
   | { kind: "saved"; head: FormDraft }
   | { kind: "stale"; head: FormDraft; acknowledged?: boolean }
-  | { kind: "auth" | "offline" | "error"; message: string };
+  | { kind: "auth" | "offline" | "error" | "modeChanged"; message: string };
 export interface DraftQueue {
   base: FormDraft;
   edits: LocalEdit[];
@@ -30,6 +30,7 @@ export type DraftStatus =
   | "auth"
   | "conflict"
   | "recovery"
+  | "modeChanged"
   | "error";
 export interface DraftView {
   status: DraftStatus;
@@ -128,10 +129,10 @@ export class DraftAutosave {
     if (!records.length && jsonData === this.localDocument) return;
     this.queue = queueEdit(this.queue, jsonData, records);
     const persisted = this.persist();
-    if (this.status !== "auth") this.show("saving");
+    if (!this.paused()) this.show("saving");
     void persisted.then(
       () => {
-        if (!this.ports.online() && !this.remote) this.show("offline");
+        if (!this.ports.online() && !this.remote && !this.paused()) this.show("offline");
       },
       () => {},
     );
@@ -162,7 +163,7 @@ export class DraftAutosave {
       if (edit.saveNo > this.queue.sealed) return;
       await this.persist();
       if (!this.ports.online()) return this.show("offline");
-      if (this.status === "auth") return;
+      if (this.paused()) return;
       if (!(await this.sendFirst(edit))) return;
     }
     if (!this.remote && !this.queue.edits.length) {
@@ -174,6 +175,10 @@ export class DraftAutosave {
 
   private canDrain() {
     return !this.closed && !this.remote && this.queue.edits.length > 0;
+  }
+
+  private paused() {
+    return this.status === "auth" || this.status === "modeChanged";
   }
 
   private async prepare(edit: LocalEdit) {
@@ -222,25 +227,24 @@ export class DraftAutosave {
 
   private async applyResult(result: WriteResult, retry: boolean) {
     if (result.kind === "saved") return this.acknowledge(result.head);
-    if (result.kind === "stale") {
-      if (
-        !retry &&
-        !result.acknowledged &&
-        result.head.contentHash === this.queue.base.contentHash
-      ) {
-        this.queue = { ...this.queue, base: result.head, request: undefined };
-        await this.persist();
-        return true;
-      }
-      this.remote = result.head;
-      this.show("conflict");
-    } else {
-      if (result.kind === "auth" && !retry) {
-        this.queue = { ...this.queue, request: undefined };
-        await this.persist();
-      }
-      this.show(result.kind, result.message);
+    if (result.kind === "stale") return this.reconcile(result, retry);
+    if (result.kind === "auth" && !retry) {
+      this.queue = { ...this.queue, request: undefined };
+      await this.persist();
     }
+    this.show(result.kind, result.message);
+    return false;
+  }
+
+  private async reconcile(result: Extract<WriteResult, {kind: "stale"}>, retry: boolean) {
+    const sameBase = result.head.contentHash === this.queue.base.contentHash;
+    if (sameBase && !retry && !result.acknowledged) {
+      this.queue = { ...this.queue, base: result.head, request: undefined };
+      await this.persist();
+      return true;
+    }
+    this.remote = result.head;
+    this.show("conflict");
     return false;
   }
 

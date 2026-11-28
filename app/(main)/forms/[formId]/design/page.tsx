@@ -3,7 +3,7 @@ import { NotFoundComponent } from "@/components/error-handling/not-found";
 import { HubPageLoadError } from "@/components/error-handling/error-page";
 import { Button } from "@/components/ui/button";
 import { AssetStorageProvider } from "@/features/asset-storage/server";
-import { authorization, Permissions } from "@/features/auth/authorization";
+import { authorization } from "@/features/auth/authorization";
 import FormDesignerWrapper, {
   FormDesignerWrapperProps,
 } from "@/features/forms/ui/designer/form-designer-wrapper";
@@ -24,11 +24,8 @@ import {
 } from "@/features/audience/server";
 import { FormAssistantProvider } from "@/features/forms/use-cases/design-form/form-assistant.context";
 import { getCurrentConversationUseCase } from "@/features/forms/use-cases/design-form/get-current-conversation.use-case";
-import { aiFeaturesFlag, formPublishFlag } from "@/lib/feature-flags/flags";
-import {
-  activeEditorSource,
-  draftEditorSource,
-} from "@/features/forms/edit-draft/editor-source.server";
+import { aiFeaturesFlag } from "@/lib/feature-flags/flags";
+import { loadEditorSource } from "@/features/forms/edit-draft/editor-source.server";
 import { getFormDesignReturn } from "@/features/forms/form-workspace";
 import {
   firstSearchParam,
@@ -78,7 +75,6 @@ export default async function FormDesignerPage({
     foldersRes,
     formResult,
     audienceForDesign,
-    draftsEnabled,
   ] = await Promise.all([
     api.tenant.getSettings(),
     api.folders.list(),
@@ -94,7 +90,6 @@ export default async function FormDesignerPage({
       formId,
       checkPermission: access.checkPermission,
     }),
-    formPublishFlag(),
   ]);
 
   if (Result.isError(formResult)) {
@@ -113,10 +108,7 @@ export default async function FormDesignerPage({
       ? foldersRes.data.map((f) => ({ id: f.id, name: f.name }))
       : [];
 
-  if (draftsEnabled) await access.requirePermission(Permissions.Forms.Edit);
-  const source = draftsEnabled
-    ? await draftEditorSource(api, formId, access)
-    : await activeEditorSource(api, form);
+  const source = await loadEditorSource(api, form, access);
   if (Result.isError(source)) return <HubPageLoadError result={source} />;
 
   const props: FormDesignerWrapperProps = {

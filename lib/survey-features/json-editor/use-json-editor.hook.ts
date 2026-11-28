@@ -55,6 +55,16 @@ interface JsonBuffer {
   model: AceJsonPlugin;
   savedText: string;
   modified: boolean;
+  recordEdit(): void;
+}
+
+function checkBufferEdit(buffer: JsonBuffer, onModified: () => void) {
+  if (!buffer.model.isJSONChanged) return;
+  if (!buffer.modified && buffer.model.text === buffer.savedText) return;
+  buffer.recordEdit();
+  if (buffer.modified) return;
+  buffer.modified = true;
+  onModified();
 }
 
 // Activation and file import both call Ace.setValue(). Only activation
@@ -62,18 +72,12 @@ interface JsonBuffer {
 function listenForJsonEdits(
   buffer: JsonBuffer,
   onModified: () => void,
-  onEdit: () => void,
 ) {
   const { model } = buffer;
   const session = model.aceEditor.getSession();
   let listening = true;
   const checkEdit = () => {
-    if (!listening || !model.isJSONChanged) return;
-    if (buffer.modified || model.text !== buffer.savedText) onEdit();
-    if (buffer.modified) return;
-    if (model.text === buffer.savedText) return;
-    buffer.modified = true;
-    onModified();
+    if (listening) checkBufferEdit(buffer, onModified);
   };
   const onChange = () => {
     if (model.isProcessingImmediately) queueMicrotask(checkEdit);
@@ -112,16 +116,12 @@ function useJsonSaveBuffer() {
  * @returns { registerJsonEditor } - Call with creator; returns cleanup.
  */
 export function useJsonEditor(options: UseJsonEditorOptions) {
-  const { onJsonStateChange, downloadName = "" } = options;
+  const { onJsonStateChange } = options;
   const { activeBuffer, captureJsonSave } = useJsonSaveBuffer();
-  const downloadNameRef = useRef(downloadName);
-  const editRef = useRef(options.onJsonEdit);
+  const optionsRef = useRef(options);
   useEffect(() => {
-    editRef.current = options.onJsonEdit;
-  }, [options.onJsonEdit]);
-  useEffect(() => {
-    downloadNameRef.current = downloadName;
-  }, [downloadName]);
+    optionsRef.current = options;
+  }, [options]);
 
   const registerJsonEditor = useCallback(
     (creator: SurveyCreatorModel): (() => void) => {
@@ -146,12 +146,11 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
           JSON_EDITOR_PLUGIN_NAME,
         );
         const model = jsonPlugin?.model as unknown as AceJsonPlugin;
-        const hasAceEditor = TabJsonEditorAcePlugin.hasAceEditor();
-        if (!model || !hasAceEditor) return;
+        if (!model || !TabJsonEditorAcePlugin.hasAceEditor()) return;
 
         // Reading creator.text after an edit applies the pending buffer to Designer.
         // Compare with the saved text captured before Ace starts editing instead.
-        const buffer = { model, savedText: creator.text, modified: false };
+        const buffer = { model, savedText: creator.text, modified: false, recordEdit: () => optionsRef.current.onJsonEdit?.(creator) };
         activeBuffer.current = buffer;
         let unsubscribe: (() => void) | undefined;
 
@@ -169,7 +168,6 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
             unsubscribe = listenForJsonEdits(
               buffer,
               () => notify({ hasErrors: jsonTabBlocks(model) }),
-              () => editRef.current?.(creator),
             );
           }
         };
@@ -206,7 +204,7 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
 
       const removeDownloadMenu = addObfuscatedJsonDownload(
         creator,
-        () => downloadNameRef.current,
+        () => optionsRef.current.downloadName ?? "",
       );
       creator.onLintSurvey.add(warnUnknownReference);
       creator.onActiveTabChanged.add(onTabChanged);

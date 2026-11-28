@@ -173,7 +173,8 @@ const draft = vi.hoisted(() => ({
   isSaved: false,
 }));
 vi.mock("@endatix/survey-journal", () => ({ captureJournal: () => vi.fn() }));
-vi.mock("../../../edit-draft/draft-editor-context", () => ({
+vi.mock("../../../edit-draft/draft-editor-context", async () => ({
+  LegacyScope: (await import("react")).createContext("test"),
   useEditorDraft: () => ({ controller: draft, view: { status: "saving" } }),
 }));
 

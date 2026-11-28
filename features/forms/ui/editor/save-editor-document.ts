@@ -4,17 +4,35 @@ import { DEFAULT_THEME_ID } from "@/features/themes/manage-theme-editor";
 import type { StoredTheme } from "@/features/themes/types";
 import type { DraftAutosave } from "@/lib/survey-features/draft-autosave/controller";
 import { Result, type ResultType } from "@/lib/result";
+import { useContext, useRef, useCallback } from "react";
+import { keepLegacyEdit } from "@/lib/survey-features/draft-autosave/idb-draft-store";
+import { downloadText } from "@/lib/utils/files-download";
 
-export async function saveEditorDocument(
-  formId: string,
-  json: string,
-  draft?: DraftAutosave,
-) {
-  if (!draft) return saveActiveDefinitionAction(formId, json);
-  await draft.resume();
-  return draft.isSaved
-    ? Result.success(formId)
-    : Result.error("The draft has not reached the server.");
+import { LegacyScope } from "../../edit-draft/draft-editor-context";
+
+export function useSaveEditorDocument(formId: string, draft?: DraftAutosave) {
+  const scope = useContext(LegacyScope);
+  const session = useRef<string | undefined>(undefined);
+  return useCallback(async (json: string) => {
+    if (draft) {
+      await draft.resume();
+      return draft.isSaved ? Result.success(formId) : Result.error("The draft has not reached the server.");
+    }
+    const saved = await saveActiveDefinitionAction(formId, json);
+    if (!Result.isError(saved) || saved.errorCode !== "editor_mode_changed") return saved;
+    session.current ??= crypto.randomUUID();
+    return preserveOnCutover({formId, scope}, session.current, json);
+  }, [scope, formId, draft]);
+}
+
+async function preserveOnCutover(editor: { formId: string; scope: string }, sessionId: string, json: string) {
+  try {
+    await keepLegacyEdit(editor.scope, sessionId, json);
+    return Result.error("Draft editing is now enabled. Reopen the designer to restore the changes kept on this device.");
+  } catch {
+    downloadText(json, `form-${editor.formId}.json`, "application/json");
+    return Result.error("Draft editing is now enabled. Keep the downloaded JSON and import it after reopening the designer.");
+  }
 }
 
 export async function saveEditorTheme(

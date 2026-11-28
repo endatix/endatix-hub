@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useEffectEvent } from "react";
 import type { SurveyCreatorModel } from "survey-creator-core";
 import { captureJournal } from "@endatix/survey-journal";
 import { useEditorDraft } from "../../edit-draft/draft-editor-context";
@@ -9,6 +9,7 @@ import {
   type JsonEditorState,
 } from "@/lib/survey-features/json-editor/use-json-editor.hook";
 import { Result } from "@/lib/result";
+import type { DraftAutosave } from "@/lib/survey-features/draft-autosave/controller";
 
 function useJsonTabState() {
   const {
@@ -34,9 +35,8 @@ export function useFormJsonEditor(
 ) {
   const draft = useEditorDraft();
   const controller = draft?.controller;
-  const onJsonStateChange = useJsonTabState();
   const json = useJsonEditor({
-    onJsonStateChange,
+    onJsonStateChange: useJsonTabState(),
     downloadName: formName,
     onJsonEdit(model) {
       if (!controller) return;
@@ -45,6 +45,12 @@ export function useFormJsonEditor(
         controller.edit(JSON.stringify(parsed.value));
     },
   });
+  useJournalCapture(creator, controller);
+  useAcknowledgeDraft(creator, json, draft);
+  return { ...json, controller };
+}
+
+function useJournalCapture(creator: SurveyCreatorModel | null, controller: DraftAutosave | undefined) {
   useEffect(() => {
     if (!creator || !controller) return;
     return captureJournal(creator, (records, document) => {
@@ -52,8 +58,11 @@ export function useFormJsonEditor(
       controller.edit(document, records as unknown as LocalEdit["records"]);
     });
   }, [creator, controller]);
-  useAcknowledgeDraft(creator, json, draft);
-  return { ...json, controller };
+}
+
+function matchesSavedJson(model: SurveyCreatorModel, json: ReturnType<typeof useJsonEditor>, saved: string) {
+  const result = json.getJsonModel(model);
+  return Result.isSuccess(result) && JSON.stringify(result.value) === saved;
 }
 
 function useAcknowledgeDraft(
@@ -61,30 +70,13 @@ function useAcknowledgeDraft(
   json: ReturnType<typeof useJsonEditor>,
   draft: ReturnType<typeof useEditorDraft>,
 ) {
-  const { isJsonModified, setIsJsonModified, setHasUnsavedChanges } =
-    useSurveyDesigner();
-  const { captureJsonSave, getJsonModel } = json;
-  useEffect(() => {
+  const designer = useSurveyDesigner();
+  const acknowledge = useEffectEvent(() => {
     if (draft?.view.status !== "saved" || !creator) return;
-    if (isJsonModified) {
-      const parsed = getJsonModel(creator);
-      if (
-        !Result.isSuccess(parsed) ||
-        JSON.stringify(parsed.value) !== draft.controller.localDocument
-      )
-        return;
-    }
-    if (captureJsonSave()()) {
-      setHasUnsavedChanges(false);
-      setIsJsonModified(false);
-    }
-  }, [
-    draft,
-    creator,
-    isJsonModified,
-    getJsonModel,
-    captureJsonSave,
-    setHasUnsavedChanges,
-    setIsJsonModified,
-  ]);
+    if (designer.isJsonModified && !matchesSavedJson(creator, json, draft.controller.localDocument)) return;
+    if (!json.captureJsonSave()()) return;
+    designer.setIsJsonModified(false);
+    designer.setHasUnsavedChanges(false);
+  });
+  useEffect(() => { acknowledge(); }, [draft?.view, creator]);
 }

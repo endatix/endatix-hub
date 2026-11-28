@@ -1,5 +1,5 @@
 import { beforeEach, expect, it, vi } from "vitest";
-import { formPublishFlag } from "@/lib/feature-flags/flags";
+import { formPublishFlag } from "@/lib/feature-flags/form-publish.server";
 import { Result } from "@/lib/result";
 import { saveActiveDefinitionAction } from "../save-active-definition.action";
 import { saveDraftAction } from "../save-draft.action";
@@ -11,7 +11,12 @@ const { patch, replace } = vi.hoisted(() => ({
 vi.mock("@/auth", () => ({
   auth: async () => ({ accessToken: "session-token" }),
 }));
-vi.mock("@/lib/feature-flags/flags", () => ({ formPublishFlag: vi.fn() }));
+vi.mock("next/server", async actual => ({
+  ...await actual<typeof import("next/server")>(), connection: vi.fn(async () => {}),
+}));
+vi.mock("@/lib/feature-flags/factories/flag-factory-provider", () => ({
+  flagFactoryProvider: { getFactory: () => { throw new Error("A cohort cannot select the editor write contract."); } },
+}));
 vi.mock("@/lib/endatix-api", async (importActual) => ({
   ...(await importActual<typeof import("@/lib/endatix-api")>()),
   EndatixApi: class {
@@ -35,6 +40,8 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 const request = { jsonData: '{"title":"Edit"}', version: "9007199254740999" };
 const scope = JSON.stringify(["82", "14", "17"]);
 beforeEach(() => {
+  vi.stubEnv("FLAG_PROVIDER", "posthog");
+  vi.stubEnv("POSTHOG_PROJECT_TOKEN", "test-token");
   patch.mockResolvedValue({ success: true, data: {} });
   replace.mockResolvedValue({
     success: true,
@@ -43,7 +50,8 @@ beforeEach(() => {
 });
 
 it("keeps the immediate save usable and rejects a stale draft tab when rollout is off", async () => {
-  vi.mocked(formPublishFlag).mockResolvedValue(false);
+  vi.stubEnv("FLAG_FORM_PUBLISH", undefined);
+  expect(await formPublishFlag()).toBe(false);
   expect(
     Result.isSuccess(await saveActiveDefinitionAction("17", request.jsonData)),
   ).toBe(true);
@@ -51,12 +59,13 @@ it("keeps the immediate save usable and rejects a stale draft tab when rollout i
     isDraft: false,
     jsonData: request.jsonData,
   });
-  expect((await saveDraftAction("17", scope, request)).kind).toBe("error");
+  expect((await saveDraftAction("17", scope, request)).kind).toBe("modeChanged");
   expect(replace).not.toHaveBeenCalled();
 });
 
 it("writes only the draft after activation, including when an older tab attempts a manual save", async () => {
-  vi.mocked(formPublishFlag).mockResolvedValue(true);
+  vi.stubEnv("FLAG_FORM_PUBLISH", "true");
+  expect(await formPublishFlag()).toBe(true);
   expect(
     Result.isError(await saveActiveDefinitionAction("17", request.jsonData)),
   ).toBe(true);

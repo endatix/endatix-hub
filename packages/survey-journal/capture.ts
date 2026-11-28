@@ -23,12 +23,7 @@ function guardRecorder(recorder: JournalRecorder) {
   };
 }
 
-export function captureJournal(
-  creator: SurveyCreatorModel,
-  onRecord: OnRecord,
-) {
-  const recorder = new JournalRecorder(creator);
-  guardRecorder(recorder);
+function emissionBuffer(creator: SurveyCreatorModel, onRecord: OnRecord) {
   let pending: IJournalRecord[] = [];
   const flush = () => {
     if (!pending.length) return;
@@ -43,6 +38,13 @@ export function captureJournal(
     if (!pending.length) queueMicrotask(flush);
     pending.push(JSON.parse(JSON.stringify(record)));
   };
+  return { capture, flush };
+}
+
+export function captureJournal(creator: SurveyCreatorModel, onRecord: OnRecord) {
+  const recorder = new JournalRecorder(creator);
+  guardRecorder(recorder);
+  const { capture, flush } = emissionBuffer(creator, onRecord);
   recorder.onRecordAdded.add(capture);
   recorder.onRecordChanged.add(capture);
   return () => {
