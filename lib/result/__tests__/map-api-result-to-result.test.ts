@@ -291,4 +291,21 @@ describe("mapApiResultToResult", () => {
     });
     expect(telemetryLoggerMock.error).not.toHaveBeenCalled();
   });
+
+  it.each([412, 428])(
+    "retains status %i and logs only a missing precondition",
+    (status) => {
+      // Arrange
+      const error = ApiResult.httpStatusError(status);
+      // Act
+      const result = mapToResult(error, {
+        logMessage: "Conditional write failed",
+      });
+      // Assert
+      expect(result).toMatchObject({ statusCode: status });
+      expect(telemetryLoggerMock.error).toHaveBeenCalledTimes(
+        status === 428 ? 1 : 0,
+      );
+    },
+  );
 });
