@@ -1,4 +1,5 @@
 import { Result } from "@/lib/result";
+import type { ActiveDefinition } from "@/types";
 import { validateEndatixId } from "@/lib/utils/type-validators";
 import { EndatixApi } from "../endatix-api";
 import { ApiResult } from "../shared/api-result";
@@ -52,6 +53,14 @@ export function buildListDefinitionsEndpoint(
 
 export class Definitions {
   constructor(private readonly endatix: EndatixApi) {}
+
+  async getActive(formId: string): Promise<ApiResult<ActiveDefinition>> {
+    const id = validateEndatixId(formId, "formId");
+    if (Result.isError(id)) return ApiResult.validationError(id.message);
+    return this.endatix.get<ActiveDefinition>(`/forms/${id.value}/definition`, {
+      requireAuth: false,
+    });
+  }
 
   /**
    * Returns the union of single-value fields across all definitions for a form.

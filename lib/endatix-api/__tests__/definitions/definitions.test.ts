@@ -97,3 +97,32 @@ describe("Definitions.get", () => {
     expect(ApiResult.isSuccess(result)).toBe(true);
   });
 });
+
+describe("Definitions.getActive", () => {
+  it("allows anonymous reads and preserves a settings failure", async () => {
+    // Arrange
+    const failure = ApiResult.httpStatusError(503);
+    const get = vi.fn().mockResolvedValue(failure);
+    const definitions = new Definitions({ get } as unknown as EndatixApi);
+
+    // Act
+    const result = await definitions.getActive("42");
+
+    // Assert
+    expect(result).toEqual(failure);
+    expect(get).toHaveBeenCalledWith("/forms/42/definition", {
+      requireAuth: false,
+    });
+  });
+
+  it("rejects an invalid form ID before reading settings", async () => {
+    // Arrange
+    const get = vi.fn();
+    const definitions = new Definitions({ get } as unknown as EndatixApi);
+    // Act
+    const result = await definitions.getActive("invalid");
+    // Assert
+    expect(ApiResult.isError(result)).toBe(true);
+    expect(get).not.toHaveBeenCalled();
+  });
+});

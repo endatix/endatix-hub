@@ -7,8 +7,11 @@ import {
   SIGNIN_PATH,
 } from "@/features/auth/infrastructure/auth-constants";
 import { ERROR_CODE, ERROR_CODES } from "@/lib/endatix-api/shared/error-codes";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { reloadPage } from "@/lib/utils/reload-page";
 import { describe, expect, it, vi } from "vitest";
+
+vi.mock("@/lib/utils/reload-page", () => ({ reloadPage: vi.fn() }));
 
 vi.mock("@/features/public-form/ui/embed-height-reporter", () => ({
   EmbedHeightReporter: () => <div data-testid="embed-height-reporter" />,
@@ -113,6 +116,8 @@ describe("PublicFormAccessError", () => {
       screen.getByRole("heading", { name: "Unable to load form" }),
     ).toBeDefined();
     expect(screen.getByText(ERROR_CODES.network_error)).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(reloadPage).toHaveBeenCalledOnce();
     expect(screen.queryByRole("link", { name: "Sign in" })).toBeNull();
   });
 

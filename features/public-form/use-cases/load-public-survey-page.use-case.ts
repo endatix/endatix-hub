@@ -28,7 +28,7 @@ import {
   ERROR_CODE,
   REFUSED_TOKEN_CODES,
 } from "@/lib/endatix-api/shared/error-codes";
-import { Result, type ResultType } from "@/lib/result";
+import { Result, type Error as Failure } from "@/lib/result";
 import { parseSurveyJson } from "@/lib/survey-js/survey-json";
 import type { ActiveDefinition } from "@/types";
 
@@ -147,7 +147,7 @@ async function loadCookieSubmissionPage(
 
   const current = await getActiveDefinitionUseCase({ formId: query.formId });
   if (Result.isError(current)) {
-    return submission ? submissionUnavailable : { kind: "notFound" };
+    return mapAccessFailure(current);
   }
   if (!submission || submissionPhase === "blocked") {
     return { ...session, kind: "success", activeDefinition: current.value };
@@ -295,7 +295,7 @@ async function testInspectorFor({
 
 const RESPONDENT_COPY_MAX_LENGTH = 240;
 
-function mapAccessFailure(result: ResultType<unknown>): Extract<
+function mapAccessFailure(result: Failure): Extract<
   LoadPublicSurveyPageResult,
   {
     kind:
@@ -306,48 +306,47 @@ function mapAccessFailure(result: ResultType<unknown>): Extract<
       | "accessLoadError";
   }
 > {
-  if (!Result.isError(result)) {
-    return { kind: "notFound" };
-  }
-
-  if (result.errorCode === ERROR_CODE.FORM_UNAVAILABLE) {
-    const title = plainRespondentCopy(result.problemTitle);
-    const message = plainRespondentCopy(result.message);
-    if (
-      result.problemMediaType === "application/problem+json" &&
-      title &&
-      message
-    ) {
-      return { kind: "formUnavailable", title, message };
-    }
-
-    return { kind: "forbidden" };
-  }
-
-  if (result.errorCode === ERROR_CODE.AUTHENTICATION_REQUIRED) {
+  const { statusCode, errorCode } = result;
+  if (errorCode === ERROR_CODE.FORM_UNAVAILABLE) return unavailableForm(result);
+  if (statusCode === 401 || errorCode === ERROR_CODE.AUTHENTICATION_REQUIRED) {
     return { kind: "unauthorized" };
   }
 
-  if (result.errorCode === ERROR_CODE.ACCESS_FORBIDDEN) {
+  if (statusCode === 403 || errorCode === ERROR_CODE.ACCESS_FORBIDDEN) {
     return { kind: "forbidden" };
   }
 
-  if (isMissingFormAccessError(result.errorCode)) {
+  if (statusCode === 404 || isMissingFormAccessError(errorCode)) {
     return { kind: "notFound" };
   }
 
   return {
     kind: "accessLoadError",
-    errorCode: result.errorCode ?? ERROR_CODE.UNKNOWN_ERROR,
+    errorCode: errorCode ?? ERROR_CODE.UNKNOWN_ERROR,
   };
+}
+
+function unavailableForm(
+  result: Failure,
+): Extract<
+  LoadPublicSurveyPageResult,
+  { kind: "formUnavailable" | "forbidden" }
+> {
+  const title = plainRespondentCopy(result.problemTitle);
+  const message = plainRespondentCopy(result.message);
+  return result.problemMediaType === "application/problem+json" &&
+    title &&
+    message
+    ? { kind: "formUnavailable", title, message }
+    : { kind: "forbidden" };
 }
 
 /** A refused token needs a new link, not a retry: the token page says so. */
 function mapAccessTokenFailure(
-  result: ResultType<unknown>,
+  result: Failure,
   { personalLink }: LoadAccessTokenSurveyPageQuery,
 ): LoadPublicSurveyPageResult {
-  const errorCode = Result.isError(result) ? result.errorCode : undefined;
+  const { errorCode } = result;
   return errorCode && REFUSED_TOKEN_CODES.has(errorCode)
     ? tokenSubmissionError(errorCode, personalLink)
     : mapAccessFailure(result);

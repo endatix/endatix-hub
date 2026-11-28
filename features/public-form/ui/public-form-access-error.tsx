@@ -4,6 +4,7 @@ import {
 } from "@/features/auth/infrastructure/auth-constants";
 import { EmbedHeightReporter } from "@/features/public-form/ui/embed-height-reporter";
 import type { PublicSurveyVariant } from "@/features/public-form/types";
+import { RetryPublicFormButton } from "./retry-public-form-button";
 import { getErrorMessageWithFallback } from "@/lib/endatix-api/shared/error-codes";
 import { withBasePath } from "@/lib/hosting";
 import {
@@ -109,30 +110,20 @@ function getPresentation({
   }
 }
 
-export function PublicFormAccessError({
-  kind,
-  formId,
-  variant,
-  urlToken,
-  errorCode,
-  title,
-  message,
-}: Readonly<PublicFormAccessErrorProps>) {
-  const isEmbed = variant === "embed";
-  const presentation = getPresentation({ kind, errorCode, title, message });
-
+export function PublicFormAccessError(
+  props: Readonly<PublicFormAccessErrorProps>,
+) {
+  const isEmbed = props.variant === "embed";
+  const presentation = getPresentation(props);
   return (
     <>
       {isEmbed && <EmbedHeightReporter />}
       <PublicStatusPage {...presentation} layout={isEmbed ? "embed" : "page"}>
-        {kind === "unauthorized" && (
+        {props.kind === "accessLoadError" && <RetryPublicFormButton />}
+        {props.kind === "unauthorized" && (
           <a
             className={publicStatusClassNames.action}
-            href={buildPublicFormSignInHref({
-              formId,
-              variant,
-              urlToken,
-            })}
+            href={buildPublicFormSignInHref(props)}
             {...(isEmbed ? { target: "_top" } : {})}
           >
             Sign in

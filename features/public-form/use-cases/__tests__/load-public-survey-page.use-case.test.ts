@@ -259,21 +259,31 @@ describe("loadPublicSurveyPageUseCase", () => {
     });
   });
 
-  it("does not render a saved response without its current form settings", async () => {
-    // Arrange
-    vi.mocked(getPartialSubmissionUseCase).mockResolvedValue(
-      ApiResult.success(savedSubmission),
-    );
-    vi.mocked(getActiveDefinitionUseCase).mockResolvedValue(
-      Result.error("Settings unavailable"),
-    );
+  it.each([
+    [503, "accessLoadError"],
+    [401, "unauthorized"],
+    [403, "forbidden"],
+    [404, "notFound"],
+  ] as const)(
+    "maps a %i settings response after loading a cookie submission to %s",
+    async (statusCode, kind) => {
+      // Arrange
+      vi.mocked(getPartialSubmissionUseCase).mockResolvedValue(
+        ApiResult.success(savedSubmission),
+      );
+      vi.mocked(getActiveDefinitionUseCase).mockResolvedValue(
+        Result.error("Settings unavailable", undefined, undefined, {
+          statusCode,
+        }),
+      );
 
-    // Act
-    const result = await loadPublicSurveyPageUseCase({ formId, tokenStore });
+      // Act
+      const result = await loadPublicSurveyPageUseCase({ formId, tokenStore });
 
-    // Assert
-    expect(result.kind).toBe("submissionLoadError");
-  });
+      // Assert
+      expect(result.kind).toBe(kind);
+    },
+  );
 
   it.each([undefined, "not json", "[]"])(
     "returns a submission error for unreadable bound questions (%s)",
@@ -353,7 +363,11 @@ describe("loadPublicSurveyPageUseCase", () => {
       Result.success(publicAccess),
     );
     vi.mocked(getActiveDefinitionUseCase).mockResolvedValue(
-      Result.error("Definition missing"),
+      Result.error(
+        "Definition missing",
+        undefined,
+        ERROR_CODE.RESOURCE_NOT_FOUND,
+      ),
     );
 
     const definitionResult = await loadPublicSurveyPageUseCase({

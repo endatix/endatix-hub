@@ -1,6 +1,7 @@
-import { ActiveDefinition } from "@/types";
-import { getActiveFormDefinition } from "@/services/api";
-import { Result } from "@/lib/result";
+import { getSession } from "@/features/auth";
+import { EndatixApi } from "@/lib/endatix-api";
+import { toResult, type ResultType } from "@/lib/result";
+import type { ActiveDefinition } from "@/types";
 
 export type GetDefinitionQuery = {
   formId: string;
@@ -8,17 +9,11 @@ export type GetDefinitionQuery = {
 
 export const getActiveDefinitionUseCase = async ({
   formId,
-}: GetDefinitionQuery): Promise<Result<ActiveDefinition>> => {
-  try {
-    const response = await getActiveFormDefinition(formId, true);
-
-    return Result.success(response);
-  } catch (error) {
-    const errorMessage = `Failed to load form: ${
-      error instanceof Error ? error.message : "Unknown error"
-    }`;
-    console.error(errorMessage);
-
-    return Result.error(errorMessage);
-  }
+}: GetDefinitionQuery): Promise<ResultType<ActiveDefinition>> => {
+  const api = new EndatixApi(await getSession());
+  return toResult(await api.definitions.getActive(formId), {
+    fallbackMessage: "Failed to load form.",
+    logMessage: "Failed to load active form definition.",
+    loggerName: "public-form.definition",
+  });
 };
