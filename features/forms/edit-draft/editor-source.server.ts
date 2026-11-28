@@ -18,8 +18,8 @@ const readError = {
 };
 
 export async function loadEditorSource(api: EndatixApi, form: EditorForm, access: Access) {
-  if (!await formPublishFlag()) return activeEditorSource(api, form, access);
   await access.requirePermission(Permissions.Forms.Edit);
+  if (!await formPublishFlag()) return activeEditorSource(api, form, access);
   return draftEditorSource(api, form.id, access);
 }
 

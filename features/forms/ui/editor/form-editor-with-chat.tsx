@@ -27,8 +27,15 @@ import { useFormAssistant } from "../../use-cases/design-form/form-assistant.con
 import type { DesignerAudience } from "./form-editor";
 import { useEditorDraft } from "../../edit-draft/draft-editor-context";
 import type { ConversationState } from "../../use-cases/design-form";
+import { toast } from "@/components/ui/toast";
 
 const CRITICAL_WIDTH = 600;
+
+function acceptReply(draft: ReturnType<typeof useEditorDraft>, proposal: object, original?: string) {
+  if (!draft || draft.controller.applyProposal(original, JSON.stringify(proposal))) return true;
+  toast.info("Your draft changed while the assistant was working. Your edits were kept. Ask again using the current draft.");
+  return false;
+}
 
 function useAssistantDefinition(formJson: object | null) {
   const [json, setJson] = useState(formJson);
@@ -41,10 +48,9 @@ function useAssistantDefinition(formJson: object | null) {
       setHasUnsavedChanges(true);
     }
   }, [draft, chatContext?.error, chatContext?.resultDefinition, setHasUnsavedChanges]);
-  const apply = (conversation: ConversationState) => {
+  const apply = (conversation: ConversationState, original?: string) => {
     const proposal = conversation.resultDefinition;
-    if (!proposal || conversation.definitionErrors?.length) return;
-    draft?.controller.edit(JSON.stringify(proposal));
+    if (!proposal || conversation.definitionErrors?.length || !acceptReply(draft, proposal, original)) return;
     setJson(proposal);
     setHasUnsavedChanges(true);
   };

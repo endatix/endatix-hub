@@ -153,3 +153,29 @@ it("never reapplies an uncertain save after a 401 and an equal-hash stale reply"
     Array(3).fill(ports.send.mock.calls[0][0]),
   );
 });
+
+it("discards only the local queue when the reader chooses the server copy", async () => {
+  const local = editor();
+  local.ports.online.mockReturnValue(false);
+  local.controller.edit('{"title":"Unsynced"}');
+  await local.controller.flush();
+  await local.controller.close();
+
+  const reopened = editor(local.stored());
+  await reopened.controller.resolve(false);
+  expect(reopened.ports.load).toHaveBeenCalledWith(base.jsonData);
+  expect(reopened.ports.send).not.toHaveBeenCalled();
+  expect(reopened.stored().edits).toEqual([]);
+});
+
+it("keeps newer local edits when an assistant reply arrives for an older draft", async () => {
+  const local = editor();
+  local.ports.online.mockReturnValue(false);
+  local.controller.edit('{"title":"Typed after prompt"}');
+  expect(local.controller.applyProposal(base.jsonData, '{"title":"Assistant reply"}')).toBe(false);
+  await local.controller.flush();
+  expect(local.stored().edits[0].jsonData).toBe('{"title":"Typed after prompt"}');
+  expect(local.controller.applyProposal(local.controller.localDocument, '{"title":"Fresh suggestion"}')).toBe(true);
+  await local.controller.close();
+  expect(local.stored().edits.at(-1)?.jsonData).toBe('{"title":"Fresh suggestion"}');
+});

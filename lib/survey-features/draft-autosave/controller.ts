@@ -96,6 +96,11 @@ export class DraftAutosave {
   get isSaved() {
     return this.status === "saved" && !this.queue.edits.length;
   }
+  applyProposal(original: string | undefined, proposal: string) {
+    if (this.closed || this.remote || original !== this.localDocument) return false;
+    this.edit(proposal);
+    return true;
+  }
   get serverMoved() {
     return (
       !!this.remote && this.remote.contentHash !== this.queue.base.contentHash

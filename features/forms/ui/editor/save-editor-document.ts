@@ -1,7 +1,7 @@
 import { saveActiveDefinitionAction } from "../../edit-draft/save-active-definition.action";
 import { updateFormThemeAction } from "@/features/themes/update-form-theme";
 import { DEFAULT_THEME_ID } from "@/features/themes/manage-theme-editor";
-import type { StoredTheme } from "@/features/themes/types";
+import type { StoredTheme } from "@/features/themes";
 import type { DraftAutosave } from "@/lib/survey-features/draft-autosave/controller";
 import { Result, type ResultType } from "@/lib/result";
 import { useContext, useRef, useCallback } from "react";
@@ -15,6 +15,8 @@ export function useSaveEditorDocument(formId: string, draft?: DraftAutosave) {
   const session = useRef<string | undefined>(undefined);
   return useCallback(async (json: string) => {
     if (draft) {
+      // Some Creator extensions change the document without producing a journal emission.
+      if (draft.localDocument !== json) draft.edit(json);
       await draft.resume();
       return draft.isSaved ? Result.success(formId) : Result.error("The draft has not reached the server.");
     }

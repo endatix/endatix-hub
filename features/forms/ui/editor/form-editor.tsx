@@ -304,7 +304,6 @@ function FormEditor({
     const acknowledgeJsonSave = captureJsonSave();
     const theme = creator?.theme as StoredTheme;
     const json = JSON.stringify(jsonResult.value);
-    if (isJsonModified) controller?.edit(json);
     const saved = await saveDocument(json);
     if (Result.isError(saved)) {
       toast.error(saved.message);
@@ -334,8 +333,6 @@ function FormEditor({
     getJsonModel,
     captureJsonSave,
     saveDocument,
-    controller,
-    isJsonModified,
     creator,
     formId,
     themeId,
