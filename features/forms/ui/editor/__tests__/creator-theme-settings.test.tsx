@@ -11,7 +11,6 @@ import {
   useSurveyDesigner,
 } from "@/lib/survey-features/designer/design-survey.context";
 import { Result } from "@/lib/result";
-import { updateFormDefinitionJsonAction } from "@/features/forms/application/actions/update-form-definition-json.action";
 
 const surveyCreator = vi.hoisted(() => vi.fn());
 
@@ -168,12 +167,15 @@ vi.mock("../../application/actions/create-custom-question.action", () => ({
   createCustomQuestionAction: vi.fn(),
 }));
 
-vi.mock(
-  "@/features/forms/application/actions/update-form-definition-json.action",
-  () => ({
-    updateFormDefinitionJsonAction: vi.fn(),
-  }),
-);
+const draft = vi.hoisted(() => ({
+  edit: vi.fn(),
+  resume: vi.fn(),
+  isSaved: false,
+}));
+vi.mock("@endatix/survey-journal", () => ({ captureJournal: () => vi.fn() }));
+vi.mock("../../../edit-draft/draft-editor-context", () => ({
+  useEditorDraft: () => ({ controller: draft, view: { status: "saving" } }),
+}));
 
 vi.mock("@/features/themes/update-form-theme", () => ({
   updateFormThemeAction: vi.fn(),
@@ -204,9 +206,7 @@ function EditIndicator() {
 it("preserves a rejected form edit so the same save can be retried", async () => {
   // Arrange
   const ready = vi.fn<(save: () => Promise<void>) => void>();
-  vi.mocked(updateFormDefinitionJsonAction)
-    .mockResolvedValueOnce(Result.error("Save unavailable"))
-    .mockResolvedValueOnce(Result.success("1"));
+  draft.isSaved = false;
   render(
     <DesignSurveyProvider>
       <FormEditor
@@ -226,14 +226,10 @@ it("preserves a rejected form edit so the same save can be retried", async () =>
   // Act & Assert
   await save();
   expect(screen.getByRole("button", { name: "Modified" })).toBeTruthy();
+  draft.isSaved = true;
   await save();
   expect(screen.getByRole("button", { name: "Clean" })).toBeTruthy();
-  expect(updateFormDefinitionJsonAction).toHaveBeenNthCalledWith(
-    2,
-    "1",
-    false,
-    { title: "Edited" },
-  );
+  expect(draft.edit).toHaveBeenNthCalledWith(2, '{"title":"Edited"}');
 });
 
 describe("creator theme settings", () => {

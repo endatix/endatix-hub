@@ -3,7 +3,7 @@ import { NotFoundComponent } from "@/components/error-handling/not-found";
 import { HubPageLoadError } from "@/components/error-handling/error-page";
 import { Button } from "@/components/ui/button";
 import { AssetStorageProvider } from "@/features/asset-storage/server";
-import { authorization } from "@/features/auth/authorization";
+import { authorization, Permissions } from "@/features/auth/authorization";
 import FormDesignerWrapper, {
   FormDesignerWrapperProps,
 } from "@/features/forms/ui/designer/form-designer-wrapper";
@@ -26,10 +26,12 @@ import { FormAssistantProvider } from "@/features/forms/use-cases/design-form/fo
 import { getCurrentConversationUseCase } from "@/features/forms/use-cases/design-form/get-current-conversation.use-case";
 import { aiFeaturesFlag } from "@/lib/feature-flags/flags";
 import { getFormDesignReturn } from "@/features/forms/form-workspace";
-import { parseSurveyJson } from "@/lib/survey-js";
-import { firstSearchParam, type SearchParamValue } from "@/lib/utils/next-utils";
+import {
+  firstSearchParam,
+  type SearchParamValue,
+} from "@/lib/utils/next-utils";
 import { EndatixApi } from "@/lib/endatix-api";
-import { Result, toResult } from "@/lib/result";
+import { ErrorType, Kind, Result, toResult } from "@/lib/result";
 import { Form } from "@/types";
 import type { DesignerAudience } from "@/lib/personalization/authoring";
 import Link from "next/link";
@@ -59,27 +61,42 @@ export default async function FormDesignerPage({
   searchParams,
 }: Readonly<Params>) {
   const session = await auth();
-  const { requireHubAccess, checkPermission } = await authorization(session);
-  await requireHubAccess();
+  const { requireAllPermissions, checkPermission, getAuthorizationData } =
+    await authorization(session);
+  await requireAllPermissions([Permissions.Access.Hub, Permissions.Forms.Edit]);
 
   const { formId } = await params;
   const aiFeaturesEnabled = await aiFeaturesFlag();
   const chatContextPromise = getCurrentConversationUseCase(formId, session);
 
   const api = new EndatixApi(session?.accessToken);
-  const [settingsRes, foldersRes, formResult, audienceForDesign] =
-    await Promise.all([
-      api.tenant.getSettings(),
-      api.folders.list(),
-      api.forms.get(formId).then((apiResult) =>
-        toResult(apiResult, {
-          fallbackMessage: "Failed to load form.",
-          logMessage: "Failed to load form for design.",
-          loggerName: "forms.design",
-        }),
-      ),
-      loadDesignerAudience({ api, formId, checkPermission }),
-    ]);
+  const [
+    settingsRes,
+    foldersRes,
+    formResult,
+    audienceForDesign,
+    draftResult,
+    actor,
+  ] = await Promise.all([
+    api.tenant.getSettings(),
+    api.folders.list(),
+    api.forms.get(formId).then((apiResult) =>
+      toResult(apiResult, {
+        fallbackMessage: "Failed to load form.",
+        logMessage: "Failed to load form for design.",
+        loggerName: "forms.design",
+      }),
+    ),
+    loadDesignerAudience({ api, formId, checkPermission }),
+    api.forms.drafts.get(formId).then((result) =>
+      toResult(result, {
+        fallbackMessage: "Could not load draft.",
+        logMessage: "Draft read failed.",
+        loggerName: "forms.design",
+      }),
+    ),
+    getAuthorizationData(),
+  ]);
 
   if (Result.isError(formResult)) {
     if (formResult.statusCode === 404) {
@@ -97,34 +114,23 @@ export default async function FormDesignerPage({
       ? foldersRes.data.map((f) => ({ id: f.id, name: f.name }))
       : [];
 
-  let formJson: object | null = null;
-  let formDefinitionJson: string | undefined;
-
-  if (form.activeDefinitionId) {
-    const definitionResult = toResult(
-      await api.definitions.get(formId, form.activeDefinitionId),
-      {
-        fallbackMessage: "Failed to load form definition.",
-        logMessage: "Failed to load form definition for design.",
-        loggerName: "forms.design",
-      },
+  if (Result.isError(draftResult))
+    return <HubPageLoadError result={draftResult} />;
+  if (!actor.success)
+    return (
+      <HubPageLoadError
+        result={{
+          kind: Kind.Error,
+          errorType: ErrorType.Error,
+          message: actor.error.message,
+        }}
+      />
     );
-
-    // A missing definition is not a missing form - keep the load-error chrome so the
-    // 404 reads as "this resource", not "we couldn't find that form".
-    if (Result.isError(definitionResult)) {
-      return <HubPageLoadError result={definitionResult} />;
-    }
-
-    formDefinitionJson = definitionResult.value.jsonData;
-    // A stored definition that is not valid JSON must not take the whole route
-    // segment into error.tsx - open the designer empty, as it did before.
-    formJson = parseSurveyJson(formDefinitionJson);
-  }
 
   const props: FormDesignerWrapperProps = {
     formId: formId,
-    formJson: formJson,
+    head: draftResult.value,
+    scope: JSON.stringify([actor.data.tenantId, actor.data.userId, formId]),
     formName: form.name,
     themeId: form.themeId ?? undefined,
     isPublic: form.isPublic,

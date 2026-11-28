@@ -1,0 +1,9 @@
+{
+  "base": {"pages":[{"name":"p","elements":[{"type":"text","name":"old"}]}]},
+  "records": [
+    {"v":1,"seq":1,"timestamp":1,"op":0,"payload":{"target":"/title","value":"Hello"}},
+    {"v":1,"seq":2,"timestamp":2,"op":0,"payload":{"target":"/pages/p/elements/old/name","value":"new"}}
+  ],
+  "prefix": {"title":"Hello","pages":[{"name":"p","elements":[{"type":"text","name":"old"}]}]},
+  "terminal": {"title":"Hello","pages":[{"name":"p","elements":[{"type":"text","name":"new"}]}]}
+}

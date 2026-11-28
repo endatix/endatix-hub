@@ -45,6 +45,7 @@ function jsonTabBlocks(model: JsonEditorBaseModel): boolean {
 export type { JsonEditorState } from "./json-editor-state";
 
 export interface UseJsonEditorOptions {
+  onJsonEdit?: (creator: SurveyCreatorModel) => void;
   onJsonStateChange?: (state: JsonEditorState) => void;
   /** The form's name, for the obfuscated download's file name. */
   downloadName?: string;
@@ -58,12 +59,18 @@ interface JsonBuffer {
 
 // Activation and file import both call Ace.setValue(). Only activation
 // clears Creator's pending flag after setValue returns.
-function listenForJsonEdits(buffer: JsonBuffer, onModified: () => void) {
+function listenForJsonEdits(
+  buffer: JsonBuffer,
+  onModified: () => void,
+  onEdit: () => void,
+) {
   const { model } = buffer;
   const session = model.aceEditor.getSession();
   let listening = true;
   const checkEdit = () => {
-    if (!listening || !model.isJSONChanged || buffer.modified) return;
+    if (!listening || !model.isJSONChanged) return;
+    if (buffer.modified || model.text !== buffer.savedText) onEdit();
+    if (buffer.modified) return;
     if (model.text === buffer.savedText) return;
     buffer.modified = true;
     onModified();
@@ -108,6 +115,10 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
   const { onJsonStateChange, downloadName = "" } = options;
   const { activeBuffer, captureJsonSave } = useJsonSaveBuffer();
   const downloadNameRef = useRef(downloadName);
+  const editRef = useRef(options.onJsonEdit);
+  useEffect(() => {
+    editRef.current = options.onJsonEdit;
+  }, [options.onJsonEdit]);
   useEffect(() => {
     downloadNameRef.current = downloadName;
   }, [downloadName]);
@@ -155,8 +166,10 @@ export function useJsonEditor(options: UseJsonEditorOptions) {
           }
 
           if (!unsubscribe && model.aceEditor) {
-            unsubscribe = listenForJsonEdits(buffer, () =>
-              notify({ hasErrors: jsonTabBlocks(model) }),
+            unsubscribe = listenForJsonEdits(
+              buffer,
+              () => notify({ hasErrors: jsonTabBlocks(model) }),
+              () => editRef.current?.(creator),
             );
           }
         };

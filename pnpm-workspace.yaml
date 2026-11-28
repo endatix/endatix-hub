@@ -8,6 +8,8 @@
 # ERR_PNPM_MISSING_HOISTED_LOCATIONS. The shared-lockfile default is correct for a
 # single-package repo.
 nodeLinker: hoisted
+packages:
+  - packages/*
 
 # Supply-chain defaults. pnpm 11+ ships these; pnpm 10 defaults are laxer
 # (minimumReleaseAge 0, blockExoticSubdeps false), so set them explicitly and both

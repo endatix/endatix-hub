@@ -25,6 +25,7 @@ import { useSurveyDesigner } from "@/lib/survey-features/designer/design-survey.
 import { ICreatorOptions } from "survey-creator-core";
 import { useFormAssistant } from "../../use-cases/design-form/form-assistant.context";
 import type { DesignerAudience } from "./form-editor";
+import { useEditorDraft } from "../../edit-draft/draft-editor-context";
 
 const CRITICAL_WIDTH = 600;
 
@@ -54,6 +55,7 @@ export default function FormEditorWithChat({
   onSaveHandlerReady,
 }: FormEditorWithChatProps) {
   const { setHasUnsavedChanges } = useSurveyDesigner();
+  const draft = useEditorDraft();
   const chatPanelRef = useRef<PanelImperativeHandle>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -76,11 +78,6 @@ export default function FormEditorWithChat({
         return;
       }
 
-      // If form definition is empty but conversation has resultJson, load it
-      if (chatContext?.resultDefinition) {
-        setUpdatedFormJson(chatContext?.resultDefinition);
-        setHasUnsavedChanges(true);
-      }
       setConversationLoaded(true);
     };
 
@@ -266,9 +263,15 @@ export default function FormEditorWithChat({
                       <DotLoader className="m-auto flex flex-none items-center" />
                     )}
                     <ChatBox
-                      currentDefinition={JSON.stringify(
-                        updatedFormJson || formJson,
-                      )}
+                      currentDefinition={
+                        draft?.controller.localDocument ??
+                        JSON.stringify(updatedFormJson || formJson)
+                      }
+                      onDefinitionGenerated={(json) => {
+                        draft?.controller.edit(JSON.stringify(json));
+                        setUpdatedFormJson(json);
+                        setHasUnsavedChanges(true);
+                      }}
                       className="flex-end flex-none"
                       placeholder="Ask for modifications to your form..."
                     />

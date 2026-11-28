@@ -14,6 +14,7 @@ FROM base AS build
 # resolves the version with `git describe`. The final image stays git-free.
 RUN apk add --no-cache git
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages/survey-journal/package.json ./packages/survey-journal/
 RUN pnpm ci
 COPY . .
 # Our release pipeline passes the version from the git tag

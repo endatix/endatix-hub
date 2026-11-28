@@ -75,7 +75,9 @@ import {
   type CustomQuestionRequest,
 } from "./custom-question-dialog";
 import { createCustomQuestionAction } from "../../application/actions/create-custom-question.action";
-import { updateFormDefinitionJsonAction } from "../../application/actions/update-form-definition-json.action";
+import { captureJournal } from "@endatix/survey-journal";
+import { useEditorDraft } from "../../edit-draft/draft-editor-context";
+import type { LocalEdit } from "@/lib/survey-features/draft-autosave/journal-batch";
 import {
   customizeQuestionClassesOnCreator,
   loadBuiltInCustomQuestionClasses,
@@ -189,7 +191,12 @@ function FormEditor({
   const unbindCreatorRef = useRef<(() => void) | null>(null);
   const [creator, setCreator] = useState<SurveyCreator | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [bindAudience, findParticipantDialog] = useDesignerAudience(formId, audience);
+  const draft = useEditorDraft();
+  const controller = draft?.controller;
+  const [bindAudience, findParticipantDialog] = useDesignerAudience(
+    formId,
+    audience,
+  );
 
   const {
     hasUnsavedChanges,
@@ -217,6 +224,11 @@ function FormEditor({
   );
   const { registerJsonEditor, getJsonModel, captureJsonSave } = useJsonEditor({
     onJsonStateChange,
+    onJsonEdit(model) {
+      const parsed = getJsonModel(model);
+      if (Result.isSuccess(parsed))
+        controller?.edit(JSON.stringify(parsed.value));
+    },
     downloadName: formName,
   });
   const { isReady: isExtensionsReady, onCreatorCreated } = useSurveyExtensions({
@@ -251,6 +263,12 @@ function FormEditor({
     markFormModified,
   });
   useCreatorJson(creator, formJson);
+  useEffect(() => {
+    if (!creator || !controller) return;
+    return captureJournal(creator, (records, json) =>
+      controller.edit(json, records as unknown as LocalEdit["records"]),
+    );
+  }, [creator, controller]);
   useCreatorTabUrl(creator);
 
   const saveCustomQuestion = useCallback(
@@ -313,8 +331,6 @@ function FormEditor({
   );
 
   const saveForm = useCallback(async () => {
-    const isDraft = false;
-
     const jsonResult = getJsonModel(creator);
     if (Result.isError(jsonResult)) {
       toast.error(jsonResult.message);
@@ -325,23 +341,10 @@ function FormEditor({
     const theme = creator?.theme as StoredTheme;
     let isThemeUpdated = false;
 
-    const updateDefinitionResult = await updateFormDefinitionJsonAction(
-      formId,
-      isDraft,
-      jsonResult.value,
-    );
-
-    if (updateDefinitionResult === undefined) {
-      toast.error("Could not proceed with updating form definition");
-      return;
-    }
-
-    if (Result.isError(updateDefinitionResult)) {
-      toast.error(
-        updateDefinitionResult.message || "Failed to update form definition",
-      );
-      return;
-    }
+    if (!controller) return;
+    if (isJsonModified) controller.edit(JSON.stringify(jsonResult.value));
+    await controller.resume();
+    if (!controller.isSaved) return;
 
     const newThemeId =
       theme?.themeName?.toLowerCase() === DEFAULT_THEME_NAME
@@ -385,9 +388,35 @@ function FormEditor({
   }, [
     getJsonModel,
     captureJsonSave,
+    controller,
+    isJsonModified,
     creator,
     formId,
     themeId,
+    setHasUnsavedChanges,
+    setIsJsonModified,
+  ]);
+
+  useEffect(() => {
+    if (draft?.view.status !== "saved" || !creator) return;
+    const parsed = getJsonModel(creator);
+    if (
+      isJsonModified &&
+      (!Result.isSuccess(parsed) ||
+        JSON.stringify(parsed.value) !== controller?.localDocument)
+    )
+      return;
+    if (captureJsonSave()()) {
+      setHasUnsavedChanges(false);
+      setIsJsonModified(false);
+    }
+  }, [
+    draft?.view,
+    creator,
+    getJsonModel,
+    captureJsonSave,
+    controller,
+    isJsonModified,
     setHasUnsavedChanges,
     setIsJsonModified,
   ]);

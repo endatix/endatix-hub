@@ -1,0 +1,13 @@
+{
+  "name": "@endatix/survey-journal",
+  "private": true,
+  "version": "0.0.0",
+  "exports": {
+    ".": "./capture.ts",
+    "./hash": "./hash.ts",
+    "./replay": "./replay.ts"
+  },
+  "peerDependencies": {
+    "survey-creator-core": "^3.2.5"
+  }
+}

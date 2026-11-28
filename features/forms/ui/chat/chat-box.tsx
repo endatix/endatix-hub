@@ -88,6 +88,7 @@ const SubmitButton = ({
 
 interface ChatBoxProps extends React.HTMLAttributes<HTMLDivElement> {
   currentDefinition?: string;
+  onDefinitionGenerated?: (json: object) => void;
   placeholder?: string;
   onFormGenerated?: () => void;
 }
@@ -96,6 +97,7 @@ const ChatBox = ({
   className,
   placeholder,
   currentDefinition,
+  onDefinitionGenerated,
   onFormGenerated,
   ...props
 }: ChatBoxProps) => {
@@ -167,6 +169,12 @@ const ChatBox = ({
       return newChatContext;
     }
 
+    if (
+      newChatContext.resultDefinition &&
+      !newChatContext.definitionErrors?.length
+    ) {
+      onDefinitionGenerated?.(newChatContext.resultDefinition);
+    }
     onFormGenerated?.();
     setInput("");
     return newChatContext;

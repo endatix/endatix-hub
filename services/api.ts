@@ -172,42 +172,6 @@ export const getActiveFormDefinition = async (
   return response.json();
 };
 
-export const updateFormDefinition = async (
-  formId: string,
-  isDraft: boolean,
-  jsonData: string,
-): Promise<void> => {
-  const session = await getSession();
-
-  if (!session.isLoggedIn) {
-    redirect("/login");
-  }
-
-  const headers = new HeaderBuilder()
-    .withAuth(session)
-    .acceptJson()
-    .provideJson()
-    .build();
-
-  const validateFormIdResult = validateEndatixId(formId, "formId");
-  if (Result.isError(validateFormIdResult)) {
-    throw new TypeError(validateFormIdResult.message);
-  }
-
-  const response = await apiFetch(
-    `${requireApiUrl()}/forms/${validateFormIdResult.value}/definition`,
-    {
-      method: "PATCH",
-      headers: headers,
-      body: JSON.stringify({ isDraft, jsonData }),
-    },
-  );
-
-  if (!response.ok) {
-    throw new Error("Failed to update form definition");
-  }
-};
-
 export const getFormTemplate = async (
   templateId: string,
 ): Promise<FormTemplate> => {

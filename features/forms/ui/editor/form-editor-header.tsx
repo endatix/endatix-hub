@@ -8,6 +8,7 @@ import {
 } from "@/lib/survey-features/survey-design/ui";
 import { FormEditorHeaderState } from "./use-form-editor-header.hook";
 import FormPublicStatus from "./form-public-status";
+import { DraftStatusBadges } from "../../edit-draft/draft-status";
 
 interface FormEditorHeaderProps extends FormEditorHeaderState {
   isCurrentThemeModified: boolean;
@@ -76,15 +77,18 @@ export default function FormEditorHeader({
         <FormPublicStatus isPublic={isPublic} />
       </div>
       <div className="flex items-center gap-2">
-        <SurveyDesignStatusBadge
-          isOnJsonTab={isOnJsonTab}
-          isJsonModified={isJsonModified}
-          hasJsonErrors={showInvalidJson}
-          hasUnsavedChanges={showUnsavedChanges}
-          isSaving={isSaving}
-          showSavedSuccess={showSavedSuccess}
-          onSavedSuccessDismiss={clearSavedSuccess}
-        />
+        <DraftStatusBadges />
+        {(showInvalidJson || isCurrentThemeModified) && (
+          <SurveyDesignStatusBadge
+            isOnJsonTab={isOnJsonTab}
+            isJsonModified={isJsonModified}
+            hasJsonErrors={showInvalidJson}
+            hasUnsavedChanges={showUnsavedChanges}
+            isSaving={isSaving}
+            showSavedSuccess={showSavedSuccess}
+            onSavedSuccessDismiss={clearSavedSuccess}
+          />
+        )}
         <SurveyDesignSaveButton
           disabled={saveDisabled}
           onClick={saveFormHandler}

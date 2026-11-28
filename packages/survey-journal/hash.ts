@@ -1,0 +1,20 @@
+/** Writer and replayer use the same key order, independently of the server's head hash. */
+export function canonicalSurvey(jsonData: string): string {
+  return JSON.stringify(JSON.parse(jsonData), (_, value) => {
+    if (value === null || typeof value !== "object" || Array.isArray(value))
+      return value;
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, value[key]]),
+    );
+  });
+}
+
+export async function writerHash(jsonData: string) {
+  const canonical = new TextEncoder().encode(canonicalSurvey(jsonData));
+  const digest = await crypto.subtle.digest("SHA-256", canonical);
+  return Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
+}
